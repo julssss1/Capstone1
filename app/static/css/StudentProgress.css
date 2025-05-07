@@ -1,0 +1,139 @@
+
+.progress-container {
+    width: 100%;
+    background-color: #e0e0e0;
+    border-radius: 15px;
+    overflow: hidden;
+    height: 12px;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--secondary-color);
+    border-radius: 15px;
+    text-align: center;
+    line-height: 12px;
+    color: white;
+    font-size: 0.8em;
+    width: 0%;
+    transition: width 0.6s ease-in-out;
+}
+
+
+
+.lesson-list {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); 
+    margin-bottom: 25px;
+}
+
+.lesson-card {
+    background: var(--bg-light);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+    border-left: 5px solid var(--secondary-color); 
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  
+}
+
+.lesson-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+    transform: translateY(-3px);
+}
+
+
+.lesson-card .card-header {
+    padding: 0;
+    text-align: left;
+    flex-shrink: 0; 
+}
+
+.lesson-card .card-header h3 {
+    font-size: 1.3em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin: 0; 
+    margin-bottom: 5px;
+   
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+
+.lesson-card .card-description {
+    font-size: 1em;
+    color: var(--text-color);
+    padding: 0;
+    text-align: left;
+    line-height: 1.6;
+    flex-grow: 1;
+    min-height: 50px; 
+    overflow-y: auto; 
+}
+
+
+.lesson-card .subject-progress-section {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.95em;
+    color: var(--text-color-light);
+    padding: 0;
+    margin-top: 15px;
+    flex-shrink: 0;
+}
+.lesson-card .subject-progress-section .progress-container {
+    flex-grow: 1;
+    background-color: #e0e0e0; 
+}
+
+.lesson-card .subject-progress-section span {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+
+.lesson-card .card-actions {
+    margin-top: auto; 
+    padding-top: 15px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center; 
+    gap: 10px;
+    flex-shrink: 0; 
+}
+
+.lesson-card .action-btn {
+    padding: 8px 16px;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+}
+
+
+.lesson-card .action-btn.view-lessons {
+    background-color: var(--primary-color); 
+}
+.lesson-card .action-btn.view-lessons:hover {
+    background-color: #3a7bc8; 
+}
+
+

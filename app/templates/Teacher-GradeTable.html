@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gradebook - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Teacher-GradeTable.css') }}">
+    
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+        
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li class="active"><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+          
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content admin-content">
+        <header class="page-header">
+            <h2>Gradebook: {{ selected_subject_name | default('Select Subject') }}</h2>
+            <p>View and manage student grades for your subjects.</p>
+             {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <form method="GET" action="{{ url_for('teacher.teacher_gradebook') }}">
+            <div class="controls-header">
+                 <div class="filter-section">
+                    <select class="filter-dropdown" name="subject_filter" title="Select a subject to load grades">
+                        <option value="">-- Select Subject --</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}" {% if selected_subject_id == subject.id|string %}selected{% endif %}>
+                                {{ subject.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                     <button type="submit" class="action-btn">Load Grades</button>
+                 </div>
+                 <button type="button" class="action-btn" onclick="alert('Export not implemented yet.')">Export Grades (CSV)</button>
+            </div>
+        </form>
+
+
+        <div class="grade-table-container">
+            {# Updated table structure to show individual submissions #}
+            <table class="grade-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Assignment</th>
+                        <th>Submitted At</th>
+                        <th class="numeric">Grade</th>
+                        <th>Feedback</th> {# Added Feedback column #}
+                        <th>Actions</th> {# Added Actions column #}
+                    </tr>
+                </thead>
+                <tbody>
+                    {# Loop through individual submissions (passed as 'grades' from route) #}
+                    {% for submission in grades %}
+                    <tr>
+                        {# Use student_display_name added in the route #}
+                        <td>{{ submission.student_display_name | default('N/A') }}</td>
+                        {# Access assignment title via nested structure #}
+                        <td>{{ submission.assignments.title | default('N/A') }}</td>
+                        {# Format timestamp if needed, showing raw for now #}
+                        <td>{{ submission.submitted_at | default('N/A') }}</td>
+                        {# Display grade, handle None #}
+                        <td class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
+                        {# Display feedback #}
+                        <td>{{ submission.feedback | default('') }}</td>
+                        <td>
+                            {# Add actions like 'View Submission' or 'Edit Grade' here later #}
+                            <button type="button" class="action-btn view" onclick="alert('View/Edit Grade not implemented yet.')">Grade/View</button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        {# Updated colspan to match new number of columns #}
+                        <td colspan="6" style="text-align: center; padding: 20px;">
+                            {% if selected_subject_id %}
+                                No grades found for this subject.
+                            {% else %}
+                                Please select a subject above to view grades.
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>

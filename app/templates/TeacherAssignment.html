@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Assignment - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignment.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+             <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li class="active"><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> 
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2>Create New Assignment</h2>
+            <p>Fill in the details below to create a new assignment for your students.</p>
+             {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <section class="assignment-form-container">
+            <form action="{{ url_for('teacher.create_assignment') }}" method="post" enctype="multipart/form-data" class="assignment-form">
+                <div class="form-group">
+                    <label for="assignment-title">Assignment Title</label>
+                    <input type="text" id="assignment-title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="assignment-description">Description</label>
+                    <textarea id="assignment-description" name="description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="assignment-subject">Subject</label>
+                    <select id="assignment-subject" name="subject_id" required>
+                        <option value="" disabled selected>Select Subject</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                        {% else %}
+                            <option value="" disabled>No subjects available</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                 <div class="form-group">
+                    <label for="assignment-due-date">Due Date</label>
+                    <input type="date" id="assignment-due-date" name="due_date" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="assignment-file">Attach File (Optional)</label>
+                    <input type="file" id="assignment-file" name="assignment_file">
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Create Assignment</button>
+                    <a href="{{ url_for('teacher.teacher_dashboard') }}" class="btn btn-secondary">Cancel</a>
+                </div>
+            </form>
+        </section>
+
+    </main>
+</body>
+</html>

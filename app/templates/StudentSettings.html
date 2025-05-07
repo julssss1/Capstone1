@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Settings - Handspoken CAES</title> {# Updated Title #}
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    {# Link Dashboard CSS for layout FIRST #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    {# Link Settings CSS for form styling SECOND #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentSettings.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> <!-- Font Awesome CDN -->
+    {# Link the new JS file #}
+    <script src="{{ url_for('static', filename='js/student_settings.js') }}" defer></script>
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                 {# Updated active class #}
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li class="active"><a href="{{ url_for('student.student_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- Student Info Header -->
+        <header class="student-info-header">
+            <div class="profile-picture-container">
+                {# Use the dynamic avatar_url passed from the route #}
+                <img src="{{ avatar_url }}" alt="Profile Picture" class="profile-picture">
+            </div>
+            <div class="student-details">
+                {# Display dynamic user name passed from the route #}
+                <p><strong>Full Name:</strong> {{ user_name }}</p>
+                {# Keep Grade and Level static for now as requested #}
+                <p><strong>Grade:</strong> 1</p>
+                <p><strong>Level:</strong> Level 2 Neophyte</p>
+            </div>
+            <div class="student-contact">
+                 {# Display dynamic user email passed from the route #}
+                 <p><strong>Email:</strong> {{ user_email }}</p>
+            </div>
+        </header>
+
+        <!-- Account Settings Section -->
+        <section class="settings-container">
+             <h2>Account Settings</h2>
+            <!-- Display Flashed Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+             <div class="settings-section profile-picture-section">
+                 {# Add ID to form, remove onsubmit #}
+                 <form id="profilePictureForm" action="{{ url_for('student.update_profile') }}" method="post" enctype="multipart/form-data" class="settings-form">
+                     <label>Change profile picture:</label>
+                     {# Ensure input has name="profile_picture" and correct ID #}
+                     <input type="file" id="profile_picture_upload" name="profile_picture" accept="image/*" style="display: none;" required>
+                     {# Add ID to Choose button, remove onclick #}
+                     <button type="button" id="choosePictureBtn" class="btn upload-btn">Choose Picture</button>
+                     {# Add ID to Upload button, change type to button #}
+                     <button type="button" id="uploadPictureBtn" class="btn save-btn">Upload Picture</button>
+                     {# Optional: Add JS to show selected filename #}
+                 </form>
+             </div>
+
+            <div class="settings-section password-section">
+                <form action="{{ url_for('student.change_password') }}" method="post" class="settings-form">
+                     <label class="password-section-label">Change password:</label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="current_password">Old Password:</label>
+                            <input type="password" id="current_password" name="current_password" placeholder="Enter current password" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="new_password">New Password:</label>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password" required>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                         <button type="submit" class="btn save-btn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    {# Removed password confirmation script #}
+</body>
+</html>

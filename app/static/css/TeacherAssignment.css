@@ -1,0 +1,118 @@
+
+
+.assignment-form-container {
+    background-color: var(--bg-light);
+    border-radius: 10px;
+    padding: 30px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.assignment-form .form-group {
+    margin-bottom: 20px;
+}
+
+.assignment-form label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color-light);
+    font-size: 0.95em;
+}
+
+.assignment-form input[type="text"],
+.assignment-form textarea,
+.assignment-form select,
+.assignment-form input[type="date"] {
+    width: 100%;
+    padding: 12px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 1em;
+    font-family: var(--font-family);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.assignment-form input[type="text"]:focus,
+.assignment-form textarea:focus,
+.assignment-form select:focus,
+.assignment-form input[type="date"]:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.2); /* Light blue focus ring */
+}
+
+.assignment-form textarea {
+    resize: vertical; /* Allow vertical resizing */
+    min-height: 100px;
+}
+
+.assignment-form input[type="file"] {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95em;
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+.assignment-form input[type="file"]::file-selector-button {
+    padding: 8px 15px;
+    margin-right: 10px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.assignment-form input[type="file"]::file-selector-button:hover {
+    background-color: #45ccb0; /* Slightly darker secondary color */
+}
+
+.assignment-form .form-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end; /* Align buttons to the right */
+}
+
+/* Basic Button Styling (can be expanded) */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none; /* For link buttons */
+    text-align: center;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.1s ease;
+}
+
+.btn-primary {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: #3a7bc8; /* Darker primary */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+    background-color: #e0e5eb; /* Light gray */
+    color: var(--text-color-light);
+    border: 1px solid #ced4da;
+}
+
+.btn-secondary:hover {
+    background-color: #ced4da; /* Darker gray */
+    color: var(--text-color);
+}
+
+.btn:active {
+    transform: translateY(1px);
+}

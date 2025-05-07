@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li class="active"><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li> 
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li> 
+                <li><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li> 
+                <li><a href="{{ url_for('student.student_settings') }}"><i class="fas fa-cog"></i> Settings</a></li> 
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="cover-photo-container">
+            <img src="{{ url_for('static', filename='Images/cecilio.jpg') }}" alt="Cecilio Apostol Elementary School Cover Photo" class="cover-photo">
+        </div>
+        <header class="page-header">
+            <h2>Welcome to your Dashboard!</h2>
+            <p>Practice your signs and complete your assignments.</p>
+    
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <section class="assignments-overview">
+             <h3>Assignments Overview</h3>
+             {% if assignments %}
+                 {% for assignment in assignments %}
+                 <div class="assignment-card {% if assignment.status == 'Completed' %}completed{% endif %}">
+                    <div class="card-icon">
+                        <span>{% if assignment.status == 'Completed' %}✅{% else %}📚{% endif %}</span>
+                    </div>
+                    <div class="card-details">
+                        <p class="card__content">{{ assignment.title }}</p>
+                        <div class="card__date">
+                            {% if assignment.status == 'Completed' %}
+                                Completed: {{ assignment.completed_at | format_datetime if assignment.completed_at else 'N/A' }}
+                            {% elif assignment.due_date %}
+                                Due: {{ assignment.due_date | format_datetime }}
+                            {% else %}
+                                No Due Date
+                            {% endif %}
+                        </div>
+                    </div>
+        
+                    <a href="{{ assignment.url | default('#') }}" class="card__arrow" aria-label="View Assignment Details">
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18"><path fill="#fff" d="M13.4697 17.9697C13.1768 18.2626 13.1768 18.7374 13.4697 19.0303C13.7626 19.3232 14.2374 19.3232 14.5303 19.0303L20.3232 13.2374C21.0066 12.554 21.0066 11.446 20.3232 10.7626L14.5303 4.96967C14.2374 4.67678 13.7626 4.67678 13.4697 4.96967C13.1768 5.26256 13.1768 5.73744 13.4697 6.03033L18.6893 11.25H4C3.58579 11.25 3.25 11.5858 3.25 12C3.25 12.4142 3.58579 12.75 4 12.75H18.6893L13.4697 17.9697Z"></path></svg>
+                   </a>
+                 </div>
+                 {% endfor %}
+             {% else %}
+                 <p>No assignments found.</p>
+             {% endif %}
+        </section>
+
+    
+
+        <section class="practice-section">
+            <div class="practice-module">
+                <h3>Practice a Sign</h3>
+                <div id="sign-buttons">
+                    <p>Select a sign below to start practicing:</p>
+                    {% for sign in available_signs %}
+                        <button class="sign-btn">{{ sign }}</button>
+                    {% else %}
+                        <p>No practice signs available.</p>
+                    {% endfor %}
+                </div>
+                <div id="sign-tips-area" style="display: none;">
+                    <h4>Tips for <span id="tip-sign-letter"></span>:</h4>
+                    <p id="tip-text"></p>
+                </div>
+                <div id="target-sign-display">
+                    <p id="instruction-text">Select a sign above to begin.</p>
+                    <div class="image-placeholder">
+                       <img id="target-image" src="" alt="Sign to practice" style="display: none;">
+                       <span id="image-placeholder-text">Sign image appears here</span>
+                    </div>
+                    <div id="feedback" class="status-waiting">Waiting for practice...</div>
+                </div>
+                <div id="debug-info" style="display: none;">
+                    Stable Detected: <span id="detected-sign-display">...</span>
+                </div>
+            </div>
+
+            <div class="video-module">
+                 <h3>Your Camera Feed</h3>
+                 <button id="start-camera-btn">Start Camera</button>
+                 <div class="video-container">
+                    <img id="video-feed">
+                    <p id="video-placeholder-text">Click "Start Camera" above to begin.</p>
+                 </div>
+                 <p class="camera-note">Ensure good lighting and clear view of your hand.</p>
+            </div>
+        </section>
+    </main>
+    <script>
+        const predictionUrl = "{{ url_for('student.get_prediction') }}";
+        const videoFeedUrl = "{{ url_for('student.video_feed') }}";
+        const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
+    </script>
+<script src="{{ url_for('static', filename='js/StudentDashboard.js') }}" defer></script>
+</body>
+</html>

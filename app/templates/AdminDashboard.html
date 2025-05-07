@@ -1,0 +1,86 @@
+<!-- --- START OF FILE templates/AdminDashboard.html --- -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminDashboard.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Admin Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+              
+                <li class="active"><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.admin_user_management') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
+                <li><a href="{{ url_for('admin.admin_subject_management') }}"><i class="fas fa-book-open"></i> Subject Management</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> 
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Admin</strong></p>
+             <p>Welcome, {{ user_name | default('Admin') }}</p>
+            
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="cover-photo-container">
+            <img src="{{ url_for('static', filename='Images/cecilio.jpg') }}" alt="Cecilio Apostol Elementary School Cover Photo" class="cover-photo">
+        </div>
+        <header class="page-header">
+            <h2>Admin Dashboard</h2>
+            <p>Overview of the Handspoken CAES platform.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <section class="dashboard-stats">
+            <div class="stat-card students">
+                <div class="card-icon"><i class="fas fa-users"></i></div>
+                <div class="card-info">
+                    <h3>{{ student_count | default('N/A') }}</h3>
+                    <span>Total Students</span>
+                </div>
+            </div>
+            <div class="stat-card teachers">
+                <div class="card-icon"><i class="fas fa-chalkboard-teacher"></i></div>
+                <div class="card-info">
+                     <h3>{{ teacher_count | default('N/A') }}</h3>
+                    <span>Total Teachers</span>
+                </div>
+            </div>
+            <div class="stat-card subjects">
+                 <div class="card-icon"><i class="fas fa-book-open"></i></div>
+                <div class="card-info">
+                     <h3>{{ subject_count | default('N/A') }}</h3>
+                    <span>Total Subjects</span>
+                </div>
+            </div>
+        </section>
+
+        <section class="recent-activity">
+            <h3>Recent Platform Activity</h3>
+            <p>Activity log coming soon...</p>
+        </section>
+    </main>
+
+</body>
+</html>

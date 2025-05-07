@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentAssignment.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+            
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li class="active"><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="{{ url_for('student.student_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+    
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <section class="assignment-details">
+            <h2>Assignment 1: Basic Greetings</h2>
+            <p class="due-date">Due: June 25, 2025</p>
+            <div class="instructions">
+                <h3>Instructions:</h3>
+                <p>Watch the provided videos for each sign. Then, use the practice tool on your dashboard to record yourself performing the sign. Submit the video links or files below.</p>
+            </div>
+        </section>
+
+        <section class="assignment-tasks">
+            <h3>Tasks:</h3>
+            <div class="task-item">
+                <h4>Task 1: Sign for "Hello"</h4>
+                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
+                <div class="submission-area">
+                    <label for="task1-submission">Submit your practice video:</label>
+                    <input type="file" id="task1-submission" name="task1_submission" accept="video/*">
+                    <span>or</span>
+                    <input type="url" id="task1-link" name="task1_link" placeholder="Paste video link here">
+                </div>
+            </div>
+
+            <div class="task-item">
+                <h4>Task 2: Sign for "Thank You"</h4>
+                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
+                <div class="submission-area">
+                    <label for="task2-submission">Submit your practice video:</label>
+                    <input type="file" id="task2-submission" name="task2_submission" accept="video/*">
+                    <span>or</span>
+                    <input type="url" id="task2-link" name="task2_link" placeholder="Paste video link here">
+                </div>
+            </div>
+
+             <div class="task-item">
+                <h4>Task 3: Sign for "Goodbye"</h4>
+                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
+                <div class="submission-area">
+                    <label for="task3-submission">Submit your practice video:</label>
+                    <input type="file" id="task3-submission" name="task3_submission" accept="video/*">
+                    <span>or</span>
+                    <input type="url" id="task3-link" name="task3_link" placeholder="Paste video link here">
+                </div>
+            </div>
+        </section>
+
+        <section class="assignment-submission">
+            <button type="submit" class="submit-button">Submit Assignment</button>
+        </section>
+    </main>
+
+</body>
+</html>

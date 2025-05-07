@@ -1,0 +1,610 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --primary-color: #4A90E2;
+    --secondary-color: #50E3C2;
+    --accent-color: #F5A623;
+    --text-color: #333;
+    --text-color-light: #555;
+    --bg-color: #F7F9FC;
+    --bg-light: #FFFFFF;
+    --border-color: #E0E5EB;
+    --shadow-color: rgba(0, 0, 0, 0.08);
+    --font-family: 'Poppins', sans-serif;
+}
+
+html {
+    height: 100%;
+}
+
+body {
+    font-family: var(--font-family);
+    display: flex;
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+.side-menu {
+    background: var(--bg-light);
+    width: 260px;
+    padding: 25px 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    border-right: 1px solid var(--border-color);
+    box-shadow: 2px 0 10px var(--shadow-color);
+}
+
+.side-menu .brand-logo {
+    padding: 0 25px 20px 25px;
+    text-align: center;
+    border-bottom: 1px solid var(--border-color);
+    margin-bottom: 20px;
+}
+
+.side-menu .brand-logo img {
+    max-width: 80px;
+    margin-bottom: 10px;
+}
+
+.side-menu .brand-logo h1 {
+    font-size: 1.6em;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 2px;
+}
+
+.side-menu .brand-logo span {
+    font-size: 0.9em;
+    color: var(--text-color-light);
+}
+
+.side-menu .navigation {
+    flex-grow: 1;
+}
+
+.side-menu .navigation ul {
+    list-style: none;
+}
+
+.side-menu .navigation li {
+    margin: 5px 0;
+}
+
+.side-menu .navigation li a {
+    font-size: 1em;
+    font-weight: 500;
+    padding: 12px 25px;
+    color: var(--text-color-light);
+    display: block;
+    text-decoration: none;
+    border-left: 4px solid transparent;
+    transition: all 0.3s ease;
+}
+
+/* Style for icons within nav links */
+.side-menu .navigation li a i {
+    margin-right: 8px; /* Add space between icon and text */
+    width: 1.1em; /* Ensure icons have a consistent width */
+    text-align: center; /* Center icon if width is applied */
+}
+
+.side-menu .navigation li a:hover {
+    background: var(--bg-color);
+    color: var(--primary-color);
+    border-left-color: var(--accent-color);
+}
+
+.side-menu .navigation li.active a {
+    background: var(--bg-color);
+    color: var(--primary-color);
+    font-weight: 600;
+    border-left-color: var(--primary-color);
+}
+
+.side-menu .user-info {
+    padding: 20px 25px;
+    border-top: 1px solid var(--border-color);
+    font-size: 0.9em;
+    color: var(--text-color-light);
+}
+
+.side-menu .user-info p {
+    margin-bottom: 10px;
+}
+.side-menu .user-info strong {
+    color: var(--text-color);
+    font-weight: 600;
+}
+
+.logout-button {
+    display: block;
+    width: 100%;
+    padding: 8px 10px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    text-align: center;
+    text-decoration: none;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.logout-button:hover {
+    background-color: #c0392b;
+}
+
+.main-content {
+    margin-left: 260px;
+    flex-grow: 1;
+    padding: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+    min-height: 100vh;
+}
+
+.page-header {
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.page-header h2 {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: var(--text-color);
+    margin-bottom: 5px;
+}
+.cover-photo-container {
+    width: 100%; 
+    margin-bottom: 30px; 
+    border-radius: 10px; 
+    background-color: var(--border-color); 
+    box-shadow: 0 4px 10px var(--shadow-color); 
+    line-height: 0; 
+}
+
+.cover-photo {
+    display: block; 
+    width: 100%; 
+    height: 100%; 
+    border-radius: 10px;
+}
+.page-header p {
+    font-size: 1em;
+    color: var(--text-color-light);
+}
+
+.assignments-overview {
+    background-color: var(--bg-light);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.assignments-overview h3 {
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.assignment-card {
+    background: #f9f9f9;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+    position: relative;
+}
+
+.assignment-card:hover {
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+.assignment-card .card-icon {
+    font-size: 1.8em;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+}
+
+.assignment-card .card-details {
+    flex-grow: 1;
+}
+
+.assignment-card .card__content {
+    font-weight: 500;
+    font-size: 1.05em;
+    color: var(--text-color);
+    margin-bottom: 3px;
+}
+
+.assignment-card .card__date {
+    color: var(--text-color-light);
+    font-size: 0.85em;
+}
+
+.assignment-card .card__arrow {
+    background: var(--primary-color);
+    color: white;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    flex-shrink: 0;
+    transition: background-color 0.2s, transform 0.2s;
+}
+
+.assignment-card:hover .card__arrow {
+    background: #3a7bc8;
+    transform: translateX(3px);
+}
+
+.assignment-card.completed {
+    background-color: #e8f5e9;
+    border-color: #c8e6c9;
+}
+.assignment-card.completed .card__content {
+    text-decoration: line-through;
+    color: #66bb6a;
+}
+.assignment-card.completed .card__arrow {
+    background: #66bb6a;
+}
+.assignment-card.completed:hover .card__arrow {
+    background: #4caf50;
+}
+
+
+.practice-section {
+    display: flex;
+    gap: 30px;
+    flex-grow: 1;
+    align-items: stretch;
+}
+
+.practice-module {
+    background-color: var(--bg-light);
+    flex: 3;
+    padding: 25px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.practice-module h3 {
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+    text-align: center;
+}
+
+#sign-buttons {
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+#sign-buttons p {
+    margin-bottom: 15px;
+    color: var(--text-color-light);
+    font-weight: 500;
+    font-size: 1em;
+}
+
+#sign-buttons .sign-btn {
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    margin: 5px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.95em;
+    font-weight: 500;
+    transition: background-color 0.3s ease, transform 0.1s ease, box-shadow 0.2s ease;
+}
+
+#sign-buttons .sign-btn:hover {
+    background-color: #3a7bc8;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#sign-buttons .sign-btn:active {
+    transform: scale(0.97);
+}
+
+#sign-buttons .sign-btn.active {
+    background-color: var(--accent-color);
+    font-weight: 600;
+    box-shadow: 0 0 10px rgba(245, 166, 35, 0.4);
+}
+
+#target-sign-display {
+    margin-top: 15px;
+    flex-grow: 1;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-top: 1px solid var(--border-color);
+    padding-top: 20px;
+    min-height: 250px;
+}
+
+#target-sign-display p#instruction-text {
+    font-size: 1.1em;
+    margin-bottom: 15px;
+    color: var(--text-color);
+    font-weight: 500;
+    min-height: 1.5em;
+    text-align: center;
+}
+.image-placeholder {
+    width: 150px;
+    height: 150px;
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 20px;
+    background-color: #f8f8f8;
+    position: relative;
+}
+#target-image {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    border-radius: 4px;
+    display: none;
+    background-color: transparent;
+    border: none;
+}
+
+#image-placeholder-text {
+    position: absolute;
+    font-size: 0.9em;
+    color: var(--text-color-light);
+    text-align: center;
+    padding: 10px;
+}
+
+#target-image[src]:not([src=""]) + #image-placeholder-text {
+    display: none;
+}
+#target-image[src]:not([src=""]) {
+    display: block;
+}
+#sign-tips-area {
+    background-color: #eef4fc; /* Light blue background */
+    border: 1px solid #c9dfff; /* Slightly darker blue border */
+    border-radius: 8px;
+    padding: 15px;
+    margin-top: 15px; /* Space above */
+    margin-bottom: 20px; /* Space below before target display */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+#sign-tips-area h4 {
+    color: var(--primary-color); /* Use primary blue */
+    font-size: 1.1em;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+#sign-tips-area p#tip-text {
+    color: var(--text-color-light); 
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+#target-sign-display {
+    margin-top: 15px; 
+}
+
+#sign-buttons {
+    margin-bottom: 15px; /* Slightly reduce space if tips add vertical height */
+}
+
+.video-module #start-camera-btn {
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background-color 0.3s ease;
+}
+.video-module #start-camera-btn:hover {
+    background-color: #3a7bc8;
+}
+.video-container #video-placeholder-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Center the text */
+    color: var(--text-color-light);
+    text-align: center;
+    padding: 20px;
+    width: 90%; /* Adjust width as needed, prevent overflow */
+}
+/* Hide placeholder text when video is active/loading */
+.video-container img[src]:not([src=""]) + #video-placeholder-text {
+     display: none;
+}
+ /* Hide placeholder text if button is hidden (meaning attempting to load) */
+.video-module #start-camera-btn[style*="display: none"] + .video-container #video-placeholder-text {
+      display: none; 
+}
+/* Hide button once video source is set */
+.video-module #start-camera-btn.hidden {
+    display: none;
+}
+#feedback {
+    margin-top: 10px;
+    font-size: 1.15em;
+    font-weight: 600;
+    min-height: 35px;
+    padding: 8px 15px;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+    text-align: center;
+    width: 80%;
+    max-width: 300px;
+}
+
+#feedback.status-waiting { background-color: #e0e5eb; color: var(--text-color-light); }
+#feedback.status-success { background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+#feedback.status-incorrect { background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
+#feedback.status-holding { background-color: #fff3cd; color: #856404; border: 1px solid #ffeeba;}
+
+#debug-info {
+    margin-top: 20px;
+    font-size: 0.85em;
+    color: #aaa;
+    border-top: 1px dashed #ccc;
+    padding-top: 10px;
+    text-align: center;
+    width: 100%;
+}
+
+.video-module {
+    background-color: var(--bg-light);
+    flex: 2;
+    padding: 25px;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 15px var(--shadow-color);
+}
+
+.video-module h3 {
+    font-size: 1.4em;
+    font-weight: 600;
+    margin-bottom: 20px;
+    color: var(--primary-color);
+}
+
+.video-container {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #222;
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative; 
+    margin-bottom: 15px;
+}
+
+#video-feed {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.camera-note {
+    font-size: 0.9em;
+    color: var(--text-color-light);
+    text-align: center;
+}
+.alert { 
+    padding: 15px; 
+    margin-bottom: 20px; 
+    border: 1px solid transparent; 
+    border-radius: 4px; 
+}
+.alert-success { 
+    color: #155724; 
+    background-color: #d4edda; 
+    border-color: #c3e6cb; }
+.alert-info { 
+    color: #0c5460; 
+    background-color: #d1ecf1; 
+    border-color: #bee5eb; 
+}
+.alert-warning { 
+    color: #856404; 
+    background-color: #fff3cd; 
+    border-color: #ffeeba; 
+}
+.alert-danger { 
+    color: #721c24; 
+    background-color: #f8d7da; 
+    border-color: #f5c6cb; 
+}
+
+@media (max-width: 1200px) {
+    .practice-section {
+        flex-direction: column;
+    }
+    .practice-module, .video-module {
+        flex: 1;
+    }
+}
+
+@media (max-width: 768px) {
+    .side-menu {
+        width: 60px;
+        overflow: hidden;
+    }
+    .side-menu .brand-logo h1,
+    .side-menu .brand-logo span,
+    .side-menu .navigation li a span,
+    .side-menu .user-info {
+        display: none;
+    }
+    .side-menu .navigation li a {
+        padding: 15px;
+        text-align: center;
+        border-left: none;
+        border-bottom: 4px solid transparent;
+    }
+     .side-menu .navigation li.active a {
+        border-left-color: transparent;
+        border-bottom-color: var(--primary-color);
+    }
+     .side-menu .brand-logo {
+         padding: 15px;
+     }
+     .cover-photo-container {
+        margin-bottom: 20px; 
+    }
+    .main-content {
+        margin-left: 60px;
+        padding: 15px;
+    }
+    .page-header h2 { font-size: 1.5em; }
+    .assignments-overview h3, .practice-module h3, .video-module h3 { font-size: 1.2em; }
+}

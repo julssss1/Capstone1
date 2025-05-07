@@ -1,0 +1,170 @@
+.student-info-header {
+    display: flex;
+    align-items: center;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 30px;
+    border-radius: 8px 8px 0 0;
+}
+
+.profile-picture-container {
+    margin-right: 20px;
+}
+
+.profile-picture {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #ccc;
+}
+
+.student-details {
+    flex-grow: 1;
+}
+
+.student-details p,
+.student-contact p {
+    margin: 5px 0;
+    color: #333;
+    font-size: 1em;
+}
+
+.student-details p strong,
+.student-contact p strong {
+    color: #000;
+    margin-right: 5px;
+}
+
+.student-contact {
+    text-align: right;
+}
+
+.settings-container {
+    padding: 30px;
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    margin-top: 0;
+    border: 1px solid #e0e0e0;
+    position: relative;
+}
+
+.settings-container h2 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+    font-size: 1.6em;
+    font-weight: 600;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 15px;
+}
+
+.settings-section {
+    margin-bottom: 30px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid #eee;
+}
+
+.settings-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.settings-section > label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: #444;
+    font-size: 1.1em;
+}
+
+.profile-picture-section .upload-btn {
+    background-color: #e9ecef;
+    color: #495057;
+    border: 1px solid #ced4da;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.95em;
+    transition: background-color 0.2s ease;
+}
+
+.profile-picture-section .upload-btn:hover {
+    background-color: #dee2e6;
+}
+
+.password-section .settings-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.password-section-label {
+    display: block;
+    margin-bottom: 15px;
+    font-weight: 500;
+    color: #444;
+    font-size: 1.1em;
+}
+
+.form-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.password-section .form-group {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.password-section .form-group label {
+    font-weight: 500;
+    color: #555;
+    font-size: 1em;
+}
+
+.password-section .form-group input[type="password"] {
+    padding: 12px 15px;
+    border: 1px solid #ced4da;
+    border-radius: 20px;
+    font-size: 1em;
+    outline: none;
+    transition: border-color 0.2s ease;
+}
+
+.password-section .form-group input[type="password"]:focus {
+    border-color: #80bdff;
+}
+
+.password-section .form-group input[type="password"]::placeholder {
+    color: #adb5bd;
+    font-style: italic;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 10px;
+}
+
+.save-btn {
+    padding: 10px 25px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 1em;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+}
+
+.save-btn:hover {
+    background-color: #0056b3;
+}

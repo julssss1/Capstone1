@@ -1,0 +1,153 @@
+.main-content {
+    padding: 20px;
+    font-family: 'Poppins', sans-serif;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.page-header h2 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+
+.back-button {
+    padding: 8px 15px;
+    background-color: #f0f0f0;
+    color: #555;
+    border-radius: 5px;
+    text-decoration: none;
+    font-size: 0.9em;
+    transition: background-color 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #e0e0e0;
+}
+
+.lessons-container {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.lesson-item-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.lesson-header {
+    background-color: #e9eff5;
+    padding: 15px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #d8dfe5;
+}
+
+.lesson-header h3 {
+    margin: 0;
+    font-size: 1.3em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.lesson-progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9em;
+    color: #555;
+}
+
+.progress-bar-container {
+    width: 150px;
+    height: 12px;
+    background-color: #dcdcdc;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: #77aaff;
+    border-radius: 6px;
+    transition: width 0.5s ease-in-out;
+}
+
+.lesson-progress span {
+    white-space: nowrap;
+}
+
+.lesson-details {
+    padding: 20px;
+    background-color: #f8f9fa;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lesson-link {
+    color: #3498db;
+    text-decoration: none;
+    font-size: 1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.3s ease;
+}
+
+.lesson-link i {
+    width: 16px;
+    text-align: center;
+    color: #555;
+}
+
+.lesson-link:hover {
+    color: #2980b9;
+    text-decoration: underline;
+}
+
+.lesson-link.disabled {
+    color: #aaa;
+    pointer-events: none;
+    cursor: default;
+}
+
+.lesson-link.disabled:hover {
+    text-decoration: none;
+}
+
+.lessons-container > p {
+    padding: 20px;
+    text-align: center;
+    color: #777;
+    background-color: #f9f9f9;
+    border-radius: 5px;
+}
+
+@media (max-width: 768px) {
+    .lesson-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .lesson-progress {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .progress-bar-container {
+        width: 100px;
+    }
+}

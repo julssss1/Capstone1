@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Dashboard - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}">
+  
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+    
+                <li class="active"><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> 
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <div class="cover-photo-container">
+            <img src="{{ url_for('static', filename='Images/cecilio.jpg') }}" alt="Cecilio Apostol Elementary School Cover Photo" class="cover-photo">
+        </div>
+        <header class="page-header">
+            <h2>Teacher Dashboard</h2>
+            <p>Welcome back! Manage your lessons and student progress.</p>
+             {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <section class="dashboard-stats">
+            <div class="stat-card assignments">
+                <div class="card-icon"><i class="fas fa-tasks"></i></div>
+                <div class="card-info">
+                    <h3>{{ pending_assignments_count | default('N/A') }}</h3>
+                    <span>Pending Assignments</span>
+                </div>
+            </div>
+            <div class="stat-card students">
+                <div class="card-icon"><i class="fas fa-users"></i></div>
+                <div class="card-info">
+                    <h3>{{ total_students_count | default('N/A') }}</h3>
+                    <span>Total Students</span>
+                </div>
+            </div>
+             <div class="stat-card classes">
+                 <div class="card-icon"><i class="fas fa-book"></i></div>
+                <div class="card-info">
+                     <h3>{{ subjects_taught_count | default('N/A') }}</h3>
+                    <span>Subjects Taught</span>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="quick-actions">
+            <h3>Quick Actions</h3>
+            <a href="{{ url_for('teacher.create_assignment') }}" class="action-link">Create New Assignment</a>
+            <a href="{{ url_for('teacher.teacher_gradebook') }}" class="action-link">View Gradebook</a>
+            <a href="{{ url_for('teacher.teacher_lessons') }}" class="action-link">Manage Lessons</a>
+        </section>
+    </main>
+</body>
+</html>

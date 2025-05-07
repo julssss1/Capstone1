@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>My Subjects/Lessons - Handspoken CAES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/Teacher-subject.css') }}">
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li class="active"><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content admin-content">
+        <header class="page-header">
+            <h2>My Subjects & Lessons</h2>
+            <p>Manage content, assignments, and grades for your assigned subjects.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+         <div class="controls-header">
+         </div>
+        <section class="lesson-list">
+            {% for lesson in teacher_lessons %}
+            <div class="lesson-card">
+                <div class="card-header">
+                    <h3>{{ lesson.name }}</h3>
+                    <span>{{ lesson.student_count }} Students</span>
+                </div>
+                <div class="card-actions">
+                     <a href="" class="action-btn manage">Manage Content</a>
+                     <a href="{{ url_for('teacher.create_assignment_for_lesson', lesson_id=lesson.id) }}" class="action-btn assignment">New Assignment</a>
+                     <a href="{{ url_for('teacher.teacher_gradebook', subject_filter=lesson.id) }}" class="action-btn grades">View Grades</a>
+                </div>
+            </div>
+            {% else %}
+                <p>You are not currently assigned to any subjects or lessons.</p>
+            {% endfor %}
+        </section>
+    </main>
+</body>
+</html>

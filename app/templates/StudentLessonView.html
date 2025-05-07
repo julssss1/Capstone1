@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject_name | default('Lesson') }} - Handspoken</title>
+    {# Load base dashboard styles #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    {# Load specific lesson view styles #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentLessonView.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    {# Use the same sidebar structure and classes as StudentDashboard.html #}
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="{{ url_for('student.student_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    {# Main content area for the lesson #}
+    <main class="main-content">
+        <header class="page-header">
+            {# Display Subject Name #}
+            <h2>{{ subject_name | default('Lesson Content') }}</h2>
+            {# Updated back button to point to the lesson list for the subject #}
+            {# Ensure subject_id is passed to this template from the route #}
+            {% if subject_id %}
+            <a href="{{ url_for('student.view_subject_lessons', subject_id=subject_id) }}" class="back-button">&larr; Back to Lessons</a>
+            {% else %}
+            {# Fallback if subject_id is somehow missing #}
+            <a href="{{ url_for('student.student_progress') }}" class="back-button">&larr; Back to Subjects</a>
+            {% endif %}
+        </header>
+
+        {# Display Flashed Messages #}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div> {# Assumes alert styles are in StudentDashboard.css #}
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {# Lesson Content Area - Updated to use lesson_data and lesson_data.content #}
+        <section class="lesson-content-area">
+            {# Check if lesson_data exists and its content is a list #}
+            {% if lesson_data and lesson_data.content and lesson_data.content is iterable and lesson_data.content is not string %}
+                {# Optional: Display lesson title and description if they exist #}
+                {% if lesson_data.title %}<h4>{{ lesson_data.title }}</h4>{% endif %}
+                {% if lesson_data.description %}<p>{{ lesson_data.description }}</p>{% endif %}
+
+                <div class="lesson-items-grid">
+                    {# Loop through items within the lesson_data.content JSON #}
+                    {% for item in lesson_data.content %}
+                    <div class="lesson-item-card">
+                        {# Assuming each item in content has 'image_filename', 'name', 'description' #}
+                        {# Corrected path: Images are directly in app/static/Images/ #}
+                        {% set image_path = 'Images/' + item.image_filename if item.image_filename else '' %}
+                        {% if image_path %}
+                            <img src="{{ url_for('static', filename=image_path) }}" alt="{{ item.name | default('Lesson Item') }}">
+                        {% else %}
+                            <div class="image-placeholder">No Image</div>
+                        {% endif %}
+                        <div class="item-info">
+                            <h3>{{ item.name | default('Unnamed Item') }}</h3>
+                            {% if item.description %}
+                                <p>{{ item.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                {# Updated message for no content #}
+                <p>No lesson content available for this subject yet, or the content is not formatted correctly.</p>
+            {% endif %}
+        </section>
+
+    </main> {# End main-content #}
+
+</body>
+</html>
