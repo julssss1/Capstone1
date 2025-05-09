@@ -14,6 +14,7 @@ Our system seeks to provide a tool that students can use both in the classroom a
 - [Student Learning Experience: How Students Train with HandSpoken](#student-learning-experience-how-students-train-with-handspoken)
 - [Our Training Process for the AI (Simplified)](#our-training-process-for-the-ai-simplified)
 - [Current Focus and Progress](#current-focus-and-progress)
+- [Setup and Installation](#setup-and-installation)
 
 ## Project Goals and Motivation
 
@@ -191,3 +192,39 @@ Our immediate goal is to expand our dataset and model capabilities to accurately
 The platform is specifically tailored for the young, hearing-impaired students of **Cecilio Apostol Elementary School** and focuses on Filipino Sign Language (FSL), not including regional sign variations at this stage. The effectiveness of AI gesture recognition can also be influenced by factors like lighting, camera quality, and hand positioning.
 
 We believe HandSpoken has immense potential to positively impact the education of deaf students, and we are excited to continue its development!
+
+## Setup and Installation
+
+To run this project locally, you'll need Python installed. It's highly recommended to use a virtual environment.
+
+1.  **Clone the repository (if you haven't already):**
+    ```bash
+    git clone <your-repository-url>
+    cd HandSpoken 
+    ```
+
+2.  **Create and activate a virtual environment:**
+    *   On Windows:
+        ```bash
+        python -m venv venv
+        .\venv\Scripts\activate
+        ```
+    *   On macOS/Linux:
+        ```bash
+        python3 -m venv venv
+        source venv/bin/activate
+        ```
+
+3.  **Install the required Python packages:**
+    ```bash
+    pip install Flask python-dotenv supabase opencv-python mediapipe tensorflow numpy
+    ```
+    
+4.  **Ensure Model and Landmark Files are Present:**
+    *   Make sure `landmark_model.h5` (trained TensorFlow/Keras model) and `hand_landmarks.pkl` (containing class names and possibly training data structure) are in the root directory of the project.
+
+6.  **Run the Application:**
+     ```bash
+     python run.py
+     ```
+    The application should then be accessible at `http://127.0.0.1:5000`.
