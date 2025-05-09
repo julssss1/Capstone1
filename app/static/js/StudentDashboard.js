@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // --- Get references to HTML elements ---
     const startCameraButton = document.getElementById('start-camera-btn');
     const videoFeedElement = document.getElementById('video-feed');
     const videoPlaceholderText = document.getElementById('video-placeholder-text');
@@ -14,14 +13,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipSignLetter = document.getElementById('tip-sign-letter');
     const tipText = document.getElementById('tip-text');
 
-    // --- State Variables ---
     let predictionInterval = null;
     let currentPracticeSign = null;
     let lastStablePrediction = null;
     let successStartTime = null;
     const SUCCESS_HOLD_TIME = 1500;
 
-    // --- Sign Tips Data ---
     const signTips = {
         'A': "Make a fist, thumb alongside index finger.", 'B': "Flat hand, fingers together, thumb across palm.",
         'C': "Curve hand like 'C'.", 'D': "Index up, others form circle with thumb.",
@@ -38,12 +35,10 @@ document.addEventListener('DOMContentLoaded', function() {
         'Y': "Thumb and pinky out.", 'Z': "Draw 'Z' with index finger.",
         'Hello': "Wave hand from forehead outwards.", 'Thank You': "Flat hand chin to forward.",
         'I Love You': "Extend thumb, index, pinky.",
-        // ... Add all other signs your model knows
     };
 
-    // --- Event Listeners ---
     if (startCameraButton) {
-        startCameraButton.addEventListener('click', startCamera); // Use the modified startCamera
+        startCameraButton.addEventListener('click', startCamera);
     }
     if (signButtonsContainer) {
         signButtonsContainer.addEventListener('click', function(event) {
@@ -57,65 +52,47 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     window.addEventListener('beforeunload', stopPredictionPolling);
 
-
-    // --- Core Functions ---
-
-    /**
-     * Requests camera permission using getUserMedia and then, if granted,
-     * sets the video feed source to the Flask backend stream.
-     */
-    async function startCamera() { // Make the function async
+    async function startCamera() {
         console.log("Start Camera button clicked. Requesting permission...");
         if (!videoFeedElement) {
             console.error("Video feed element (#video-feed) not found!");
             return;
         }
 
-        // Hide button immediately, show loading/permission state
         startCameraButton.classList.add('hidden');
         if (videoPlaceholderText) {
             videoPlaceholderText.textContent = "Requesting camera permission...";
             videoPlaceholderText.style.display = 'block';
         }
-        videoFeedElement.style.display = 'none'; // Hide img until permission granted
+        videoFeedElement.style.display = 'none';
 
         try {
-            // **Request camera access**
             const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
 
-            // **Permission Granted!**
             console.log("Camera permission granted.");
 
-            // We don't need the local stream directly, stop its tracks.
-            // We only needed getUserMedia to trigger the permission prompt.
             stream.getTracks().forEach(track => track.stop());
             console.log("Local stream stopped, proceeding to load backend stream.");
 
-            // Now set the image source to the Flask video stream endpoint
             if (videoPlaceholderText) videoPlaceholderText.style.display = 'none';
-            videoFeedElement.style.display = 'block'; // Show the img tag
-            videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime(); // Load stream
+            videoFeedElement.style.display = 'block';
+            videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime();
             console.log("Video feed source set to:", videoFeedElement.src);
 
-            // Attach error/load handlers for the backend stream
             videoFeedElement.onerror = handleStreamError;
             videoFeedElement.onload = handleStreamLoad;
 
         } catch (error) {
-            // **Permission Denied or Error**
-            // <<< ENHANCED LOGGING >>>
             console.error("Error caught in startCamera function:", error);
             if (error instanceof TypeError) {
-                console.error("TypeError Details:", error.message, error.stack); // Log message and stack trace
+                console.error("TypeError Details:", error.message, error.stack);
             }
-            // <<< END ENHANCED LOGGING >>>
 
-            videoFeedElement.style.display = 'none'; // Keep img hidden
-            startCameraButton.classList.remove('hidden'); // Show button again
+            videoFeedElement.style.display = 'none';
+            startCameraButton.classList.remove('hidden');
 
             let errorMessage = "Could not access camera.";
-            // Check error type and provide more specific messages
-            if (error instanceof DOMException) { // Standard way getUserMedia errors are reported
+            if (error instanceof DOMException) {
                 if (error.name === "NotAllowedError") {
                     errorMessage = "Camera permission denied. Please allow access in browser settings (and ensure you are using HTTPS if not on localhost).";
                 } else if (error.name === "NotFoundError") {
@@ -130,21 +107,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     errorMessage = `Camera Error: ${error.name}. Check browser console for details.`;
                 }
             } else if (error instanceof TypeError) {
-                // Provide specific TypeError feedback
                 errorMessage = `Error starting camera: TypeError - ${error.message || 'Unexpected issue'}. Check browser console.`;
             } else {
-                 // Fallback for other unexpected errors
                  errorMessage = `Error starting camera: An unexpected error occurred. Check browser console.`;
             }
 
-            instructionText.textContent = errorMessage; // Show detailed error in main instruction area
+            instructionText.textContent = errorMessage;
             feedbackElement.textContent = 'Camera Access Failed';
             feedbackElement.className = 'status-incorrect';
             if (videoPlaceholderText) {
-                videoPlaceholderText.textContent = errorMessage; // Show error in placeholder too
+                videoPlaceholderText.textContent = errorMessage;
                 videoPlaceholderText.style.display = 'block';
             }
-            stopPredictionPolling(); // Ensure polling is stopped
+            stopPredictionPolling();
         }
     }
 
@@ -158,14 +133,13 @@ document.addEventListener('DOMContentLoaded', function() {
             videoPlaceholderText.style.display = 'block';
         }
         videoFeedElement.style.display = 'none';
-        videoFeedElement.src = ""; // Clear broken src
-        startCameraButton.classList.remove('hidden'); // Show button again maybe? Or indicate error state more permanently
+        videoFeedElement.src = "";
+        startCameraButton.classList.remove('hidden');
         stopPredictionPolling();
     }
 
     function handleStreamLoad() {
         console.log("Backend video feed stream connection established.");
-        // Start polling predictions ONLY after the stream starts loading
         startPredictionPolling();
         if (debugInfo) debugInfo.style.display = 'block';
     }
@@ -181,24 +155,19 @@ document.addEventListener('DOMContentLoaded', function() {
         lastStablePrediction = null;
         successStartTime = null;
 
-        // --- Corrected Image URL Logic ---
         let filename;
-        const upperSign = sign.toUpperCase(); // Standardize comparison
+        const upperSign = sign.toUpperCase();
 
-        // Handle known inconsistent filenames from listing
         if (upperSign === 'A') filename = 'A.png';
-        else if (upperSign === 'B') filename = 'b.png'; // Use lowercase 'b'
-        else if (upperSign === 'C') filename = 'c.png'; // Use lowercase 'c'
-        else if (upperSign === 'D') filename = 'D.PNG'; // Use uppercase 'D' and '.PNG'
-        else if (upperSign === 'E') filename = 'E.png'; // Use uppercase 'E'
-        // Assume F.png for model output 'f' (needs verification if F.png exists)
+        else if (upperSign === 'B') filename = 'b.png';
+        else if (upperSign === 'C') filename = 'c.png';
+        else if (upperSign === 'D') filename = 'D.PNG';
+        else if (upperSign === 'E') filename = 'E.png';
         else if (upperSign === 'F') filename = 'F.png';
-        // Default for any other signs (assumes UpperCase.png)
         else filename = upperSign + '.png';
 
-        // Construct URL using 'Images' directory
         const imageUrl = `${staticBaseUrl}Images/${filename}`;
-        console.log(`Setting target image URL to: ${imageUrl}`); // Add log for debugging
+        console.log(`Setting target image URL to: ${imageUrl}`);
         targetImage.src = imageUrl;
         targetImage.alt = `Sign language gesture for ${sign}`;
         targetImage.style.display = 'block';
@@ -213,11 +182,9 @@ document.addEventListener('DOMContentLoaded', function() {
             signTipsArea.style.display = 'none';
         }
 
-        // Re-start polling if camera is active but polling stopped somehow
         if (videoFeedElement.style.display === 'block' && !predictionInterval) {
             startPredictionPolling();
         } else if (videoFeedElement.style.display !== 'block') {
-             // If camera isn't running, prompt user to start it?
              instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
              feedbackElement.textContent = 'Camera not active';
              feedbackElement.className = 'status-waiting';
@@ -226,7 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function startPredictionPolling() {
         if (predictionInterval) { clearInterval(predictionInterval); }
-        predictionInterval = setInterval(fetchPrediction, 500); // Poll every 500ms
+        predictionInterval = setInterval(fetchPrediction, 500);
         console.log("Prediction polling started.");
     }
 
@@ -240,7 +207,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     async function fetchPrediction() {
         if (!currentPracticeSign || videoFeedElement.style.display !== 'block') {
-            // Don't fetch if not practicing or camera isn't seemingly active
             return;
         }
 
@@ -255,26 +221,18 @@ document.addEventListener('DOMContentLoaded', function() {
                  detectedSignDisplay.textContent = predictionText || "...";
             }
 
-            const currentPrediction = predictionText || "..."; // Use a consistent variable
+            const currentPrediction = predictionText || "...";
 
-            // Check if the current prediction is the one we are practicing
             const isCorrectPracticeSign = currentPracticeSign && currentPrediction.toLowerCase() === currentPracticeSign.toLowerCase();
 
-            // Update feedback if:
-            // 1. The prediction changed from the last one OR
-            // 2. The prediction is currently the correct sign being practiced (to update the hold timer)
             if (currentPrediction !== lastStablePrediction || isCorrectPracticeSign) {
-                 updateFeedback(currentPrediction); // Pass the current prediction
+                 updateFeedback(currentPrediction);
             }
 
-            // Update lastStablePrediction *after* potentially calling updateFeedback
             lastStablePrediction = currentPrediction;
 
         } catch (error) {
             console.error("Error fetching prediction:", error);
-            // Don't constantly overwrite feedback if prediction fails, maybe just log
-            // feedbackElement.textContent = 'Prediction Error';
-            // feedbackElement.className = 'status-incorrect';
         }
     }
 
@@ -294,9 +252,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     feedbackElement.textContent = `Great! You signed "${currentPracticeSign}"!`;
                     feedbackElement.className = 'status-success';
                     console.log(`Sign "${currentPracticeSign}" successfully recognized and held.`);
-                    // Consider next steps: stop polling, reset state, etc.
-                    // currentPracticeSign = null; // Example: stop practice for this sign
-                    // stopPredictionPolling();
                 } else {
                      const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
                      feedbackElement.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
@@ -304,12 +259,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } else {
-            successStartTime = null; // Reset timer if sign is no longer correct
+            successStartTime = null;
 
             if (prediction === "Ready..." || prediction === "..." || prediction === "No hand detected") {
                 feedbackElement.textContent = "Place your hand clearly in the frame.";
                 feedbackElement.className = 'status-waiting';
-            } else if (prediction === "Processing Error" || prediction === "System Error" || prediction === "Unknown" || prediction.startsWith("System Error")) { // Catch backend init errors too
+            } else if (prediction === "Processing Error" || prediction === "System Error" || prediction === "Unknown" || prediction.startsWith("System Error")) {
                 feedbackElement.textContent = `Status: ${prediction}. Try adjusting hand position or reloading.`;
                 feedbackElement.className = 'status-incorrect';
             } else {
@@ -319,4 +274,4 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-}); // End
+});
