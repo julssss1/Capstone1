@@ -1,7 +1,7 @@
 from flask import render_template, request, session, redirect, url_for, flash, current_app
 from . import bp
 from app.utils import login_required, role_required
-from supabase import create_client, Client, PostgrestAPIError 
+from supabase import create_client, Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
 
 
@@ -20,21 +20,18 @@ def admin_dashboard():
         flash('Supabase client not initialized. Cannot load dashboard data.', 'danger')
     else:
         try:
-            # Count students from profiles table
             student_response = supabase.table('profiles') \
                                        .select('id', count='exact') \
                                        .eq('role', 'Student') \
                                        .execute()
             student_count = student_response.count or 0
 
-            # Count teachers from profiles table
             teacher_response = supabase.table('profiles') \
                                        .select('id', count='exact') \
                                        .eq('role', 'Teacher') \
                                        .execute()
             teacher_count = teacher_response.count or 0
 
-            # Count subjects from subjects table
             subject_response = supabase.table('subjects') \
                                        .select('id', count='exact') \
                                        .execute()
@@ -60,16 +57,15 @@ def admin_dashboard():
 @role_required('Admin')
 def admin_user_management():
     print(f"Accessing Admin User Management BP for user: {session.get('user_name')}")
-    supabase: Client = current_app.supabase # Standard client for profile fetching
+    supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
     search_query = request.args.get('search_query', '').strip()
     role_filter = request.args.get('role_filter', '').strip()
     users = []
-    supabase_admin_client = None # Initialize admin client variable
+    supabase_admin_client = None
 
     if not supabase:
         flash('Supabase client not initialized. Cannot load users.', 'danger')
-        # Render template even if Supabase client fails, showing the error
         return render_template(
             'AdminUserManagement.html',
             users=users,
@@ -78,7 +74,6 @@ def admin_user_management():
             role_filter=role_filter
         )
 
-    # --- Create Admin Client to fetch Auth Users (including email) ---
     try:
         admin_url = current_app.config.get("SUPABASE_URL")
         admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
@@ -92,31 +87,27 @@ def admin_user_management():
          flash("Critical Error: Failed to create Supabase admin client. Cannot fetch user emails.", "danger")
          print(f"CRITICAL ERROR: Failed to create admin client for user list: {admin_client_ex}")
 
-    # --- Fetch Data ---
     try:
-        # 1. Fetch Auth Users using Admin Client (if available)
         auth_users_map = {}
         if supabase_admin_client:
             try:
                 print("DEBUG: Attempting to call supabase_admin_client.auth.admin.list_users()")
                 list_users_response = supabase_admin_client.auth.admin.list_users()
                 print(f"DEBUG: Raw list_users response type: {type(list_users_response)}")
-        
 
-                auth_users_list = [] # Initialize
 
-                # Check common response structures more robustly
+                auth_users_list = []
+
                 if hasattr(list_users_response, 'users') and isinstance(list_users_response.users, list):
                     auth_users_list = list_users_response.users
                     print(f"DEBUG: Extracted users from response.users attribute.")
                 elif hasattr(list_users_response, 'data') and isinstance(list_users_response.data, list):
-                     # Check if 'data' itself contains the list (common in older/other Supabase libs)
                      auth_users_list = list_users_response.data
                      print(f"DEBUG: Extracted users from response.data attribute.")
-                elif isinstance(list_users_response, list): # Maybe the response object itself is the list
+                elif isinstance(list_users_response, list):
                      auth_users_list = list_users_response
                      print(f"DEBUG: Response itself is a list of users.")
-                
+
                 else:
                      print(f"WARNING: Unexpected response structure from list_users: {type(list_users_response)}. Could not extract user list.")
                      flash("Warning: Could not retrieve user email details due to unexpected response format.", "warning")
@@ -126,26 +117,21 @@ def admin_user_management():
                      print("WARNING: No users found or extracted from the list_users response object.")
 
                 for user in auth_users_list:
-                    # Ensure user object has id and email attributes before accessing
                     if hasattr(user, 'id') and hasattr(user, 'email') and user.id and user.email:
-                        auth_users_map[str(user.id)] = {'email': user.email} # Store email keyed by ID (string)
+                        auth_users_map[str(user.id)] = {'email': user.email}
                     else:
                         print(f"WARNING: Skipping user object due to missing id/email or unexpected format: {user}")
                 print(f"DEBUG: Fetched {len(auth_users_map)} users from Auth.")
             except AuthApiError as auth_error:
                 flash(f'Error fetching authentication users: {auth_error.message}', 'danger')
                 print(f"Supabase Auth Admin Error (List Users): {auth_error}")
-                # Continue without auth users if admin fetch fails
             except Exception as e:
                 flash('Unexpected error fetching authentication users.', 'danger')
                 print(f"Unexpected Error fetching auth users: {e}")
-                # Continue without auth users
 
-        # 2. Fetch Profiles using Standard Client
         query = supabase.table('profiles').select('id, first_name, last_name, role')
 
         if role_filter:
-            # Capitalize to match potential ENUM casing ('Student', 'Teacher', 'Admin')
             capitalized_role_filter = role_filter.capitalize()
             query = query.eq('role', capitalized_role_filter)
 
@@ -161,20 +147,19 @@ def admin_user_management():
                 'first_name': profile.get('first_name', ''),
                 'last_name': profile.get('last_name', ''),
                 'role': profile.get('role', ''),
-                'email': auth_users_map.get(user_id_str, {}).get('email', 'N/A'), # Get email from map, default to N/A
+                'email': auth_users_map.get(user_id_str, {}).get('email', 'N/A'),
                 'display_name': f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip()
             }
 
-            # Apply search filter here if needed
             if search_query:
                 name_match = search_query.lower() in user_data['display_name'].lower()
-                email_match = search_query.lower() in user_data['email'].lower() # Search email too
+                email_match = search_query.lower() in user_data['email'].lower()
                 if name_match or email_match:
                     combined_users.append(user_data)
             else:
                 combined_users.append(user_data)
 
-        users = combined_users # Assign the final list
+        users = combined_users
 
     except PostgrestAPIError as e:
         flash(f'Database error loading profiles: {e.message}', 'danger')
@@ -185,7 +170,7 @@ def admin_user_management():
 
     return render_template(
         'AdminUserManagement.html',
-        users=users, # Pass combined user data
+        users=users,
         user_name=user_name,
         search_query=search_query,
         role_filter=role_filter
@@ -229,7 +214,7 @@ def admin_subject_management():
 
     return render_template(
         'Admin-Subject.html',
-        subjects=subjects, 
+        subjects=subjects,
         user_name=user_name
         )
 
@@ -248,13 +233,13 @@ def add_user():
 
     if request.method == 'POST':
         email = request.form.get('email', '').strip()
-        password = request.form.get('password', '') 
-       
+        password = request.form.get('password', '')
+
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
         role = request.form.get('role')
 
-       
+
         if not all([email, password, first_name, last_name, role]):
             flash('Email, Password, First Name, Last Name, and Role are required.', 'warning')
             profile_form_data = request.form.to_dict()
@@ -266,10 +251,10 @@ def add_user():
             return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
         new_user_id = None
-        display_name = f"{first_name} {last_name}" 
+        display_name = f"{first_name} {last_name}"
 
-       
-        supabase_admin_client = None 
+
+        supabase_admin_client = None
         try:
             admin_url = current_app.config.get("SUPABASE_URL")
             admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
@@ -292,19 +277,19 @@ def add_user():
              return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
         try:
-            
+
             print(f"Attempting to create auth user for email: {email}")
             create_auth_user_response = supabase_admin_client.auth.admin.create_user({
                 "email": email,
                 "password": password,
-                "email_confirm": True, 
-                "user_metadata": {'first_name': first_name, 'last_name': last_name, 'role': role} # Optional metadata
+                "email_confirm": True,
+                "user_metadata": {'first_name': first_name, 'last_name': last_name, 'role': role}
             })
             new_user = create_auth_user_response.user
             if not new_user or not new_user.id:
                  flash("Failed to retrieve new user ID from Supabase response.", "danger")
                  print(f"ERROR: Could not get user ID from create_user response: {create_auth_user_response}")
-                 
+
                  profile_form_data = request.form.to_dict()
                  return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
@@ -314,7 +299,7 @@ def add_user():
             print(f"Attempting to insert profile for user ID: {new_user_id} using admin's session")
 
             admin_access_token = session.get('access_token')
-            admin_refresh_token = session.get('refresh_token') # Refresh token might also be needed
+            admin_refresh_token = session.get('refresh_token')
 
             if not admin_access_token or not admin_refresh_token:
                 flash("Admin session token not found. Cannot insert profile.", "danger")
@@ -326,19 +311,15 @@ def add_user():
                 except Exception as cleanup_error:
                     print(f"Failed to delete orphaned auth user {new_user_id}: {cleanup_error}")
                     flash("Critical error: Failed to clean up orphaned auth user after token error.", "danger")
-                    # Re-render form
                     profile_form_data = request.form.to_dict()
                     return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
             try:
-                # Create a temporary client authenticated as the admin user
                 url = current_app.config.get("SUPABASE_URL")
-                anon_key = current_app.config.get("SUPABASE_ANON_KEY") # Correct key name
+                anon_key = current_app.config.get("SUPABASE_ANON_KEY")
                 if not url or not anon_key:
-                    # Handle missing config critical error
-                    flash("Critical Error: Supabase URL or Anon Key missing for user client.", "danger") # Updated flash message
+                    flash("Critical Error: Supabase URL or Anon Key missing for user client.", "danger")
                     print("CRITICAL ERROR: Supabase URL/Key missing for user client creation.")
-                    # Attempt cleanup before returning
                     try:
                         print(f"Attempting cleanup: Deleting orphaned auth user {new_user_id} due to missing user client config")
                         supabase_admin_client.auth.admin.delete_user(new_user_id)
@@ -349,11 +330,10 @@ def add_user():
                     profile_form_data = request.form.to_dict()
                     return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
-                user_supabase = create_client(url, anon_key) # Provide the anonymous key
+                user_supabase = create_client(url, anon_key)
                 user_supabase.auth.set_session(admin_access_token, admin_refresh_token)
                 print(f"Temporary Supabase client created for admin user.")
 
-                # Perform the insert using the user-context client
                 profile_insert_response = user_supabase.table('profiles').insert({
                     'id': new_user_id,
                     'first_name': first_name,
@@ -363,10 +343,8 @@ def add_user():
                 print(f"Profile insert executed using admin context. Response status: {profile_insert_response.status_code if hasattr(profile_insert_response, 'status_code') else 'N/A'}")
 
             except Exception as user_client_error:
-                # Handle errors specific to creating/using the user-context client
                 flash(f"Error performing profile insert with admin context: {user_client_error}", "danger")
                 print(f"ERROR: Failed during user-context profile insert for {new_user_id}: {user_client_error}")
-                # Attempt cleanup of the created auth user using the admin client
                 try:
                     print(f"Attempting cleanup: Deleting orphaned auth user {new_user_id} after user-context insert error")
                     supabase_admin_client.auth.admin.delete_user(new_user_id)
@@ -374,20 +352,17 @@ def add_user():
                 except Exception as cleanup_error:
                     print(f"Failed to delete orphaned auth user {new_user_id}: {cleanup_error}")
                     flash("Critical error: Failed to clean up orphaned auth user after profile insert failure.", "danger")
-                # Re-render form
                 profile_form_data = request.form.to_dict()
                 return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
-            
+
             if profile_insert_response.data:
                 print(f"Profile inserted successfully for user ID: {new_user_id}")
-                flash(f"User '{display_name}' ({email}) created successfully!", "success") # Use combined name
+                flash(f"User '{display_name}' ({email}) created successfully!", "success")
                 return redirect(url_for('admin.admin_user_management'))
             else:
-                # Profile insert failed after auth user created - problematic state!
-                flash(f"Auth user created, but failed to insert profile for '{display_name}'. Manual cleanup required.", "danger") # Use combined name
+                flash(f"Auth user created, but failed to insert profile for '{display_name}'. Manual cleanup required.", "danger")
                 print(f"Failed profile insert after auth user creation for {new_user_id}. Response: {profile_insert_response}")
-                # Attempt to delete the orphaned auth user using the admin client
                 try:
                     print(f"Attempting cleanup: Deleting orphaned auth user {new_user_id}")
                     supabase_admin_client.auth.admin.delete_user(new_user_id)
@@ -395,19 +370,16 @@ def add_user():
                 except Exception as cleanup_error:
                     print(f"Failed to delete orphaned auth user {new_user_id}: {cleanup_error}")
                     flash("Critical error: Failed to clean up orphaned auth user after profile insert failure.", "danger")
-                return redirect(url_for('admin.admin_user_management')) # Redirect anyway
+                return redirect(url_for('admin.admin_user_management'))
 
         except AuthApiError as auth_error:
-            # Handle auth errors (e.g., user already exists)
             flash(f'Error creating authentication user: {auth_error.message}', 'danger')
             print(f"Supabase Auth Admin Error (Add User): {auth_error}")
         except PostgrestAPIError as db_error:
-            # Handle profile insert errors (e.g., duplicate profile ID if attempted retry)
             flash(f'Database error creating user profile: {db_error.message}', 'danger')
             print(f"Supabase DB Error (Add User Profile): {db_error}")
             if new_user_id:
                  flash("Auth user might have been created before profile insert failed. Manual check recommended.", "warning")
-                 # Optionally attempt cleanup here too
         except Exception as e:
             flash('An unexpected error occurred adding the user.', 'danger')
             print(f"Unexpected Error (Add User): {e}")
@@ -415,13 +387,11 @@ def add_user():
         profile_form_data = request.form.to_dict()
         return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
 
-    # --- GET Request: Show the Add User form ---
     return render_template('AdminUserAddEdit.html', profile={}, user_name=user_name, action="Add")
 
 
-# Note: Removed '/user/view/' route. Details usually shown in edit or list. Add back if needed.
 
-@bp.route('/user/edit/<user_id>', methods=['GET', 'POST']) # Use UUID string for user_id
+@bp.route('/user/edit/<user_id>', methods=['GET', 'POST'])
 @login_required
 @role_required('Admin')
 def edit_user(user_id):
@@ -434,7 +404,6 @@ def edit_user(user_id):
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_user_management'))
 
-    # Fetch current profile data (first_name, last_name)
     try:
         profile_response = supabase.table('profiles') \
                                    .select('id, first_name, last_name, role') \
@@ -452,24 +421,19 @@ def edit_user(user_id):
         return redirect(url_for('admin.admin_user_management'))
 
     if request.method == 'POST':
-        # Get first_name and last_name from form
         new_first_name = request.form.get('first_name', '').strip()
         new_last_name = request.form.get('last_name', '').strip()
         new_role = request.form.get('role')
-        display_name = f"{new_first_name} {new_last_name}" # Combine for messages
+        display_name = f"{new_first_name} {new_last_name}"
 
-        # --- Validation ---
         if not new_first_name or not new_last_name or not new_role:
             flash('First Name, Last Name, and Role are required.', 'warning')
-            # Pass original fetched data back to form on validation error
             return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
 
         if new_role not in ['Student', 'Teacher', 'Admin']:
             flash('Invalid role selected.', 'danger')
-            # Pass original fetched data back to form on validation error
             return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
 
-        # --- Update Profile Table ---
         try:
             update_data = {
                 'first_name': new_first_name,
@@ -479,8 +443,8 @@ def edit_user(user_id):
             update_response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
 
             if update_response.data:
-                flash(f"User '{display_name}' profile updated successfully!", "success") # Use combined name
-                
+                flash(f"User '{display_name}' profile updated successfully!", "success")
+
                 return redirect(url_for('admin.admin_user_management'))
             else:
                 flash("Failed to update user profile.", "danger")
@@ -493,15 +457,12 @@ def edit_user(user_id):
             flash('An unexpected error occurred updating the profile.', 'danger')
             print(f"Unexpected Error (Edit User Profile {user_id}): {e}")
 
-        # If update fails, re-render form with original data
         return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
 
-    # --- GET Request: Show Edit User form ---
-    # Assuming a template 'AdminUserAddEdit.html' exists
     return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
 
 
-@bp.route('/user/delete/<user_id>', methods=['POST']) # Use UUID string for user_id
+@bp.route('/user/delete/<user_id>', methods=['POST'])
 @login_required
 @role_required('Admin')
 def delete_user(user_id):
@@ -513,17 +474,16 @@ def delete_user(user_id):
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_user_management'))
 
-    # Prevent self-deletion
-    if str(admin_user_id) == str(user_id): # Compare as strings
+    if str(admin_user_id) == str(user_id):
          flash("You cannot delete your own admin account.", "danger")
          return redirect(url_for('admin.admin_user_management'))
 
     profile_deleted = False
     auth_user_deleted = False
-    display_name = f"User ID {user_id}" # Placeholder name for messages
+    display_name = f"User ID {user_id}"
 
     try:
-       
+
         try:
             profile_info = supabase.table('profiles').select('first_name, last_name').eq('id', user_id).maybe_single().execute()
             if profile_info.data:
@@ -531,7 +491,7 @@ def delete_user(user_id):
                  lname = profile_info.data.get('last_name', '')
                  display_name = f"{fname} {lname}".strip() if fname or lname else display_name
         except Exception:
-             pass # Ignore errors fetching name, proceed with deletion
+             pass
 
         print(f"Attempting to delete profile for user ID: {user_id} ({display_name})")
         profile_delete_response = supabase.table('profiles').delete().eq('id', user_id).execute()
@@ -540,26 +500,22 @@ def delete_user(user_id):
             profile_deleted = True
             print(f"Profile deleted successfully for {user_id}")
         else:
-            # Profile might not exist, or RLS prevented deletion. Still try deleting auth user.
             print(f"Profile for {user_id} not found or not deleted. Response: {profile_delete_response.error or 'No data returned'}")
-            # Re-use profile_info fetched earlier if available
             if profile_info and not profile_info.data:
                  print(f"Confirmed profile {user_id} does not exist.")
-                 profile_deleted = True # Treat as success if it doesn't exist
-            elif not profile_info: # If fetch failed earlier, check again
+                 profile_deleted = True
+            elif not profile_info:
                  try:
                      profile_check = supabase.table('profiles').select('id').eq('id', user_id).maybe_single().execute()
                      if not profile_check.data:
                           print(f"Confirmed profile {user_id} does not exist.")
-                          profile_deleted = True # Treat as success if it doesn't exist
+                          profile_deleted = True
                  except Exception:
                       print(f"Could not confirm if profile {user_id} exists.")
 
-        # 2. Attempt to delete from Supabase Auth using Admin API
         if profile_deleted:
             print(f"Attempting to delete auth user ID: {user_id}")
             try:
-                # --- Force creation of a new client with Service Key for Admin actions ---
                 supabase_admin_client = None
                 try:
                     admin_url = current_app.config.get("SUPABASE_URL")
@@ -570,32 +526,25 @@ def delete_user(user_id):
                     print("DEBUG: Temporary admin client created successfully for user deletion.")
                 except Exception as admin_client_ex:
                     print(f"CRITICAL ERROR: Failed to create admin client for deletion: {admin_client_ex}")
-                    # If profile was deleted but we can't create admin client, it's a bad state
                     flash(f"Profile for '{display_name}' deleted, but failed to create admin client to delete auth user. Manual cleanup required.", "danger")
-                    # Skip the auth deletion attempt and proceed to redirect
-                    raise admin_client_ex # Re-raise to be caught by outer exception handler
+                    raise admin_client_ex
 
-                # Use the dedicated admin client to delete the user
                 supabase_admin_client.auth.admin.delete_user(user_id)
                 auth_user_deleted = True
                 print(f"Auth user deleted successfully for {user_id}")
-                flash(f"User '{display_name}' deleted successfully from auth and profiles.", "success") # Use fetched/combined name
+                flash(f"User '{display_name}' deleted successfully from auth and profiles.", "success")
 
             except AuthApiError as auth_error:
-                # Handle specific auth deletion errors
                 print(f"Supabase Auth Admin Error deleting user {user_id}: {auth_error}")
-                # If profile was deleted but auth failed, this is problematic state.
-                flash(f"Profile for '{display_name}' deleted, but failed to delete authentication user: {auth_error.message}. Manual cleanup might be required.", "danger") # Use fetched/combined name
+                flash(f"Profile for '{display_name}' deleted, but failed to delete authentication user: {auth_error.message}. Manual cleanup might be required.", "danger")
             except Exception as generic_auth_error:
                  print(f"Generic error deleting auth user {user_id}: {generic_auth_error}")
-                 flash(f"Profile for '{display_name}' deleted, but an unexpected error occurred deleting authentication user.", "danger") # Use fetched/combined name
+                 flash(f"Profile for '{display_name}' deleted, but an unexpected error occurred deleting authentication user.", "danger")
         else:
-             # Profile deletion failed, don't attempt auth deletion
-             flash(f"Failed to delete profile for user ID {user_id} ({display_name}). Cannot proceed with deleting authentication user.", "danger") # Use fetched/combined name
+             flash(f"Failed to delete profile for user ID {user_id} ({display_name}). Cannot proceed with deleting authentication user.", "danger")
 
 
     except PostgrestAPIError as db_error:
-        # Error during profile deletion or check
         flash(f'Database error during user deletion process: {db_error.message}', 'danger')
         print(f"Supabase DB Error deleting profile {user_id}: {db_error}")
     except Exception as e:
@@ -605,12 +554,10 @@ def delete_user(user_id):
     return redirect(url_for('admin.admin_user_management'))
 
 
-# --- Admin Subject Actions ---
 
 def _get_teachers(supabase: Client):
     """Helper function to fetch teachers for dropdowns."""
     try:
-        # Select first and last name, order by last then first
         teachers_response = supabase.table('profiles') \
                                     .select('id, first_name, last_name') \
                                     .eq('role', 'Teacher') \
@@ -618,13 +565,12 @@ def _get_teachers(supabase: Client):
                                     .order('first_name') \
                                     .execute()
         teachers_raw = teachers_response.data or []
-        # Combine names for display in dropdown
         teachers = []
         for teacher in teachers_raw:
             display_name = f"{teacher.get('first_name', '')} {teacher.get('last_name', '')}".strip()
             teachers.append({
                 'id': teacher['id'],
-                'display_name': display_name if display_name else f"Teacher ID {teacher['id']}" # Fallback display
+                'display_name': display_name if display_name else f"Teacher ID {teacher['id']}"
             })
         return teachers
     except Exception as e:
@@ -643,25 +589,21 @@ def add_subject():
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_subject_management'))
 
-    teachers = _get_teachers(supabase) # Fetch teachers for the form dropdown
+    teachers = _get_teachers(supabase)
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
-        teacher_id = request.form.get('teacher_id') # This should be the UUID string
+        teacher_id = request.form.get('teacher_id')
 
-        # --- Validation ---
         if not name or not teacher_id:
             flash('Subject Name and Assigned Teacher are required.', 'warning')
-            # Re-render form, passing back teachers and potentially entered data
             return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
 
-        # Validate teacher_id exists
         if not any(t['id'] == teacher_id for t in teachers):
              flash('Invalid Teacher selected.', 'danger')
              return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
 
-        # --- Insert into Supabase ---
         try:
             insert_response = supabase.table('subjects').insert({
                 'name': name,
@@ -677,7 +619,6 @@ def add_subject():
                 print(f"Failed Supabase subject insert response: {insert_response}")
 
         except PostgrestAPIError as e:
-            # Check for unique constraint violation (e.g., duplicate subject name if constraint exists)
             if 'duplicate key value violates unique constraint' in e.message:
                  flash(f'Subject name "{name}" already exists.', 'danger')
             else:
@@ -687,11 +628,9 @@ def add_subject():
             flash('An unexpected error occurred adding the subject.', 'danger')
             print(f"Unexpected Error (Add Subject): {e}")
 
-        # If insert fails, re-render form with errors
         return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
 
-    # --- GET Request: Show the Add Subject form ---
-   
+
     return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject={}, user_name=user_name, action="Add")
 
 
@@ -708,9 +647,8 @@ def edit_subject(subject_id):
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_subject_management'))
 
-    teachers = _get_teachers(supabase) # Fetch teachers for the form dropdown
+    teachers = _get_teachers(supabase)
 
-    # Fetch current subject data for GET request or if POST fails
     try:
         subject_response = supabase.table('subjects') \
                                    .select('id, name, description, teacher_id') \
@@ -732,17 +670,14 @@ def edit_subject(subject_id):
         description = request.form.get('description', '').strip()
         teacher_id = request.form.get('teacher_id')
 
-        # --- Validation ---
         if not name or not teacher_id:
             flash('Subject Name and Assigned Teacher are required.', 'warning')
-            # Re-render form with current data + teachers
             return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
 
         if not any(t['id'] == teacher_id for t in teachers):
              flash('Invalid Teacher selected.', 'danger')
              return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
 
-        # --- Update in Supabase ---
         try:
             update_response = supabase.table('subjects').update({
                 'name': name,
@@ -754,7 +689,6 @@ def edit_subject(subject_id):
                 flash(f"Subject '{name}' updated successfully!", "success")
                 return redirect(url_for('admin.admin_subject_management'))
             else:
-                # This might occur if the row was deleted between GET and POST, or RLS prevents update
                 flash("Failed to update subject. It might no longer exist.", "danger")
                 print(f"Failed Supabase subject update response: {update_response}")
 
@@ -768,11 +702,9 @@ def edit_subject(subject_id):
             flash('An unexpected error occurred updating the subject.', 'danger')
             print(f"Unexpected Error (Edit Subject {subject_id}): {e}")
 
-        
-        # For simplicity, re-render with original fetched data
+
         return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
 
-    # --- GET Request: Show the Edit Subject form ---
     return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
 
 
@@ -788,20 +720,17 @@ def delete_subject(subject_id):
         return redirect(url_for('admin.admin_subject_management'))
 
     try:
-        
+
         delete_response = supabase.table('subjects').delete().eq('id', subject_id).execute()
 
-        # Deletion returns data if successful (the deleted rows)
         if delete_response.data:
             flash(f"Subject ID {subject_id} deleted successfully.", "success")
             print(f"Admin deleted subject ID: {subject_id}")
         else:
-            # This could happen if the subject was already deleted or RLS prevents it
             flash(f"Failed to delete subject ID {subject_id}. It might have already been deleted.", "warning")
             print(f"Failed Supabase subject delete response: {delete_response}")
 
     except PostgrestAPIError as e:
-        # Check for foreign key constraint violation (e.g., assignments exist for this subject)
         if 'violates foreign key constraint' in e.message:
              flash(f'Cannot delete subject ID {subject_id} because it still has associated data (e.g., assignments, enrollments). Please remove associated data first.', 'danger')
         else:

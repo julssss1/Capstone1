@@ -18,7 +18,7 @@ CLASS_NAMES = []
 hands = None
 cap = None
 is_initialized = False
-initialization_lock = threading.Lock() # Prevent race conditions during init
+initialization_lock = threading.Lock() 
 
 # --- Prediction Smoothing Config ---
 PREDICTION_BUFFER_SIZE = 10 # Number of frames to consider
@@ -32,12 +32,12 @@ stable_prediction_display = "Initializing..."
 last_valid_prediction_timestamp = None
 # --------------------------------
 
-# --- Initialization Function ---
+
 def initialize_resources():
     """Loads model, class names, initializes MediaPipe, and opens camera."""
     global model, CLASS_NAMES, hands, cap, is_initialized, stable_prediction_display
 
-    with initialization_lock: # Ensure only one thread initializes
+    with initialization_lock: 
         if is_initialized:
             return True
 
@@ -105,16 +105,16 @@ def generate_frames():
 
     if not is_initialized:
         if not initialize_resources():
-            # If initialization fails, yield an error frame or message
+            # If initialization fails
             print("Initialization failed. Cannot generate frames.")
-            # Create a placeholder error image
+            # placeholder error image
             error_img = np.zeros((480, 640, 3), dtype=np.uint8)
             cv2.putText(error_img, "Camera/Model Init Failed", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
             _, buffer = cv2.imencode('.jpg', error_img)
             frame_bytes = buffer.tobytes()
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-            return # Stop the generator
+            return 
 
     mp_drawing = mp.solutions.drawing_utils 
     mp_hands = mp.solutions.hands 
@@ -178,11 +178,11 @@ def generate_frames():
                     confidence = np.max(prediction)
                     predicted_letter = CLASS_NAMES[predicted_class_index]
 
-                    # Update text and instantaneous prediction
+               
                     if predicted_letter == 'J':
-                        current_prediction_text = f"Detect: J (static) ({confidence*100:.2f}%)"
+                        current_prediction_text = f"Detect: J (Dynamic) ({confidence*100:.2f}%)"
                     elif predicted_letter == 'Z':
-                        current_prediction_text = f"Detect: Z (static) ({confidence*100:.2f}%)"
+                        current_prediction_text = f"Detect: Z (Dynamic) ({confidence*100:.2f}%)"
                     else:
                         current_prediction_text = f"Detect: {predicted_letter} ({confidence*100:.2f}%)"
                     instantaneous_prediction = predicted_letter
@@ -194,7 +194,7 @@ def generate_frames():
             except Exception as e:
                 current_prediction_text = f"Detect Error: {e}"
                 instantaneous_prediction = "Detect Error"
-                print(f"Detection Error: {e}") # Log error
+                print(f"Detection Error: {e}") 
 
             prediction_buffer.append(instantaneous_prediction)
 
@@ -229,8 +229,8 @@ def generate_frames():
                             last_valid_prediction_timestamp = None
                         elif last_valid_prediction_timestamp is None and stable_prediction_display not in ["Ready..."] and stable_prediction_display not in NON_VALID_SIGN_STATES:
                             stable_prediction_display = "Ready..."
-                else: # Buffer empty case (shouldn't happen with deque append)
-                     stable_prediction_display = "..." # Or some indicator
+                else: 
+                     stable_prediction_display = "..." 
                      last_valid_prediction_timestamp = None
 
 
@@ -247,7 +247,7 @@ def generate_frames():
         # --- Draw Text Overlays ---
         cv2.putText(image_bgr, current_prediction_text, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 120, 0), 2, cv2.LINE_AA)
 
-        stable_color = (0, 255, 0) # Green default
+        stable_color = (0, 255, 0) # Green 
         if stable_prediction_display in NON_VALID_SIGN_STATES or stable_prediction_display == "Ready..." or stable_prediction_display == "Initializing...":
             stable_color = (200, 200, 200) # Grey
         if "Error" in stable_prediction_display:
@@ -271,15 +271,13 @@ def generate_frames():
 def get_stable_prediction():
     """Returns the current stable prediction."""
     global stable_prediction_display
-    # Ensure initialization has happened or is attempted
     if not is_initialized:
-        initialize_resources() # Attempt init if not done yet
+        initialize_resources() 
     return stable_prediction_display
 
 def get_available_signs():
     """Returns the list of class names loaded from the model/pickle file."""
     global CLASS_NAMES
-    # Ensure initialization has happened or is attempted
     if not is_initialized:
-        initialize_resources() # Attempt init if not done yet
+        initialize_resources() 
     return CLASS_NAMES

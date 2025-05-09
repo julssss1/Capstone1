@@ -74,7 +74,7 @@
                            value="{{ profile.email if profile.email else '' }}"
                            required
                            {% if action == 'Edit' %}readonly{% endif %}>
-                     {% if action == 'Edit' %}<small>Email cannot be changed here.</small>{% endif %}
+                     {% if action == 'Edit' %}<small>Cannot change Email</small>{% endif %}
                 </div>
 
                  {# Password Field - Only required for Add #}

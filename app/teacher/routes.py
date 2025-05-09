@@ -249,7 +249,7 @@ def create_assignment_for_lesson(lesson_id):
          return redirect(url_for('teacher.teacher_lessons'))
 
 
-@bp.route('/assignment/create', methods=['GET', 'POST'])
+@bp.route('/assignment/create', methods=['GET'])
 @login_required
 @role_required('Teacher')
 def create_assignment():
@@ -280,55 +280,6 @@ def create_assignment():
         teacher_subject_ids = set()
 
 
-    if request.method == 'POST':
-        title = request.form.get('title', '').strip()
-        description = request.form.get('description', '').strip()
-        subject_id_str = request.form.get('subject_id')
-        due_date_str = request.form.get('due_date')
-
-        # --- Basic Validation ---
-        if not all([title, description, subject_id_str, due_date_str]):
-            flash('All fields (Title, Description, Subject, Due Date) are required.', 'warning')
-            return render_template('TeacherAssignment.html', subjects=subjects, user_name=user_name)
-        try:
-            subject_id = int(subject_id_str)
-            if subject_id not in teacher_subject_ids:
-                 flash('Invalid subject selected. Please choose a subject you teach.', 'danger')
-                 return render_template('TeacherAssignment.html', subjects=subjects, user_name=user_name) # Re-render form
-        except ValueError:
-             flash('Invalid subject ID format.', 'danger')
-             return render_template('TeacherAssignment.html', subjects=subjects, user_name=user_name) # Re-render form
-
-       
-        due_date_iso = due_date_str 
-
-        try:
-            insert_response = supabase.table('assignments').insert({
-                'title': title,
-                'description': description,
-                'subject_id': subject_id,
-                'due_date': due_date_iso
-             
-            }).execute()
-
-            if insert_response.data:
-                flash(f"Assignment '{title}' created successfully!", "success")
-                return redirect(url_for('teacher.teacher_dashboard'))
-            else:
-                flash("Failed to create assignment. Please try again.", "danger")
-                print(f"Failed Supabase assignment insert response: {insert_response}")
-
-        except PostgrestAPIError as e:
-            flash(f'Database error creating assignment: {e.message}', 'danger')
-            print(f"Supabase DB Error (Create Assignment) for teacher {teacher_id}: {e}")
-        except Exception as e:
-            flash('An unexpected error occurred creating the assignment.', 'danger')
-            print(f"Unexpected Error (Create Assignment) for teacher {teacher_id}: {e}")
-
-        # If insert fails, re-render form
-        return render_template('TeacherAssignment.html', subjects=subjects, user_name=user_name)
-
-
     # --- GET Request: Show the form ---
     pre_selected_subject = request.args.get('subject_id') # For linking from lesson page
     return render_template(
@@ -337,4 +288,3 @@ def create_assignment():
         pre_selected_subject=pre_selected_subject, # Pass to template to select in dropdown
         user_name=user_name
         )
-
