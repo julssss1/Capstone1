@@ -1,8 +1,9 @@
 from flask import render_template, redirect, url_for, flash, request, session, current_app
-from . import bp 
+from . import bp
 from app.utils import login_required
-from supabase import Client, PostgrestAPIError 
-from gotrue.errors import AuthApiError 
+from app.sign_logic import release_resources as release_camera_resources 
+from supabase import Client, PostgrestAPIError
+from gotrue.errors import AuthApiError
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -119,8 +120,17 @@ def login():
     return render_template('loginpage.html')
 
 @bp.route('/logout')
-@login_required # Decorator still works as it checks Flask session
+@login_required 
 def logout():
+    # Release camera and related resources first
+    try:
+        print("Calling release_camera_resources from logout...")
+        release_camera_resources()
+        print("Camera resources signaled for release.")
+    except Exception as e:
+        print(f"Error calling release_camera_resources during logout: {e}")
+        flash('Could not properly stop camera feed, but proceeding with logout.', 'warning')
+
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'User') # Get name before clearing session
 

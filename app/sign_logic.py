@@ -18,7 +18,8 @@ CLASS_NAMES = []
 hands = None
 cap = None
 is_initialized = False
-initialization_lock = threading.Lock() 
+initialization_lock = threading.Lock()
+stop_camera_feed_event = threading.Event() # Event to signal feed termination
 
 # --- Prediction Smoothing Config ---
 PREDICTION_BUFFER_SIZE = 10 # Number of frames to consider
@@ -35,12 +36,18 @@ last_valid_prediction_timestamp = None
 
 def initialize_resources():
     """Loads model, class names, initializes MediaPipe, and opens camera."""
-    global model, CLASS_NAMES, hands, cap, is_initialized, stable_prediction_display
+    global model, CLASS_NAMES, hands, cap, is_initialized, stable_prediction_display, stop_camera_feed_event
 
-    with initialization_lock: 
-        if is_initialized:
+    with initialization_lock:
+        if is_initialized and cap and cap.isOpened(): # Check if cap is also valid
+            # If already initialized and camera is open, ensure stop event is clear for a new start
+            if stop_camera_feed_event.is_set():
+                print("Camera was stopped, re-clearing stop event for re-initialization.")
+                stop_camera_feed_event.clear()
             return True
-
+        
+        # Clear the stop event at the beginning of a full initialization
+        stop_camera_feed_event.clear()
         print("Initializing resources for sign logic...")
         try:
             # Load Model
@@ -101,11 +108,12 @@ def initialize_resources():
 # --- Frame Generation Function 
 def generate_frames():
     """Generates camera frames with sign prediction overlays for web streaming."""
-    global stable_prediction_display, last_valid_prediction_timestamp, prediction_buffer, hands, cap, model, CLASS_NAMES
+    global stable_prediction_display, last_valid_prediction_timestamp, prediction_buffer, hands, cap, model, CLASS_NAMES, stop_camera_feed_event
 
     if not is_initialized:
+        # Attempt to initialize
         if not initialize_resources():
-            # If initialization fails
+            # If initialization fails even after attempt
             print("Initialization failed. Cannot generate frames.")
             # placeholder error image
             error_img = np.zeros((480, 640, 3), dtype=np.uint8)
@@ -120,8 +128,29 @@ def generate_frames():
     mp_hands = mp.solutions.hands 
 
     print("Starting frame generation loop...")
-    while True:
+    while not stop_camera_feed_event.is_set(): # Check the event at the start of each loop
         if not cap or not cap.isOpened():
+             # Attempt to re-initialize if camera is lost and not explicitly stopped
+             if not stop_camera_feed_event.is_set():
+                print("Error: Camera not available. Attempting to re-initialize...")
+                if not initialize_resources(): # Try to re-initialize
+                    stable_prediction_display = "Error: Camera Lost"
+                    # Yield an error frame if re-initialization fails
+                    error_img = np.zeros((480, 640, 3), dtype=np.uint8)
+                    cv2.putText(error_img, "Camera Connection Lost", (50, 240), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+                    _, buffer = cv2.imencode('.jpg', error_img)
+                    frame_bytes = buffer.tobytes()
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
+                    time.sleep(1) # Wait before retrying or exiting
+                    continue # Try the loop again
+                else:
+                    print("Camera re-initialized successfully.")
+             else: # If stop_camera_feed_event is set, break the loop
+                print("Camera feed stop requested, exiting generation loop.")
+                break
+
+             # Original error handling if camera is still not available
              print("Error: Camera not available or closed during frame generation.")
              stable_prediction_display = "Error: Camera Lost"
              # Yield an error frame
@@ -131,15 +160,18 @@ def generate_frames():
              frame_bytes = buffer.tobytes()
              yield (b'--frame\r\n'
                     b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
-             time.sleep(1) 
-             continue 
+             time.sleep(1)
+             continue
 
+        # Check stop event again before processing frame
+        if stop_camera_feed_event.is_set():
+            print("Camera feed stop requested during frame processing, exiting.")
+            break
 
         current_time = time.time()
         success, image = cap.read()
         if not success:
-            print("Ignoring empty camera frame.")
-            time.sleep(0.1)
+            time.sleep(0.01) # Shorter sleep for empty frames
             continue
 
         # --- Image Processing ---
@@ -266,8 +298,55 @@ def generate_frames():
                    b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
         except Exception as e:
             print(f"Error encoding or yielding frame: {e}")
+            if stop_camera_feed_event.is_set(): # If stop is requested during error, break
+                break
+    
+    print("Exited frame generation loop.")
+    
+    with initialization_lock: 
+        # Access global variables directly
+        if cap and cap.isOpened(): # cap here refers to the global cap
+            print("Releasing camera from generate_frames exit (defensive).")
+            cap.release()
+        if hands: # hands here refers to the global hands
+            print("Closing MediaPipe hands from generate_frames exit (defensive).")
+            hands.close()
+
+        print("Defensive cleanup in generate_frames exit done.")
+
 
 # --- Functions for Routes ---
+
+def release_resources():
+    """Releases camera, MediaPipe hands, and resets initialization state."""
+    global cap, hands, model, is_initialized, stable_prediction_display, stop_camera_feed_event, initialization_lock
+
+    print("Attempting to release resources...")
+    stop_camera_feed_event.set() # Signal the generate_frames loop to stop
+
+    with initialization_lock:
+        if cap:
+            if cap.isOpened():
+                print("Releasing camera capture...")
+                cap.release()
+            cap = None
+            print("Camera capture released.")
+        else:
+            print("Camera capture was not initialized or already released.")
+
+        if hands:
+            print("Closing MediaPipe Hands...")
+            hands.close()
+            hands = None
+            print("MediaPipe Hands closed.")
+        else:
+            print("MediaPipe Hands were not initialized or already closed.")
+
+        is_initialized = False
+        stable_prediction_display = "Offline" 
+        
+        print("Resources released and state reset.")
+
 def get_stable_prediction():
     """Returns the current stable prediction."""
     global stable_prediction_display
