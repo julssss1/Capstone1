@@ -24,7 +24,7 @@
                 <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
                 <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
-                <li class="active"><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li class = "active"><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-list-ul"></i> Assignments</a></li>         
                 <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> 
             </ul>
         </nav>
@@ -49,7 +49,7 @@
         </header>
 
         <section class="assignment-form-container">
-            <form action=""class="assignment-form">
+            <form method="POST" action="{{ url_for('teacher.create_assignment') }}" class="assignment-form">
                 <div class="form-group">
                     <label for="assignment-title">Assignment Title</label>
                     <input type="text" id="assignment-title" name="title" required>
@@ -62,13 +62,28 @@
 
                 <div class="form-group">
                     <label for="assignment-subject">Subject</label>
-                    <select id="assignment-subject" name="subject_id" required>
-                        <option value="" disabled selected>Select Subject</option>
+                    <select id="assignment-subject" name="subject_id" required
+                            data-create-assignment-url="{{ url_for('teacher.create_assignment') }}">
+                        <option value="" disabled {% if not pre_selected_subject_id %}selected{% endif %}>Select Subject</option>
                         {% for subject in subjects %}
-                            <option value="{{ subject.id }}">{{ subject.name }}</option>
+                            <option value="{{ subject.id }}" {% if subject.id == pre_selected_subject_id %}selected{% endif %}>{{ subject.name }}</option>
                         {% else %}
                             <option value="" disabled>No subjects available</option>
                         {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" id="lesson-group" {% if not lessons_for_subject %}style="display:none;"{% endif %}>
+                    <label for="assignment-lesson">Lesson (Optional)</label>
+                    <select id="assignment-lesson" name="lesson_id"
+                            data-lessons='{{ (lessons_for_subject if lessons_for_subject is not none else [])|tojson|safe }}'
+                            data-pre-selected-lesson-id='{{ pre_selected_lesson_id|tojson|safe }}'>
+                        <option value="" selected>Select Lesson (Optional)</option>
+                        {% if lessons_for_subject %}
+                            {% for lesson in lessons_for_subject %}
+                                <option value="{{ lesson.id }}" {% if lesson.id == pre_selected_lesson_id %}selected{% endif %}>{{ lesson.title }}</option>
+                            {% endfor %}
+                        {% endif %}
                     </select>
                 </div>
 
@@ -90,5 +105,6 @@
         </section>
 
     </main>
+    <script src="{{ url_for('static', filename='js/teacher_assignment.js') }}"></script>
 </body>
 </html>

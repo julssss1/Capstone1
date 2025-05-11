@@ -23,7 +23,7 @@
                 <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
                 <li class="active"><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
                 <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
-                <li><a href="{{ url_for('teacher.create_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-list-ul"></i> Assignments</a></li>
                 <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
         </nav>
@@ -57,7 +57,7 @@
                     <span>{{ lesson.student_count }} Students</span>
                 </div>
                 <div class="card-actions">
-                     <a href="" class="action-btn manage">Manage Content</a>
+                     <a href="{{ url_for('teacher.manage_subject_content', subject_id=lesson.id) }}" class="action-btn manage">Manage Content</a>
                      <a href="{{ url_for('teacher.create_assignment_for_lesson', lesson_id=lesson.id) }}" class="action-btn assignment">New Assignment</a>
                      <a href="{{ url_for('teacher.teacher_gradebook', subject_filter=lesson.id) }}" class="action-btn grades">View Grades</a>
                 </div>

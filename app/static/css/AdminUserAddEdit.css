@@ -107,9 +107,7 @@
 }
 
 /* Specifically for the names row to have 3 items */
-.admin-edit-form .names-row {
-    /* display: flex; gap: 20px; is already on .form-row */
-}
+
 .admin-edit-form .names-row .form-group {
     flex-basis: calc(33.333% - 14px); /* 3 items with 20px gap */
 }
@@ -189,9 +187,6 @@
     background-color: #0056b3;
 }
 
-.settings-form .btn.save-btn {
-    /* Default blue is fine */
-}
 .settings-form .btn.cancel-btn {
     background-color: #6c757d; /* Grey for cancel */
 }
@@ -219,9 +214,7 @@
     gap: 10px; /* Space between buttons/forms */
 }
 
-.form-actions-footer .btn { /* Ensure buttons in footer have consistent styling if needed */
-    /* Styles are mostly inherited from .settings-form .btn */
-}
+
 .form-actions-footer form#deleteUserForm { /* Ensure the form itself doesn't break flex layout */
     margin: 0; /* Remove any default form margins */
 }

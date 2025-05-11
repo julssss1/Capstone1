@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Assignments - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}"> {# Assuming common dashboard styles #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignment.css') }}"> {# Can reuse or create specific styles #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .assignments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .assignments-table th, .assignments-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .assignments-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .assignments-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .assignments-table .action-btn {
+            padding: 6px 12px;
+            font-size: 0.9em;
+            text-decoration: none;
+            border-radius: 4px;
+            color: white;
+            background-color: #007bff; /* Primary button color */
+            border: none;
+            cursor: pointer;
+        }
+        .assignments-table .action-btn:hover {
+            background-color: #0056b3;
+        }
+        .no-assignments {
+            padding: 20px;
+            text-align: center;
+            color: #777;
+        }
+        .table-container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .table-header-icon {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+             <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+    
+                <li class="active" id="nav-view-assignments"><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> 
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2><i class="fas fa-tasks table-header-icon"></i>All Assignments</h2>
+            <p>View ongoing assignments and track student submissions.</p>
+             {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <section class="table-container">
+            {% if assignments_with_counts and assignments_with_counts|length > 0 %}
+            <table class="assignments-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Subject</th>
+                        <th>Lesson</th>
+                        <th>No. of Submitted Works</th>
+                        <th>Due Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in assignments_with_counts %}
+                    <tr>
+                        <td>
+                            <i class="fas fa-pencil-alt table-header-icon" style="color: #6c757d;"></i>
+                            {{ item.assignment.title | default('N/A') }}
+                        </td>
+                        <td>{{ item.subject_name | default('N/A') }}</td>
+                        <td>{{ item.lesson_name | default('N/A') }}</td>
+                        <td>{{ item.submission_count }}</td>
+                        <td>{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else (item.assignment.due_date if item.assignment.due_date else 'N/A') }}</td>
+                        <td>
+                            {# This link should go to a page showing submissions for this specific assignment #}
+                            <a href="{{ url_for('teacher.teacher_gradebook', subject_filter=item.assignment.subject_id, assignment_filter=item.assignment.id) }}" class="action-btn">View Submissions</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-assignments">
+                <p>No assignments found. <a href="{{ url_for('teacher.create_assignment') }}">Create one now!</a></p>
+            </div>
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

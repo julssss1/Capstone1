@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ subject_name | default('Manage Content') }} - Handspoken</title>
+    {# Load base dashboard styles - Assuming TeacherDashboard.css or a common style #}
+      <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}">
+    {# Load specific lesson list styles (can reuse StudentLessons.css or create a new one) #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentLessons.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Additional styles for teacher-specific elements if needed */
+        .add-activity-link {
+            display: flex;
+            align-items: center;
+            color: #2a6fdb; /* Or your theme's link color */
+            text-decoration: none;
+            padding: 8px 0;
+            font-weight: 500;
+        }
+        .add-activity-link i {
+            margin-right: 8px;
+        }
+        .add-activity-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li class="active"><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fa-solid fa-book"></i> My Subjects</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-list-ul"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2>Manage Content: {{ subject_name | default('Subject') }}</h2>
+            <a href="{{ url_for('teacher.teacher_lessons') }}" class="back-button">&larr; Back to My Subjects</a>
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section class="lessons-container">
+            {% if lessons %}
+                {% for lesson in lessons %}
+                <div class="lesson-item-card">
+                    <div class="lesson-header">
+                        <h3>LESSON {{ loop.index }}: {{ lesson.title | default('Unnamed Lesson') }}</h3>
+                        {# Teacher view might not need progress, or a different kind of status #}
+                    </div>
+                    <div class="lesson-details">
+                        <a href="{{ url_for('teacher.view_lesson_content_teacher', lesson_id=lesson.id) }}" class="lesson-link"> {# Assuming a teacher-specific view route #}
+                            <i class="fas fa-book-open"></i> Lesson Overview {{ loop.index }}
+                        </a>
+                        <a href="#" class="lesson-link disabled">
+                            <i class="fas fa-video"></i> Online Video Material {{ loop.index }}
+                        </a>
+                        {# Display all linked assignments for this lesson #}
+                        {% if lesson.assignments and lesson.assignments|length > 0 %}
+                            {% for assignment in lesson.assignments %}
+                            <a href="{{ url_for('teacher.create_assignment', subject_id=subject_id, lesson_id=lesson.id, assignment_id=assignment.id) }}" class="lesson-link"> {# Link to edit/view this specific assignment - placeholder URL for now #}
+                                <i class="fas fa-pencil-alt"></i> {{ assignment.title | default('View Assignment') }}
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                            {# This 'No Assignment' might not be needed if we always show 'Add an Activity' #}
+                            {# Or it could be shown if there are no assignments AND the user isn't supposed to add more here directly #}
+                            {# For now, let's keep it simple: if no assignments, this block is empty, and "Add an Activity" is separate. #}
+                            {# If you want a "No Assignment" message specifically, it can be added here. #}
+                        {% endif %}
+                        {# Add an Activity Link (to create a new assignment for this lesson) #}
+                        {# This link should ideally pass the lesson.id so the create_assignment page can pre-select the lesson #}
+                        <a href="{{ url_for('teacher.create_assignment', subject_id=subject_id, lesson_id=lesson.id) }}" class="add-activity-link">
+                            <i class="fas fa-plus-circle"></i> Add an Activity/Assignment to this Lesson
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No lessons are currently available for this subject. You can start by adding one.</p>
+                {# Optionally, add a button here to create the first lesson #}
+                 <a href="{{ url_for('teacher.create_assignment', subject_id=subject_id) }}" class="button primary-button">Add New Lesson/Activity</a>
+
+            {% endif %}
+        </section>
+    </main>
+</body>
+</html>

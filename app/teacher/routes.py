@@ -249,7 +249,7 @@ def create_assignment_for_lesson(lesson_id):
          return redirect(url_for('teacher.teacher_lessons'))
 
 
-@bp.route('/assignment/create', methods=['GET'])
+@bp.route('/assignment/create', methods=['GET', 'POST'])
 @login_required
 @role_required('Teacher')
 def create_assignment():
@@ -257,6 +257,10 @@ def create_assignment():
     teacher_id = session.get('user_id')
     user_name = session.get('user_name', 'Teacher')
     subjects = []
+    lessons_for_subject = []
+    pre_selected_subject_id = request.args.get('subject_id', type=int)
+    pre_selected_lesson_id = request.args.get('lesson_id', type=int)
+
 
     if not teacher_id:
         flash('User session invalid. Please log in again.', 'danger')
@@ -274,17 +278,269 @@ def create_assignment():
                                     .execute()
         subjects = subjects_response.data or []
         teacher_subject_ids = {s['id'] for s in subjects}
+
+        # If a subject is pre-selected (e.g., from "Add Activity" link), fetch its lessons
+        if pre_selected_subject_id and pre_selected_subject_id in teacher_subject_ids:
+            lessons_response = supabase.table('lessons') \
+                                       .select('id, title') \
+                                       .eq('subject_id', pre_selected_subject_id) \
+                                       .order('title') \
+                                       .execute()
+            lessons_for_subject = lessons_response.data or []
+        
     except Exception as e:
-        flash('Error fetching subjects for assignment creation.', 'danger')
-        print(f"Error fetching subjects for teacher {teacher_id} in create_assignment: {e}")
-        teacher_subject_ids = set()
+        flash('Error fetching data for assignment creation.', 'danger')
+        print(f"Error fetching data for teacher {teacher_id} in create_assignment: {e}")
+        # teacher_subject_ids might not be set if error was in fetching subjects
+        if 'teacher_subject_ids' not in locals():
+             teacher_subject_ids = set()
+
+    if request.method == 'POST':
+        title = request.form.get('title')
+        description = request.form.get('description')
+        subject_id_form = request.form.get('subject_id', type=int)
+        lesson_id_form = request.form.get('lesson_id', type=int) # Will be None if empty string or not provided
+        due_date = request.form.get('due_date')
+        # File handling would be more complex and require request.files, skipping for now
+
+        if not title or not description or not subject_id_form or not due_date:
+            flash('Title, Description, Subject, and Due Date are required.', 'danger')
+            # Re-render form with existing data if possible, or redirect to GET
+            # For simplicity, redirecting to GET which will repopulate subjects
+            return redirect(url_for('teacher.create_assignment', 
+                                    subject_id=pre_selected_subject_id, 
+                                    lesson_id=pre_selected_lesson_id))
+
+        assignment_data = {
+            'title': title,
+            'description': description,
+            'subject_id': subject_id_form,
+            'due_date': due_date,
+            # 'teacher_id': teacher_id # Assuming assignments should be linked to the teacher who created them
+                                      # This depends on your 'assignments' table schema.
+                                      # If 'assignments' table doesn't have 'teacher_id', remove this.
+        }
+        if lesson_id_form: # Only add lesson_id if it was selected
+            assignment_data['lesson_id'] = lesson_id_form
+
+        try:
+            insert_response = supabase.table('assignments').insert(assignment_data).execute()
+            if insert_response.data:
+                flash('Assignment created successfully!', 'success')
+                # Redirect to a relevant page, e.g., the subject content page or assignments list
+                return redirect(url_for('teacher.manage_subject_content', subject_id=subject_id_form))
+            else:
+                flash('Failed to create assignment. No data returned from insert.', 'danger')
+                if hasattr(insert_response, 'error') and insert_response.error:
+                     flash(f"Database error: {insert_response.error.message}", "danger")
+
+        except PostgrestAPIError as e:
+            flash(f'Database error creating assignment: {e.message}', 'danger')
+            print(f"Supabase DB Error (Create Assignment POST) for teacher {teacher_id}: {e}")
+        except Exception as e:
+            flash('An unexpected error occurred creating the assignment.', 'danger')
+            print(f"Unexpected Error (Create Assignment POST) for teacher {teacher_id}: {e}")
+        
+        # If creation failed, re-render form with data (or redirect to GET)
+        # For simplicity, redirecting to GET which will repopulate subjects
+        return redirect(url_for('teacher.create_assignment', 
+                                subject_id=pre_selected_subject_id, 
+                                lesson_id=pre_selected_lesson_id))
 
 
-    # --- GET Request: Show the form ---
-    pre_selected_subject = request.args.get('subject_id') # For linking from lesson page
+    # --- GET Request: Show the form (this part remains) ---
     return render_template(
         'TeacherAssignment.html',
         subjects=subjects,
-        pre_selected_subject=pre_selected_subject, # Pass to template to select in dropdown
+        lessons_for_subject=lessons_for_subject, # Pass lessons for the pre-selected subject
+        pre_selected_subject_id=pre_selected_subject_id,
+        pre_selected_lesson_id=pre_selected_lesson_id,
         user_name=user_name
         )
+
+@bp.route('/subject/<int:subject_id>/content')
+@login_required
+@role_required('Teacher')
+def manage_subject_content(subject_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    subject_name = "Unknown Subject"
+    lessons = []
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not supabase:
+        flash('Supabase client not initialized. Cannot load content.', 'danger')
+        return redirect(url_for('teacher.teacher_lessons'))
+
+    try:
+        # Verify teacher owns the subject and get its name
+        subject_response = supabase.table('subjects') \
+                                   .select('id, name, teacher_id') \
+                                   .eq('id', subject_id) \
+                                   .maybe_single() \
+                                   .execute()
+
+        if not subject_response.data or subject_response.data['teacher_id'] != teacher_id:
+            flash('Subject not found or you do not have permission to manage it.', 'warning')
+            return redirect(url_for('teacher.teacher_lessons'))
+        
+        subject_name = subject_response.data['name']
+
+        # Fetch lessons for this subject
+        lessons_response = supabase.table('lessons') \
+                                   .select('*, assignments(*)') \
+                                   .eq('subject_id', subject_id) \
+                                   .order('created_at', desc=False) \
+                                   .execute()
+        # The assignments will be nested under each lesson object if the foreign key is set up correctly
+        # and Supabase's default GET request behavior for related tables is used.
+        # The select('*, assignments(*)') should achieve this.
+        lessons_with_assignments = lessons_response.data or []
+
+    except PostgrestAPIError as e:
+        flash(f'Database error loading subject content: {e.message}', 'danger')
+        print(f"Supabase DB Error (Manage Subject Content) for teacher {teacher_id}, subject {subject_id}: {e}")
+        return redirect(url_for('teacher.teacher_lessons'))
+    except Exception as e:
+        flash('An unexpected error occurred loading subject content.', 'danger')
+        print(f"Unexpected Error (Manage Subject Content) for teacher {teacher_id}, subject {subject_id}: {e}")
+        return redirect(url_for('teacher.teacher_lessons'))
+
+    return render_template(
+        'TeacherSubjectContent.html',
+        subject_name=subject_name,
+        lessons=lessons_with_assignments, # Pass lessons with nested assignments
+        user_name=user_name,
+        subject_id=subject_id # Pass subject_id for "Add Activity" link
+    )
+
+@bp.route('/subject/lesson/<int:lesson_id>/view')
+@login_required
+@role_required('Teacher')
+def view_lesson_content_teacher(lesson_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    lesson_data = None
+    subject_name = "Unknown Subject"
+    subject_id_for_back_link = None
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return redirect(url_for('teacher.teacher_lessons'))
+
+    try:
+        # Fetch the lesson and its subject details
+        # Ensure the teacher owns the subject this lesson belongs to
+        response = supabase.table('lessons') \
+                           .select('*, subjects!inner(id, name, teacher_id)') \
+                           .eq('id', lesson_id) \
+                           .eq('subjects.teacher_id', teacher_id) \
+                           .maybe_single() \
+                           .execute()
+
+        if response.data:
+            lesson_data = response.data
+            subject_data = lesson_data.get('subjects')
+            if subject_data:
+                subject_name = subject_data.get('name', 'Unknown Subject')
+                subject_id_for_back_link = subject_data.get('id')
+            else: # Should not happen if !inner join works as expected and subject exists
+                flash('Could not retrieve subject details for this lesson.', 'warning')
+                return redirect(url_for('teacher.teacher_lessons'))
+        else:
+            flash('Lesson not found or you do not have permission to view it.', 'warning')
+            return redirect(url_for('teacher.teacher_lessons'))
+
+    except PostgrestAPIError as e:
+        flash(f'Database error loading lesson: {e.message}', 'danger')
+        print(f"Supabase DB Error (View Lesson Teacher) for lesson {lesson_id}, teacher {teacher_id}: {e}")
+        return redirect(url_for('teacher.teacher_lessons'))
+    except Exception as e:
+        flash('An unexpected error occurred loading the lesson.', 'danger')
+        print(f"Unexpected Error (View Lesson Teacher) for lesson {lesson_id}, teacher {teacher_id}: {e}")
+        return redirect(url_for('teacher.teacher_lessons'))
+
+    return render_template(
+        'TeacherLessonView.html',
+        lesson_data=lesson_data,
+        subject_name=subject_name,
+        subject_id=subject_id_for_back_link, # For the "Back to Subject Content" link
+        user_name=user_name
+    )
+
+@bp.route('/assignments/list')
+@login_required
+@role_required('Teacher')
+def teacher_assignment_list():
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    assignments_with_counts = []
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return render_template('TeacherAssignmentList.html', assignments_with_counts=assignments_with_counts, user_name=user_name)
+
+    try:
+        # Step 1: Get subjects taught by the teacher
+        subjects_response = supabase.table('subjects').select('id, name').eq('teacher_id', teacher_id).execute()
+        if not subjects_response.data:
+            flash('You are not teaching any subjects.', 'info')
+            return render_template('TeacherAssignmentList.html', assignments_with_counts=[], user_name=user_name)
+        
+        teacher_subject_ids = [s['id'] for s in subjects_response.data]
+        subjects_map = {s['id']: s['name'] for s in subjects_response.data}
+
+        # Step 2: Get all assignments for those subjects, including lesson details
+        assignments_response = supabase.table('assignments') \
+                                     .select('*, lessons(title)') \
+                                     .in_('subject_id', teacher_subject_ids) \
+                                     .order('created_at', desc=True) \
+                                     .execute()
+        
+        all_teacher_assignments = assignments_response.data or []
+
+        for assignment in all_teacher_assignments:
+            # Step 3: For each assignment, count submissions
+            submissions_count_response = supabase.table('submissions') \
+                                                 .select('id', count='exact') \
+                                                 .eq('assignment_id', assignment['id']) \
+                                                 .execute()
+            submission_count = submissions_count_response.count or 0
+            
+            subject_name = subjects_map.get(assignment['subject_id'], 'Unknown Subject')
+            lesson_name = assignment.get('lessons', {}).get('title') if assignment.get('lessons') else 'N/A'
+
+
+            assignments_with_counts.append({
+                'assignment': assignment,
+                'submission_count': submission_count,
+                'subject_name': subject_name,
+                'lesson_name': lesson_name
+            })
+
+    except PostgrestAPIError as e:
+        flash(f'Database error loading assignments: {e.message}', 'danger')
+        print(f"Supabase DB Error (Teacher Assignment List) for {teacher_id}: {e}")
+    except Exception as e:
+        flash('An unexpected error occurred loading assignments.', 'danger')
+        print(f"Unexpected Error (Teacher Assignment List) for {teacher_id}: {e}")
+
+    return render_template(
+        'TeacherAssignmentList.html',
+        assignments_with_counts=assignments_with_counts,
+        user_name=user_name
+    )
