@@ -198,6 +198,27 @@ body {
     transform: scale(0.98);
 }
 
+/* Styles for action buttons in tables, like "View/Submit" */
+.assignments-table .action-btn {
+    padding: 8px 16px;
+    color: white;
+    background-color: var(--primary-color); /* Use primary color from :root */
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+    text-align: center;
+    display: inline-block; /* Ensure it behaves like a button */
+}
+
+.assignments-table .action-btn:hover {
+    background-color: #3a7bc8; /* Darker shade of primary, or define var(--primary-color-dark) */
+}
+
+
 .assignment-footer {
     background-color: var(--bg-light);
     padding: 15px 30px;

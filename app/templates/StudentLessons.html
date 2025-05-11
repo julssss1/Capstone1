@@ -80,9 +80,18 @@
                         <a href="#" class="lesson-link disabled"> {# Add 'disabled' class if not implemented #}
                             <i class="fas fa-video"></i> Online Video Material {{ loop.index }}
                         </a>
-                        <a href="#" class="lesson-link disabled"> {# Add 'disabled' class if not implemented #}
-                            <i class="fas fa-pencil-alt"></i> Quarter {{ loop.index }}: Assignment {{ loop.index }}
-                        </a>
+                        {# Display linked assignments for this lesson #}
+                        {% if lesson.assignments and lesson.assignments|length > 0 %}
+                            {% for assignment in lesson.assignments %}
+                                <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment.id) }}" class="lesson-link">
+                                    <i class="fas fa-pencil-alt"></i> {{ assignment.title | default('View Assignment') }}
+                                </a>
+                            {% endfor %}
+                        {% else %}
+                            <span class="lesson-link disabled">
+                                <i class="fas fa-pencil-alt"></i> No assignments for this lesson
+                            </span>
+                        {% endif %}
                     </div>
                 </div>
                 {% endfor %}

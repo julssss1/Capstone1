@@ -1,0 +1,194 @@
+.assignment-detail-card {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+.assignment-detail-card h3 {
+    margin-top: 0;
+    color: #333;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+.assignment-meta {
+    font-size: 0.9em;
+    color: #555;
+    margin-bottom: 20px;
+}
+.assignment-meta p {
+    margin: 5px 0;
+}
+.assignment-meta strong {
+    color: #333;
+}
+
+
+.live-practice-layout {
+    display: flex;
+    flex-direction: row-reverse; /* Camera on the right */
+    gap: 20px;
+    margin-bottom: 20px;
+}
+.live-practice-layout > div { /* Direct children: camera container and prediction/notes container */
+    flex-basis: 50%;
+}
+
+.prediction-area h4,
+.camera-feed-module h4 { /* Changed from .camera-feed-area */
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #444;
+    text-align: center; /* Center the "Camera Feed" title */
+}
+
+/* Styles for the camera feed module, adapted from StudentDashboard.css */
+.camera-feed-module {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center button and video container */
+}
+
+.start-camera-button { /* Style for the new button */
+    padding: 10px 20px;
+    font-size: 1em;
+    background-color: var(--primary-color); /* Using variable from StudentDashboard.css */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-bottom: 15px;
+    transition: background-color 0.3s ease;
+}
+.start-camera-button:hover {
+    background-color: #3a7bc8; /* Darker shade */
+}
+.start-camera-button:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+}
+
+.video-feed-container {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: #222; /* Dark background for video area */
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex; /* To center placeholder text */
+    justify-content: center;
+    align-items: center;
+    position: relative; 
+    margin-bottom: 10px;
+}
+
+#video_feed_assignment_img { /* Styles for the actual video feed image */
+    display: none; /* Initially hidden */
+    width: 100%;
+    height: 100%;
+    object-fit: cover; /* Cover the container */
+    border-radius: 8px; /* Match container */
+}
+
+#video_feed_placeholder_text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #aaa; /* Light grey text for placeholder */
+    text-align: center;
+    padding: 20px;
+}
+
+/* Hide placeholder when image is shown */
+#video_feed_assignment_img[style*="display: block"] + #video_feed_placeholder_text {
+    display: none;
+}
+/* Hide placeholder if button is hidden (meaning attempting to load or active) */
+.start-camera-button[style*="display: none"] + .video-feed-container #video_feed_placeholder_text {
+     display: none; 
+}
+
+
+.camera-note-text {
+    font-size: 0.9em;
+    color: var(--text-color-light, #555); /* Use variable or fallback */
+    text-align: center;
+    margin-top: 5px;
+}
+
+
+#prediction_text {
+    font-size: 1.5em; 
+    font-weight: bold; 
+    color: #007bff; 
+    padding: 10px; 
+    border: 1px solid #eee; 
+    border-radius: 4px; 
+    min-height: 50px; 
+    display: flex; 
+    align-items: center; 
+    justify-content: center; 
+    margin-bottom: 5px;
+}
+
+#stability_timer_text {
+    font-size: 0.9em; 
+    color: #6c757d; 
+    min-height: 20px; 
+    margin-bottom: 15px; 
+    text-align: center;
+}
+
+/* Form group styling within the live practice/submission area */
+.live-practice-submission-area .form-group {
+    margin-bottom: 15px;
+}
+.live-practice-submission-area .form-group label {
+    font-weight: 500; 
+    display: block; 
+    margin-bottom: 5px;
+}
+.live-practice-submission-area textarea#submission-notes {
+    min-height: 150px; 
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    box-sizing: border-box; 
+    font-family: 'Poppins', sans-serif; 
+    font-size: 0.95em;
+    margin-bottom: 15px; /* If it's the last element before file input */
+}
+.live-practice-submission-area input[type="file"]#submission-file {
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ddd; 
+    border-radius: 4px; 
+    box-sizing: border-box; 
+    background-color: #f8f9fa;
+}
+
+.submit-button { /* General submit button, can be reused or made specific */
+    width: 100%; 
+    padding: 12px; 
+    font-size: 1em; 
+    background-color: #28a745; 
+    border-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-top: 10px; /* Space above the button */
+}
+.submit-button:hover {
+    background-color: #218838;
+    border-color: #1e7e34;
+}
+
+/* Ensure StudentAssignment.css specific styles don't conflict or are merged if needed */
+/* For example, .submission-form-area might be defined in StudentAssignment.css */
+/* If StudentAssignment.css already has good styles for .form-group, label, textarea, input[type=file], */
+/* then some of the specific styles above might be redundant or could be moved to StudentViewAssignment.css */
+/* for overrides or specific adjustments. */

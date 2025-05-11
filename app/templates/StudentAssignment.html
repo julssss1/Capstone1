@@ -37,55 +37,87 @@
     </aside>
 
     <main class="main-content">
-        <section class="assignment-details">
-            <h2>Assignment 1: Basic Greetings</h2>
-            <p class="due-date">Due: June 25, 2025</p>
-            <div class="instructions">
-                <h3>Instructions:</h3>
-                <p>Watch the provided videos for each sign. Then, use the practice tool on your dashboard to record yourself performing the sign. Submit the video links or files below.</p>
-            </div>
-        </section>
+        <header class="page-header">
+            <h2><i class="fas fa-tasks"></i> My Assignments</h2>
+            <p>Here are your current assignments. Click on an assignment to view details and submit your work.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
 
-        <section class="assignment-tasks">
-            <h3>Tasks:</h3>
-            <div class="task-item">
-                <h4>Task 1: Sign for "Hello"</h4>
-                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
-                <div class="submission-area">
-                    <label for="task1-submission">Submit your practice video:</label>
-                    <input type="file" id="task1-submission" name="task1_submission" accept="video/*">
-                    <span>or</span>
-                    <input type="url" id="task1-link" name="task1_link" placeholder="Paste video link here">
-                </div>
+        <section class="assignments-list-container">
+            {% if assignments and assignments|length > 0 %}
+            <table class="assignments-table"> {# You can reuse styles from TeacherAssignmentList or define new ones #}
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Lesson</th>
+                        <th>Assignment Name</th>
+                        <th>Deadline</th>
+                        <th>Status</th> {# Optional: Add status like 'Not Submitted', 'Submitted', 'Graded' #}
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for assignment_item in assignments %}
+                    <tr>
+                        <td>{{ assignment_item.subjects.name if assignment_item.subjects else 'N/A' }}</td>
+                        <td>{{ assignment_item.lessons.title if assignment_item.lessons else 'N/A (General)' }}</td>
+                        <td>
+                            <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}">{{ assignment_item.title | default('N/A') }}</a>
+                        </td>
+                        <td>{{ assignment_item.due_date[:10] if assignment_item.due_date and assignment_item.due_date|length >=10 else (assignment_item.due_date if assignment_item.due_date else 'N/A') }}</td>
+                        <td>Not Submitted</td> {# Placeholder status #}
+                        <td>
+                            <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="action-btn">View Assigment</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="no-assignments" style="text-align: center; padding: 20px; color: #777;">
+                <p>You have no assignments at the moment. Check back later!</p>
             </div>
-
-            <div class="task-item">
-                <h4>Task 2: Sign for "Thank You"</h4>
-                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
-                <div class="submission-area">
-                    <label for="task2-submission">Submit your practice video:</label>
-                    <input type="file" id="task2-submission" name="task2_submission" accept="video/*">
-                    <span>or</span>
-                    <input type="url" id="task2-link" name="task2_link" placeholder="Paste video link here">
-                </div>
-            </div>
-
-             <div class="task-item">
-                <h4>Task 3: Sign for "Goodbye"</h4>
-                <p>Watch the example video <a href="#" target="_blank">[Video Link]</a>.</p>
-                <div class="submission-area">
-                    <label for="task3-submission">Submit your practice video:</label>
-                    <input type="file" id="task3-submission" name="task3_submission" accept="video/*">
-                    <span>or</span>
-                    <input type="url" id="task3-link" name="task3_link" placeholder="Paste video link here">
-                </div>
-            </div>
-        </section>
-
-        <section class="assignment-submission">
-            <button type="submit" class="submit-button">Submit Assignment</button>
+            {% endif %}
         </section>
     </main>
-
+    <style>
+        .assignments-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        .assignments-table th, .assignments-table td {
+            border: 1px solid #eef;
+            padding: 12px 15px;
+            text-align: left;
+            vertical-align: middle;
+        }
+        .assignments-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+        .assignments-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .assignments-table td a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .assignments-table td a:hover {
+            text-decoration: underline;
+        }
+        /* .action-btn styles will be moved to StudentAssignment.css */
+    </style>
 </body>
 </html>

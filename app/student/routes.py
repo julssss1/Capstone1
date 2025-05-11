@@ -35,9 +35,44 @@ def student_dashboard():
 @login_required
 @role_required('Student')
 def student_assignment():
-    """Renders the dedicated assignment page."""
+    """Renders the dedicated assignment page, listing all available assignments."""
     print(f"Accessing Student Assignment page for user: {session.get('user_name')}")
-    return render_template('StudentAssignment.html', user_name=session.get('user_name', 'Student'))
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Student')
+    assignments_list = []
+
+    if not supabase:
+        flash('Supabase client not initialized. Cannot fetch assignments.', 'danger')
+    else:
+        try:
+            # Fetch all assignments and join with subjects table to get subject_name
+            # Assuming students can see assignments from all subjects for now.
+            # A real-world scenario might filter by subjects the student is enrolled in.
+            response = supabase.table('assignments') \
+                               .select('*, subjects(name), lessons(title)') \
+                               .order('due_date', desc=False) \
+                               .execute()
+            if response.data:
+                assignments_list = response.data
+            else:
+                assignments_list = []
+                if hasattr(response, 'error') and response.error:
+                    flash(f"Error fetching assignments: {response.error.message}", "danger")
+                else:
+                    print("No assignments found or error in fetching.") # No assignments is not an error to flash
+
+        except PostgrestAPIError as e:
+            flash(f'Database error fetching assignments: {e.message}', 'danger')
+            print(f"Supabase DB Error (Student Assignments): {e}")
+        except Exception as e:
+            flash('An unexpected error occurred while loading assignments.', 'danger')
+            print(f"Unexpected Error (Student Assignments): {e}")
+            
+    return render_template(
+        'StudentAssignment.html', 
+        user_name=user_name,
+        assignments=assignments_list
+    )
 
 @bp.route('/video_feed')
 @login_required
@@ -231,9 +266,9 @@ def view_subject_lessons(subject_id):
             flash('Subject not found.', 'warning')
             return redirect(url_for('student.student_progress'))
 
-        print(f"Fetching all lessons for subject ID: {subject_id}")
+        print(f"Fetching all lessons for subject ID: {subject_id} including their assignments")
         lessons_response = supabase.table('lessons') \
-                                   .select('id, title, description') \
+                                   .select('*, assignments(*)') \
                                    .eq('subject_id', subject_id) \
                                    .order('id') \
                                    .execute()
@@ -400,6 +435,60 @@ def update_profile():
             flash('Invalid file type. Allowed types: png, jpg, jpeg, gif.', 'danger')
 
     return redirect(url_for('student.student_settings'))
+
+@bp.route('/assignment/<int:assignment_id>/view')
+@login_required
+@role_required('Student')
+def view_assignment_student(assignment_id):
+    """Renders the detailed view for a specific assignment for a student."""
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Student')
+    assignment_details = None
+
+    if not supabase:
+        flash('Supabase client not initialized. Cannot fetch assignment details.', 'danger')
+        return redirect(url_for('student.student_assignment'))
+
+    try:
+        response = supabase.table('assignments') \
+                           .select('*, subjects(name), lessons(title)') \
+                           .eq('id', assignment_id) \
+                           .maybe_single() \
+                           .execute()
+        
+        if response.data:
+            assignment_details = response.data
+        else:
+            flash('Assignment not found.', 'warning')
+            return redirect(url_for('student.student_assignment'))
+
+    except PostgrestAPIError as e:
+        flash(f'Database error fetching assignment details: {e.message}', 'danger')
+        print(f"Supabase DB Error (View Student Assignment): {e}")
+        return redirect(url_for('student.student_assignment'))
+    except Exception as e:
+        flash('An unexpected error occurred while loading the assignment.', 'danger')
+        print(f"Unexpected Error (View Student Assignment): {e}")
+        return redirect(url_for('student.student_assignment'))
+
+    return render_template(
+        'StudentViewAssignment.html',
+        assignment=assignment_details,
+        user_name=user_name
+    )
+
+@bp.route('/assignment/<int:assignment_id>/submit', methods=['POST'])
+@login_required
+@role_required('Student')
+def submit_assignment_work(assignment_id):
+    """Handles the submission of work for a specific assignment."""
+    # This is a placeholder.
+    # Actual implementation would handle file uploads to Supabase Storage (if any),
+    # save submission details (file path/link, notes, student_id, assignment_id, submission_timestamp)
+    # to the 'submissions' table.
+    flash(f'Submission for assignment ID {assignment_id} received (not fully implemented).', 'info')
+    # For now, redirect back to the assignment view page or the main assignment list.
+    return redirect(url_for('student.view_assignment_student', assignment_id=assignment_id))
 
 
 @bp.route('/change_password', methods=['POST'])
