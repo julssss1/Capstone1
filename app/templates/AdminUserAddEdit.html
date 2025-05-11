@@ -41,84 +41,123 @@
         </div>
     </aside>
 
-    <main class="main-content admin-content">
+    <main class="main-content">
+        <!-- User Info Header (similar to StudentSettings) -->
+        {% if action == 'Edit' and profile %}
+        <header class="admin-user-edit-header"> {# Changed class for specific styling #}
+            <div class="main-profile-info">
+                <div class="profile-picture-container">
+                    <img src="{{ profile.avatar_url | default(url_for('static', filename='Images/default-avatar.png')) }}" alt="Profile Picture" class="profile-picture">
+                </div>
+                <div class="user-primary-details">
+                    {% set mn_initial = " " + profile.middle_name[0] + "." if profile.middle_name else "" %}
+                    <p><strong>Full Name:</strong> {{ profile.first_name }}{{ mn_initial }} {{ profile.last_name }}</p>
+                    <p><strong>User ID:</strong> {{ profile.id }}</p>
+                </div>
+            </div>
+            <div class="user-secondary-details">
+                 <p><strong>Email:</strong> {{ profile.email }}</p>
+                 <p><strong>Role:</strong> {{ profile.role }}</p>
+            </div>
+        </header>
+        {% else %}
         <header class="page-header">
-            {# Dynamic header #}
             <h2>{{ action }} User</h2>
-            <p>
-                {% if action == 'Add' %}
-                    Create a new user account and profile.
-                {% else %}
-                    Update the profile details for this user.
-                {% endif %}
-            </p>
-             {% with messages = get_flashed_messages(with_categories=true) %}
+            <p>Create a new user account and profile.</p>
+        </header>
+        {% endif %}
+
+        <!-- Account Settings Section -->
+        <section class="settings-container">
+            <h2>Account Settings</h2>
+            <!-- Display Flashed Messages -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
                     <div class="alert alert-{{ category }}">{{ message }}</div>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
-        </header>
 
-        <div class="form-container">
-            {# Form action depends on whether adding or editing #}
-            <form method="POST"
+            {# Main form for user details #}
+            <form id="userDetailsForm"
+                  method="POST"
                   action="{{ url_for('admin.edit_user', user_id=profile.id) if action == 'Edit' else url_for('admin.add_user') }}"
-                  class="settings-form">
+                  class="settings-form admin-edit-form"> {# Added specific class #}
 
-                {# Email Field - Required for Add, Readonly for Edit (Email change not handled here) #}
-                <div class="form-group">
-                    <label for="email">Email:</label>
-                    <input type="email" id="email" name="email"
-                           value="{{ profile.email if profile.email else '' }}"
-                           required
-                           {% if action == 'Edit' %}readonly{% endif %}>
-                     {% if action == 'Edit' %}<small>Cannot change Email</small>{% endif %}
+                <div class="form-row names-row"> {# Specific class for names row #}
+                    <div class="form-group">
+                        <label for="first_name">First Name:</label>
+                        <input type="text" id="first_name" name="first_name"
+                               value="{{ profile.first_name if profile and profile.first_name else '' }}"
+                               required>
+                    </div>
+                    <div class="form-group">
+                        <label for="last_name">Last Name:</label>
+                        <input type="text" id="last_name" name="last_name"
+                               value="{{ profile.last_name if profile and profile.last_name else '' }}"
+                               required>
+                    </div>
+                     <div class="form-group">
+                        <label for="middle_name">Middle Name:</label>
+                        <input type="text" id="middle_name" name="middle_name"
+                               value="{{ profile.middle_name if profile and profile.middle_name else '' }}">
+                    </div>
                 </div>
 
-                 {# Password Field - Only required for Add #}
-                 {% if action == 'Add' %}
-                 <div class="form-group">
-                    <label for="password">Password:</label>
-                    <input type="password" id="password" name="password" required>
-                 </div>
-                 {% endif %}
-
-                 {# First Name Field #}
-                 <div class="form-group">
-                    <label for="first_name">First Name:</label>
-                    <input type="text" id="first_name" name="first_name"
-                           value="{{ profile.first_name if profile.first_name else '' }}"
-                           required>
-                 </div>
-
-                 {# Last Name Field #}
-                 <div class="form-group">
-                    <label for="last_name">Last Name:</label>
-                    <input type="text" id="last_name" name="last_name"
-                           value="{{ profile.last_name if profile.last_name else '' }}"
-                           required>
-                 </div>
-
-                 {# Role Field #}
-                 <div class="form-group">
-                    <label for="role">Role:</label>
+                <div class="form-row"> {# General row for other fields #}
+                    <div class="form-group form-group-email">  {# Specific class for email #}
+                        <label for="email">Email:</label>
+                        <input type="email" id="email" name="email"
+                               value="{{ profile.email if profile and profile.email else '' }}"
+                               required
+                               {% if action == 'Edit' %}readonly{% endif %}>
+                         {% if action == 'Edit' %}<small>Email cannot be changed after creation.</small>{% endif %}
+                    </div>
+                    <div class="form-group form-group-role"> {# Specific class for role #}
+                        <label for="role">Role:</label>
                     <select id="role" name="role" required>
                         <option value="">-- Select Role --</option>
-                        <option value="Student" {% if profile.role == 'Student' %}selected{% endif %}>Student</option>
-                        <option value="Teacher" {% if profile.role == 'Teacher' %}selected{% endif %}>Teacher</option>
-                        <option value="Admin" {% if profile.role == 'Admin' %}selected{% endif %}>Admin</option>
+                        <option value="Student" {% if profile and profile.role == 'Student' %}selected{% endif %}>Student</option>
+                        <option value="Teacher" {% if profile and profile.role == 'Teacher' %}selected{% endif %}>Teacher</option>
+                        <option value="Admin" {% if profile and profile.role == 'Admin' %}selected{% endif %}>Admin</option>
                     </select>
-                 </div>
+                </div>
 
-                 <div class="form-actions">
-                    {# Dynamic button text #}
-                    <button type="submit" class="btn">{{ action }} User</button>
-                    <a href="{{ url_for('admin.admin_user_management') }}" class="cancel-link">Cancel</a>
-                 </div>
+                {# Row for Password section - only in Edit mode (Profile Picture removed) #}
+                {% if action == 'Edit' and profile %}
+                <div class="form-row settings-row"> {# This row might now only contain password, or be removed if password section is full width by default #}
+                    <div class="settings-section password-section form-group">
+                        <label class="password-section-label">Change Password (Optional):</label>
+                        <div class="form-group"> {# Nested form-group for the input itself #}
+                            <label for="new_password" class="sr-only">New Password:</label>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (leave blank to keep current)">
+                        </div>
+                    </div>
+                </div>
+                {% elif action == 'Add' %}
+                 {# Password section for Add mode (was separate, now part of main form flow) #}
+                <div class="settings-section password-section">
+                    <label class="password-section-label">Set Password:</label>
+                    <div class="form-group">
+                        <label for="password">Password:</label>
+                        <input type="password" id="password" name="password" placeholder="Enter new password" required>
+                    </div>
+                </div>
+                {% endif %}
             </form>
-        </div>
+
+            {# Combined Form Actions Section at the bottom of the container #}
+            <div class="form-actions-footer">
+                <button type="submit" form="userDetailsForm" class="btn save-btn">Save Changes</button>
+                {% if action == 'Edit' and profile and current_user_id != profile.id %}
+                <form id="deleteUserForm" action="{{ url_for('admin.delete_user', user_id=profile.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');" style="display: inline-block;"> {# Changed to inline-block #}
+                    <button type="submit" class="btn delete-btn">Delete User</button>
+                </form>
+                {% endif %}
+                <a href="{{ url_for('admin.admin_user_management') }}" class="btn cancel-btn">Cancel</a>
+            </div>
+        </section>
     </main>
 </body>
 </html>

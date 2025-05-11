@@ -47,8 +47,9 @@
                 <img src="{{ avatar_url }}" alt="Profile Picture" class="profile-picture">
             </div>
             <div class="student-details">
-                {# Display dynamic user name passed from the route #}
-                <p><strong>Full Name:</strong> {{ user_name }}</p>
+                {# Construct Full Name with Middle Initial #}
+                {% set mn_initial = " " + profile_middle_name[0] + "." if profile_middle_name else "" %}
+                <p><strong>Full Name:</strong> {{ profile_first_name }}{{ mn_initial }} {{ profile_last_name }}</p>
                 {# Keep Grade and Level static for now as requested #}
                 <p><strong>Grade:</strong> 1</p>
                 <p><strong>Level:</strong> Level 2 Neophyte</p>

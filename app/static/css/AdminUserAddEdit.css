@@ -43,9 +43,107 @@
     margin-bottom: 20px;
 }
 
+.admin-user-edit-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start; /* Align items to the top */
+    padding: 20px;
+    background-color: #f8f9fa; /* Light background for header */
+    border-bottom: 1px solid #dee2e6;
+    margin-bottom: 30px;
+    border-radius: 8px 8px 0 0; /* Match form container if it's directly above */
+}
+
+.admin-user-edit-header .main-profile-info {
+    display: flex;
+    align-items: center;
+}
+
+.admin-user-edit-header .profile-picture-container {
+    margin-right: 20px;
+}
+
+.admin-user-edit-header .profile-picture {
+    width: 80px; /* Adjust size as needed */
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.admin-user-edit-header .user-primary-details p,
+.admin-user-edit-header .user-secondary-details p {
+    margin: 0 0 5px 0;
+    font-size: 0.95rem;
+}
+.admin-user-edit-header .user-primary-details p strong,
+.admin-user-edit-header .user-secondary-details p strong {
+    font-weight: 600;
+}
+
+.admin-user-edit-header .user-secondary-details {
+    text-align: right;
+    flex-shrink: 0; /* Prevent this container from shrinking too much */
+    max-width: 50%; /* Prevent it from taking too much space if email is very long, adjust as needed */
+    word-break: break-word; /* Allow long emails to wrap */
+}
+
+.admin-user-edit-header .user-secondary-details p {
+    white-space: normal; /* Ensure text wraps */
+}
+
+
+/* Form specific styling */
+.admin-edit-form .form-row {
+    display: flex;
+    flex-wrap: wrap; /* Allow wrapping on smaller screens if necessary */
+    gap: 20px; /* Space between items in a row */
+    margin-bottom: 15px; /* Reduced bottom margin for rows */
+}
+
+.admin-edit-form .form-row .form-group {
+    flex: 1; 
+    min-width: 180px; /* Slightly smaller min-width */
+    margin-bottom: 0; 
+}
+
+/* Specifically for the names row to have 3 items */
+.admin-edit-form .names-row {
+    /* display: flex; gap: 20px; is already on .form-row */
+}
+.admin-edit-form .names-row .form-group {
+    flex-basis: calc(33.333% - 14px); /* 3 items with 20px gap */
+}
+
+/* For Email and Role row */
+.admin-edit-form .form-row .form-group-email {
+    flex-basis: calc(60% - 10px); /* Email takes more space */
+}
+.admin-edit-form .form-row .form-group-role {
+    flex-basis: calc(40% - 10px); /* Role takes less space */
+}
+
+/* For the row containing Profile Picture and Password sections */
+.admin-edit-form .settings-row {
+    align-items: flex-start; 
+}
+/* Since profile picture section is removed, password section in settings-row should take full width */
+.admin-edit-form .settings-row .password-section {
+    flex-basis: 100%; 
+    border-top: none; 
+    padding-top: 0; 
+    margin-top: 0;
+}
+/* Ensure nested form-group in password section takes full width of its parent */
+.admin-edit-form .settings-row .password-section .form-group {
+    flex-basis: 100%;
+}
+/* If settings-row is only for password, it might not even need to be display:flex if password-section is block by default */
+/* However, keeping .settings-row as a flex container is fine for now. */
+
+
 .settings-form label {
     display: block;
-    margin-bottom: 8px;
+    margin-bottom: 6px; /* Slightly reduced margin */
     font-weight: 500;
     color: #333;
 }
@@ -60,36 +158,106 @@
     border-radius: 4px;
     box-sizing: border-box; /* Include padding and border in element's total width and height */
     font-family: 'Poppins', sans-serif;
+    font-size: 0.9rem; /* Slightly smaller font for inputs */
 }
 
-/* Re-using class from StudentSettings for consistency */
-.settings-form .btn {
-    padding: 10px 20px;
+.settings-form input[type="text"]:focus,
+.settings-form input[type="email"]:focus,
+.settings-form input[type="password"]:focus,
+.settings-form select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+
+.settings-form .btn,
+.profile-picture-section .btn, /* Target buttons in profile picture section */
+.delete-user-section .btn { /* Target buttons in delete user section */
+    padding: 10px 18px; /* Slightly adjusted padding */
     background-color: #007bff; /* Example primary color */
     color: white;
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 0.95rem; /* Slightly adjusted font size */
     transition: background-color 0.3s ease;
 }
 
-.settings-form .btn:hover {
+.settings-form .btn:hover,
+.profile-picture-section .btn:hover,
+.delete-user-section .btn:hover {
     background-color: #0056b3;
 }
 
-.form-actions {
-    margin-top: 20px;
+.settings-form .btn.save-btn {
+    /* Default blue is fine */
+}
+.settings-form .btn.cancel-btn {
+    background-color: #6c757d; /* Grey for cancel */
+}
+.settings-form .btn.cancel-btn:hover {
+    background-color: #5a6268;
+}
+
+/* Ensure delete button in footer is red */
+.form-actions-footer .btn.delete-btn {
+    background-color: #dc3545; /* Red for delete */
+}
+.form-actions-footer .btn.delete-btn:hover {
+    background-color: #c82333;
+}
+
+
+/* Footer for main form actions and delete button */
+.form-actions-footer {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    justify-content: flex-end; /* Align all buttons to the right */
+    align-items: center; /* Align items vertically */
+    gap: 10px; /* Space between buttons/forms */
 }
 
- .form-actions .cancel-link {
+.form-actions-footer .btn { /* Ensure buttons in footer have consistent styling if needed */
+    /* Styles are mostly inherited from .settings-form .btn */
+}
+.form-actions-footer form#deleteUserForm { /* Ensure the form itself doesn't break flex layout */
+    margin: 0; /* Remove any default form margins */
+}
+
+
+/* Settings sections for password, profile picture */
+.settings-section {
+    margin-top: 25px; /* Reduced margin */
+    padding-top: 15px; /* Reduced padding */
+    border-top: 1px solid #eee;
+}
+
+.settings-section .section-label { /* For "Change Profile Picture" etc. if not an H3 */
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.settings-section .form-group {
+    margin-bottom: 15px;
+}
+
+.password-section-label { /* For the "Change Password (Optional)" label */
+    font-size: 1.1rem; /* Consistent with section-label */
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 10px; /* Reduced margin */
+    display: block;
+}
+
+/* Small text for readonly email note */
+.settings-form small {
+    font-size: 0.8rem;
     color: #6c757d;
-    text-decoration: none;
-}
-
-.form-actions .cancel-link:hover {
-    text-decoration: underline;
+    display: block;
+    margin-top: 4px;
 }

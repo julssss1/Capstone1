@@ -78,19 +78,30 @@ def student_settings():
                 user_email = user_response.user.email or "Email not set"
                 print(f"Fetched user details for settings page: Email={user_email}")
 
+                # Initialize profile attributes to be passed to template
+                profile_first_name = session.get('user_name', 'Student') # Fallback
+                profile_middle_name = None
+                profile_last_name = ""
+
+
                 profile_response = supabase.table('profiles') \
-                                           .select('first_name, last_name, avatar_path') \
+                                           .select('first_name, last_name, middle_name, avatar_path') \
                                            .eq('id', user_id) \
                                            .maybe_single() \
                                            .execute()
 
                 if profile_response.data:
                     profile_data = profile_response.data
-                    f_name = profile_data.get('first_name')
-                    l_name = profile_data.get('last_name')
-                    if f_name or l_name:
-                        user_name = f"{f_name or ''} {l_name or ''}".strip()
-                        session['user_name'] = user_name
+                    profile_first_name = profile_data.get('first_name', '')
+                    profile_middle_name = profile_data.get('middle_name') # Will be None if not present or null
+                    profile_last_name = profile_data.get('last_name', '')
+                    
+                    # Update session user_name if needed (without middle initial for general use)
+                    session_user_name = f"{profile_first_name or ''} {profile_last_name or ''}".strip()
+                    if session_user_name:
+                        session['user_name'] = session_user_name
+                    
+                    user_name = session_user_name # user_name for sidebar can remain First Last
 
                     avatar_path = profile_data.get('avatar_path')
                     if avatar_path:
@@ -127,7 +138,16 @@ def student_settings():
          flash('User session invalid. Please log in again.', 'warning')
          return redirect(url_for('auth.login'))
 
-    return render_template('StudentSettings.html', user_name=user_name, user_email=user_email, avatar_url=avatar_url)
+    return render_template(
+        'StudentSettings.html', 
+        # Pass individual name parts for flexible display in template header
+        profile_first_name=profile_first_name,
+        profile_middle_name=profile_middle_name,
+        profile_last_name=profile_last_name,
+        user_name=user_name, # For sidebar, keep as First Last
+        user_email=user_email, 
+        avatar_url=avatar_url
+    )
 
 
 @bp.route('/my_progress')

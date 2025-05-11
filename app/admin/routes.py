@@ -129,7 +129,7 @@ def admin_user_management():
                 flash('Unexpected error fetching authentication users.', 'danger')
                 print(f"Unexpected Error fetching auth users: {e}")
 
-        query = supabase.table('profiles').select('id, first_name, last_name, role')
+        query = supabase.table('profiles').select('id, first_name, last_name, middle_name, role') # Added middle_name
 
         if role_filter:
             capitalized_role_filter = role_filter.capitalize()
@@ -146,10 +146,18 @@ def admin_user_management():
                 'id': user_id_str,
                 'first_name': profile.get('first_name', ''),
                 'last_name': profile.get('last_name', ''),
+                'middle_name': profile.get('middle_name', ''), # Get middle_name
                 'role': profile.get('role', ''),
-                'email': auth_users_map.get(user_id_str, {}).get('email', 'N/A'),
-                'display_name': f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip()
+                'email': auth_users_map.get(user_id_str, {}).get('email', 'N/A')
             }
+            
+            # Construct display_name with middle initial
+            fn = user_data['first_name']
+            ln = user_data['last_name']
+            mn = user_data['middle_name']
+            middle_initial = f" {mn[0]}." if mn else ""
+            user_data['display_name'] = f"{fn}{middle_initial} {ln}".strip().replace("  ", " ")
+
 
             if search_query:
                 name_match = search_query.lower() in user_data['display_name'].lower()
@@ -398,6 +406,7 @@ def edit_user(user_id):
     """Handles editing user role and name (requires template)."""
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
+    current_user_id = session.get('user_id') # Get current admin's ID
     profile_data = None
 
     if not supabase:
@@ -405,12 +414,51 @@ def edit_user(user_id):
         return redirect(url_for('admin.admin_user_management'))
 
     try:
+        # Fetch profile details, now including middle_name
         profile_response = supabase.table('profiles') \
-                                   .select('id, first_name, last_name, role') \
+                                   .select('id, first_name, last_name, role, avatar_path, middle_name') \
                                    .eq('id', user_id) \
                                    .maybe_single() \
                                    .execute()
         profile_data = profile_response.data
+
+        if profile_data:
+            # Ensure middle_name key exists if it's null from DB, for template safety
+            profile_data.setdefault('middle_name', None)
+
+            # Fetch email from Auth
+            try:
+                admin_url = current_app.config.get("SUPABASE_URL")
+                admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
+                if not admin_url or not admin_key:
+                    flash("Critical Error: Supabase URL or Service Key missing. Cannot fetch user email.", "danger")
+                    profile_data['email'] = 'N/A (Config Error)'
+                else:
+                    supabase_admin_client = create_client(admin_url, admin_key)
+                    auth_user_response = supabase_admin_client.auth.admin.get_user_by_id(user_id)
+                    if auth_user_response.user and auth_user_response.user.email:
+                        profile_data['email'] = auth_user_response.user.email
+                    else:
+                        profile_data['email'] = 'N/A (Not Found)'
+                        print(f"Could not retrieve email for user {user_id} from auth.")
+            except Exception as auth_e:
+                print(f"Error fetching email for user {user_id} from auth: {auth_e}")
+                profile_data['email'] = 'N/A (Auth Error)'
+
+            # Avatar URL logic
+            if profile_data.get('avatar_path'):
+                try:
+                    public_url_response = supabase.storage.from_('avatars').get_public_url(profile_data['avatar_path'])
+                    profile_data['avatar_url'] = public_url_response
+                except Exception as e_storage:
+                    print(f"Error getting public URL for avatar {profile_data['avatar_path']}: {e_storage}")
+                    profile_data['avatar_url'] = None # Fallback
+            else:
+                profile_data['avatar_url'] = None
+        else:
+            # profile_data is None, handled further down
+            pass
+
     except Exception as e:
         flash('Error fetching user profile details.', 'danger')
         print(f"Error fetching profile {user_id} for edit: {e}")
@@ -423,43 +471,72 @@ def edit_user(user_id):
     if request.method == 'POST':
         new_first_name = request.form.get('first_name', '').strip()
         new_last_name = request.form.get('last_name', '').strip()
+        # Retrieve middle_name from form
+        new_middle_name = request.form.get('middle_name', '').strip()
         new_role = request.form.get('role')
+        new_password = request.form.get('new_password', '') # For optional password change
+
         display_name = f"{new_first_name} {new_last_name}"
 
         if not new_first_name or not new_last_name or not new_role:
             flash('First Name, Last Name, and Role are required.', 'warning')
-            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
+            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
 
         if new_role not in ['Student', 'Teacher', 'Admin']:
             flash('Invalid role selected.', 'danger')
-            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
+            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
 
         try:
             update_data = {
                 'first_name': new_first_name,
                 'last_name': new_last_name,
+                'middle_name': new_middle_name if new_middle_name else None, # Add middle_name to update
                 'role': new_role
             }
+            # Update profile in Supabase
             update_response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
 
-            if update_response.data:
-                flash(f"User '{display_name}' profile updated successfully!", "success")
-
-                return redirect(url_for('admin.admin_user_management'))
-            else:
-                flash("Failed to update user profile.", "danger")
+            if not update_response.data:
+                flash("Failed to update user profile details.", "danger")
                 print(f"Failed Supabase profile update response: {update_response}")
+                # Still try to update password if provided
+            
+            password_updated_msg = ""
+            if new_password:
+                supabase_admin_client = None
+                try:
+                    admin_url = current_app.config.get("SUPABASE_URL")
+                    admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
+                    if not admin_url or not admin_key:
+                        raise ValueError("Supabase URL or Service Key missing for admin client.")
+                    supabase_admin_client = create_client(admin_url, admin_key)
+                    
+                    supabase_admin_client.auth.admin.update_user_by_id(
+                        user_id, {"password": new_password}
+                    )
+                    password_updated_msg = " Password updated."
+                    print(f"Admin updated password for user {user_id}")
+                except Exception as e_pwd:
+                    flash(f"Profile details updated, but failed to update password: {e_pwd}", "warning")
+                    print(f"Error updating password for user {user_id} by admin: {e_pwd}")
+
+
+            if update_response.data: # Check if profile update was successful
+                flash(f"User '{display_name}' profile updated successfully!{password_updated_msg}", "success")
+                return redirect(url_for('admin.admin_user_management'))
+            # If only password update failed but profile was ok, it would have flashed above.
+            # If profile update failed, it flashed above.
 
         except PostgrestAPIError as e:
              flash(f'Database error updating profile: {e.message}', 'danger')
              print(f"Supabase DB Error (Edit User Profile {user_id}): {e}")
         except Exception as e:
-            flash('An unexpected error occurred updating the profile.', 'danger')
+            flash(f'An unexpected error occurred updating the profile: {e}', 'danger')
             print(f"Unexpected Error (Edit User Profile {user_id}): {e}")
 
-        return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
+        return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
 
-    return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit")
+    return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
 
 
 @bp.route('/user/delete/<user_id>', methods=['POST'])
@@ -552,7 +629,6 @@ def delete_user(user_id):
         print(f"Unexpected Error deleting user {user_id}: {e}")
 
     return redirect(url_for('admin.admin_user_management'))
-
 
 
 def _get_teachers(supabase: Client):
