@@ -23,9 +23,10 @@ stop_camera_feed_event = threading.Event() # Event to signal feed termination
 
 # --- Prediction Smoothing Config ---
 PREDICTION_BUFFER_SIZE = 10 # Number of frames to consider
-SMOOTHING_THRESHOLD = 0.7 # % of buffer that must agree
+SMOOTHING_THRESHOLD = 0.9 # % of buffer that must agree
 STABLE_STATE_HOLD_DURATION = 1.5 # Seconds to hold a stable prediction
-NON_VALID_SIGN_STATES = {"Unknown", "No hand detected", "Processing Error", "Landmark count error", "Detect Error", "...", "Stab. Error"} # Define invalid states
+MIN_PREDICTION_CONFIDENCE = 0.90 # Minimum confidence for an individual frame's prediction to be considered valid
+NON_VALID_SIGN_STATES = {"Unknown", "No hand detected", "Processing Error", "Landmark count error", "Detect Error", "...", "Stab. Error", "Low Confidence"} # Define invalid states
 
 # Prediction State
 prediction_buffer = deque(maxlen=PREDICTION_BUFFER_SIZE)
@@ -208,16 +209,20 @@ def generate_frames():
                     prediction = model.predict(landmark_input, verbose=0)
                     predicted_class_index = np.argmax(prediction)
                     confidence = np.max(prediction)
-                    predicted_letter = CLASS_NAMES[predicted_class_index]
-
-               
-                    if predicted_letter == 'J':
-                        current_prediction_text = f"Detect: J (Dynamic) ({confidence*100:.2f}%)"
-                    elif predicted_letter == 'Z':
-                        current_prediction_text = f"Detect: Z (Dynamic) ({confidence*100:.2f}%)"
+                    
+                    if confidence >= MIN_PREDICTION_CONFIDENCE:
+                        predicted_letter = CLASS_NAMES[predicted_class_index]
+                        if predicted_letter == 'J':
+                            current_prediction_text = f"Detect: J (Dynamic) ({confidence*100:.2f}%)"
+                        elif predicted_letter == 'Z':
+                            current_prediction_text = f"Detect: Z (Dynamic) ({confidence*100:.2f}%)"
+                        else:
+                            current_prediction_text = f"Detect: {predicted_letter} ({confidence*100:.2f}%)"
+                        instantaneous_prediction = predicted_letter
                     else:
-                        current_prediction_text = f"Detect: {predicted_letter} ({confidence*100:.2f}%)"
-                    instantaneous_prediction = predicted_letter
+                        predicted_letter = "Low Confidence" # For display if needed
+                        current_prediction_text = f"Detect: Low Confidence ({confidence*100:.2f}%)"
+                        instantaneous_prediction = "Low Confidence" # This will go into the buffer
 
                 else:
                     current_prediction_text = "Detect: Landmark count error"
