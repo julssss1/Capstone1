@@ -17,7 +17,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentPracticeSign = null;
     let lastStablePrediction = null;
     let successStartTime = null;
-    const SUCCESS_HOLD_TIME = 1500;
+    const SUCCESS_HOLD_TIME = 1500; // ms
+
+    // These are expected to be set by inline script in the HTML template
+    // const predictionUrl = "{{ url_for('student.get_prediction') }}";
+    // const videoFeedUrl = "{{ url_for('student.video_feed') }}";
+    // const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
 
     const signTips = {
         'A': "Make a fist, thumb alongside index finger.", 'B': "Flat hand, fingers together, thumb across palm.",
@@ -38,7 +43,7 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     if (startCameraButton) {
-        startCameraButton.addEventListener('click', startCamera);
+        startCameraButton.addEventListener('click', startCameraOnClick);
     }
     if (signButtonsContainer) {
         signButtonsContainer.addEventListener('click', function(event) {
@@ -50,151 +55,115 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    window.addEventListener('beforeunload', stopPredictionPolling);
 
-    async function startCamera() {
-        console.log("Start Camera button clicked. Requesting permission...");
-        if (!videoFeedElement) {
-            console.error("Video feed element (#video-feed) not found!");
+    window.addEventListener('pagehide', function() {
+        stopPredictionPolling(); 
+        if (videoFeedElement && videoFeedElement.src !== "") {
+            videoFeedElement.src = ""; 
+            console.log("Cleared video feed source on page hide (StudentDashboard).");
+            if (videoPlaceholderText) videoPlaceholderText.style.display = 'block';
+            if (startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
+            videoFeedElement.style.display = 'none';
+        }
+    });
+
+    function startCameraOnClick() {
+        console.log("Start Camera button clicked on Dashboard.");
+        if (!videoFeedElement || !videoFeedUrl) {
+            console.error("Video feed element or URL not found/configured!");
+            if (videoPlaceholderText) videoPlaceholderText.textContent = "Camera configuration error.";
             return;
         }
 
-        startCameraButton.classList.add('hidden');
-        if (videoPlaceholderText) {
-            videoPlaceholderText.textContent = "Requesting camera permission...";
-            videoPlaceholderText.style.display = 'block';
-        }
-        videoFeedElement.style.display = 'none';
+        if (startCameraButton) startCameraButton.classList.add('hidden');
+        if (videoPlaceholderText) videoPlaceholderText.style.display = 'none'; // Hide placeholder
+        
+        videoFeedElement.style.display = 'block';
+        videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime(); // Start the stream
+        console.log("Video feed source set to:", videoFeedElement.src);
 
-        try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-
-            console.log("Camera permission granted.");
-
-            stream.getTracks().forEach(track => track.stop());
-            console.log("Local stream stopped, proceeding to load backend stream.");
-
-            if (videoPlaceholderText) videoPlaceholderText.style.display = 'none';
-            videoFeedElement.style.display = 'block';
-            videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime();
-            console.log("Video feed source set to:", videoFeedElement.src);
-
-            videoFeedElement.onerror = handleStreamError;
-            videoFeedElement.onload = handleStreamLoad;
-
-        } catch (error) {
-            console.error("Error caught in startCamera function:", error);
-            if (error instanceof TypeError) {
-                console.error("TypeError Details:", error.message, error.stack);
-            }
-
-            videoFeedElement.style.display = 'none';
-            startCameraButton.classList.remove('hidden');
-
-            let errorMessage = "Could not access camera.";
-            if (error instanceof DOMException) {
-                if (error.name === "NotAllowedError") {
-                    errorMessage = "Camera permission denied. Please allow access in browser settings (and ensure you are using HTTPS if not on localhost).";
-                } else if (error.name === "NotFoundError") {
-                    errorMessage = "No camera found. Please ensure a camera is connected and enabled.";
-                } else if (error.name === "NotReadableError") {
-                    errorMessage = "Camera is busy or hardware error occurred. Try closing other apps using the camera.";
-                } else if (error.name === "AbortError") {
-                    errorMessage = "Camera request aborted.";
-                } else if (error.name === "SecurityError") {
-                     errorMessage = "Camera access denied due to browser security settings (likely requires HTTPS).";
-                } else {
-                    errorMessage = `Camera Error: ${error.name}. Check browser console for details.`;
-                }
-            } else if (error instanceof TypeError) {
-                errorMessage = `Error starting camera: TypeError - ${error.message || 'Unexpected issue'}. Check browser console.`;
-            } else {
-                 errorMessage = `Error starting camera: An unexpected error occurred. Check browser console.`;
-            }
-
-            instructionText.textContent = errorMessage;
-            feedbackElement.textContent = 'Camera Access Failed';
-            feedbackElement.className = 'status-incorrect';
-            if (videoPlaceholderText) {
-                videoPlaceholderText.textContent = errorMessage;
-                videoPlaceholderText.style.display = 'block';
-            }
-            stopPredictionPolling();
-        }
+        videoFeedElement.onerror = handleStreamError;
+        videoFeedElement.onload = handleStreamLoad;
     }
 
     function handleStreamError() {
         console.error("Error loading video feed stream from backend. Check Flask server and endpoint URL:", videoFeedUrl);
-        instructionText.textContent = "Error loading video stream from server.";
-        feedbackElement.textContent = 'Stream Error';
-        feedbackElement.className = 'status-incorrect';
+        if(instructionText) instructionText.textContent = "Error loading video stream from server.";
+        if(feedbackElement) {
+            feedbackElement.textContent = 'Stream Error';
+            feedbackElement.className = 'status-incorrect';
+        }
         if (videoPlaceholderText) {
             videoPlaceholderText.textContent = "Could not load video stream. Check server logs.";
             videoPlaceholderText.style.display = 'block';
         }
-        videoFeedElement.style.display = 'none';
-        videoFeedElement.src = "";
-        startCameraButton.classList.remove('hidden');
+        if(videoFeedElement) {
+            videoFeedElement.style.display = 'none';
+            videoFeedElement.src = ""; // Clear src on error
+        }
+        if(startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
         stopPredictionPolling();
     }
 
     function handleStreamLoad() {
-        console.log("Backend video feed stream connection established.");
+        console.log("Backend video feed stream connection established on Dashboard.");
         startPredictionPolling();
         if (debugInfo) debugInfo.style.display = 'block';
     }
-
 
     function startPractice(sign) {
         console.log(`Starting practice for sign: ${sign}`);
         currentPracticeSign = sign;
 
-        instructionText.textContent = `Now, try to sign "${sign}"`;
-        feedbackElement.textContent = 'Waiting for your sign...';
-        feedbackElement.className = 'status-waiting';
+        if(instructionText) instructionText.textContent = `Now, try to sign "${sign}"`;
+        if(feedbackElement) {
+            feedbackElement.textContent = 'Waiting for your sign...';
+            feedbackElement.className = 'status-waiting';
+        }
         lastStablePrediction = null;
         successStartTime = null;
 
-        let filename;
-        const upperSign = sign.toUpperCase();
-
-        if (upperSign === 'A') filename = 'A.png';
-        else if (upperSign === 'B') filename = 'b.png';
-        else if (upperSign === 'C') filename = 'c.png';
-        else if (upperSign === 'D') filename = 'D.PNG';
-        else if (upperSign === 'E') filename = 'E.png';
-        else if (upperSign === 'F') filename = 'F.png';
-        else filename = upperSign + '.png';
+        // All image filenames are confirmed to be ALL CAPS with .PNG extension
+        // The 'sign' variable comes from button text, assume it's already the correct case (e.g., "A", "B")
+        const filename = sign + '.PNG'; 
 
         const imageUrl = `${staticBaseUrl}Images/${filename}`;
         console.log(`Setting target image URL to: ${imageUrl}`);
-        targetImage.src = imageUrl;
-        targetImage.alt = `Sign language gesture for ${sign}`;
-        targetImage.style.display = 'block';
+        if(targetImage) {
+            targetImage.src = imageUrl;
+            targetImage.alt = `Sign language gesture for ${sign}`;
+            targetImage.style.display = 'block';
+        }
         if (imagePlaceholderText) imagePlaceholderText.style.display = 'none';
 
-        if (signTips[sign]) {
+        if (signTips[sign] && tipSignLetter && tipText && signTipsArea) {
             tipSignLetter.textContent = sign;
             tipText.textContent = signTips[sign];
             signTipsArea.style.display = 'block';
         } else {
-            console.warn(`No tips found for sign: ${sign}`);
-            signTipsArea.style.display = 'none';
+            if(signTipsArea) signTipsArea.style.display = 'none';
         }
 
-        if (videoFeedElement.style.display === 'block' && !predictionInterval) {
+        if (videoFeedElement && videoFeedElement.style.display === 'block' && !predictionInterval) {
             startPredictionPolling();
-        } else if (videoFeedElement.style.display !== 'block') {
-             instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
-             feedbackElement.textContent = 'Camera not active';
-             feedbackElement.className = 'status-waiting';
+        } else if (videoFeedElement && videoFeedElement.style.display !== 'block') {
+             if(instructionText) instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
+             if(feedbackElement) {
+                feedbackElement.textContent = 'Camera not active';
+                feedbackElement.className = 'status-waiting';
+             }
         }
     }
 
     function startPredictionPolling() {
         if (predictionInterval) { clearInterval(predictionInterval); }
-        predictionInterval = setInterval(fetchPrediction, 500);
-        console.log("Prediction polling started.");
+        // Ensure predictionUrl is defined (should be from inline script in HTML)
+        if (typeof predictionUrl !== 'undefined') {
+            predictionInterval = setInterval(fetchPrediction, 500); // Poll every 500ms
+            console.log("Prediction polling started.");
+        } else {
+            console.error("predictionUrl is not defined. Cannot start polling.");
+        }
     }
 
     function stopPredictionPolling() {
@@ -206,11 +175,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchPrediction() {
-        if (!currentPracticeSign || videoFeedElement.style.display !== 'block') {
-            return;
+        if (!currentPracticeSign || !videoFeedElement || videoFeedElement.style.display !== 'block') {
+            return; 
         }
 
         try {
+            // Ensure predictionUrl is defined
+            if (typeof predictionUrl === 'undefined') {
+                console.error("predictionUrl is not defined in fetchPrediction.");
+                return;
+            }
             const response = await fetch(predictionUrl + "?t=" + new Date().getTime());
             if (!response.ok) {
                 throw new Error(`HTTP error! Status: ${response.status}`);
@@ -220,24 +194,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (detectedSignDisplay) {
                  detectedSignDisplay.textContent = predictionText || "...";
             }
-
-            const currentPrediction = predictionText || "...";
-
-            const isCorrectPracticeSign = currentPracticeSign && currentPrediction.toLowerCase() === currentPracticeSign.toLowerCase();
-
-            if (currentPrediction !== lastStablePrediction || isCorrectPracticeSign) {
-                 updateFeedback(currentPrediction);
-            }
-
-            lastStablePrediction = currentPrediction;
-
+            updateFeedback(predictionText || "...");
         } catch (error) {
             console.error("Error fetching prediction:", error);
+            // Optionally update UI to show error
         }
     }
 
     function updateFeedback(prediction) {
-        if (!currentPracticeSign) return;
+        if (!currentPracticeSign || !feedbackElement) return;
 
         const isCorrect = prediction.toLowerCase() === currentPracticeSign.toLowerCase();
 
@@ -251,7 +216,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (timeHeld >= SUCCESS_HOLD_TIME) {
                     feedbackElement.textContent = `Great! You signed "${currentPracticeSign}"!`;
                     feedbackElement.className = 'status-success';
-                    console.log(`Sign "${currentPracticeSign}" successfully recognized and held.`);
                 } else {
                      const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
                      feedbackElement.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
@@ -260,12 +224,11 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         } else {
             successStartTime = null;
-
             if (prediction === "Ready..." || prediction === "..." || prediction === "No hand detected") {
                 feedbackElement.textContent = "Place your hand clearly in the frame.";
                 feedbackElement.className = 'status-waiting';
             } else if (prediction === "Processing Error" || prediction === "System Error" || prediction === "Unknown" || prediction.startsWith("System Error")) {
-                feedbackElement.textContent = `Status: ${prediction}. Try adjusting hand position or reloading.`;
+                feedbackElement.textContent = `Status: ${prediction}. Try adjusting hand position.`;
                 feedbackElement.className = 'status-incorrect';
             } else {
                 feedbackElement.textContent = `Not quite "${currentPracticeSign}". You signed "${prediction}". Keep trying!`;
@@ -273,5 +236,4 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-
 });
