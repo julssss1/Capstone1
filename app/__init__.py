@@ -7,10 +7,8 @@ from supabase import create_client, Client
 from . import sign_logic
 
 def create_app(config_class='config.Config'):
-    """Application Factory Function"""
     app = Flask(__name__, instance_relative_config=True)
 
-    # Load configuration
     app.config.from_object(config_class)
    
 
@@ -46,7 +44,6 @@ def create_app(config_class='config.Config'):
              print("*"*60)
           
 
-    # Register Blueprints
     from .auth import routes as auth_routes
     from .student import routes as student_routes
     from .teacher import routes as teacher_routes
@@ -74,39 +71,18 @@ def create_app(config_class='config.Config'):
                 return redirect(url_for('auth.login'))
         return redirect(url_for('auth.login')) 
 
-    # --- Register Error Handlers ---
     @app.errorhandler(404)
     def page_not_found(e):
-        flash("The page you requested was not found (404).", "warning")
-        # return render_template('404.html'), 404
-        if 'user_role' in session:
-            role = session['user_role']
-            if role == 'Student': return redirect(url_for('student.student_dashboard')), 302
-            elif role == 'Teacher': return redirect(url_for('teacher.teacher_dashboard')), 302
-            elif role == 'Admin': return redirect(url_for('admin.admin_dashboard')), 302
-        return redirect(url_for('auth.login')), 302
+        return render_template('404.html'), 404
 
     @app.errorhandler(403)
     def forbidden(e):
-        flash("You do not have permission to access this page (403).", "danger")
-        # return render_template('403.html'), 403
-        if 'user_role' in session:
-            role = session['user_role']
-            if role == 'Student': return redirect(url_for('student.student_dashboard')), 302
-            elif role == 'Teacher': return redirect(url_for('teacher.teacher_dashboard')), 302
-            elif role == 'Admin': return redirect(url_for('admin.admin_dashboard')), 302
-        return redirect(url_for('auth.login')), 302
+        return render_template('403.html'), 403
 
     @app.errorhandler(500)
     def internal_server_error(e):
-         print(f"Internal Server Error: {e}")
-         flash("An internal server error occurred. Please try again later.", "danger")      
-         # return render_template('500.html'), 500    
-         if 'user_role' in session:
-             role = session['user_role']
-             if role == 'Student': return redirect(url_for('student.student_dashboard')), 302
-             elif role == 'Teacher': return redirect(url_for('teacher.teacher_dashboard')), 302
-             elif role == 'Admin': return redirect(url_for('admin.admin_dashboard')), 302
-         return redirect(url_for('auth.login')), 302
+         print(f"Internal Server Error: {e}") 
+         return render_template('500.html'), 500
+
     print("App factory finished.")
     return app

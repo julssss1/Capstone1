@@ -120,8 +120,8 @@
                         <td>{{ item.submission_count }}</td>
                         <td>{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else (item.assignment.due_date if item.assignment.due_date else 'N/A') }}</td>
                         <td>
-                            {# This link should go to a page showing submissions for this specific assignment #}
-                            <a href="{{ url_for('teacher.teacher_gradebook', subject_filter=item.assignment.subject_id, assignment_filter=item.assignment.id) }}" class="action-btn">View Submissions</a>
+                            {# Updated link to point to the new route for viewing submissions for a specific assignment #}
+                            <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=item.assignment.id) }}" class="action-btn">View Submissions</a>
                         </td>
                     </tr>
                     {% endfor %}

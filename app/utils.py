@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import session, flash, redirect, url_for
+from flask import session, flash, redirect, url_for, abort
 
 def login_required(f):
     """Decorator to ensure user is logged in."""
@@ -23,19 +23,9 @@ def role_required(required_role):
 
             user_role = session.get('user_role')
             if user_role != required_role:
-                flash(f'Access denied. You need the "{required_role}" role for this page.', 'danger')
-                # Redirect to their appropriate dashboard using blueprint endpoints
-                if user_role == 'Student':
-                    return redirect(url_for('student.student_dashboard'))
-                elif user_role == 'Teacher':
-                    return redirect(url_for('teacher.teacher_dashboard'))
-                elif user_role == 'Admin':
-                    return redirect(url_for('admin.admin_dashboard'))
-                else:
-                    return redirect(url_for('auth.login')) # Fallback to login
+                # flash(f'Access denied. You need the "{required_role}" role for this page.', 'danger') # Removed flash, 403 page will show message
+                abort(403) # Trigger the 403 error handler
 
             return f(*args, **kwargs)
         return decorated_function
     return decorator
-
-

@@ -173,31 +173,18 @@ def teacher_dashboard():
                             # The problem is if the definition of "pending" means "feedback is NULL" OR "feedback is ''".
                             # The most direct way to get this count is with a single query using an OR condition.
 
-                            # Count submissions where feedback is NULL
-                            query_null_feedback = supabase.table('submissions') \
-                                .select('id', count='exact') \
+                            # Fetch submissions matching the criteria and count in Python
+                            or_filter_string = "feedback.is.null,feedback.eq.,feedback.eq.None"
+                            pending_review_res = supabase.table('submissions') \
+                                .select('id') \
                                 .in_('assignment_id', assignment_ids_for_teacher) \
-                                .is_('feedback', 'null') \
+                                .or_(or_filter_string) \
                                 .execute()
-                            count_null = query_null_feedback.count or 0
-
-                            # Count submissions where feedback is an empty string
-                            query_empty_feedback = supabase.table('submissions') \
-                                .select('id', count='exact') \
-                                .in_('assignment_id', assignment_ids_for_teacher) \
-                                .eq('feedback', '') \
-                                .execute()
-                            count_empty = query_empty_feedback.count or 0
-
-                            # Count submissions where feedback is the literal string 'None'
-                            query_none_string_feedback = supabase.table('submissions') \
-                                .select('id', count='exact') \
-                                .in_('assignment_id', assignment_ids_for_teacher) \
-                                .eq('feedback', 'None') \
-                                .execute()
-                            count_none_string = query_none_string_feedback.count or 0
                             
-                            pending_assignments_count = count_null + count_empty + count_none_string
+                            if pending_review_res.data:
+                                pending_assignments_count = len(pending_review_res.data)
+                            else:
+                                pending_assignments_count = 0
 
         except PostgrestAPIError as e:
             flash(f'Database error loading dashboard: {e.message}', 'danger')
@@ -903,3 +890,112 @@ def update_submission_feedback(submission_id):
         print(f"Unexpected Error (Update Submission Feedback POST): {e}")
     
     return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+
+
+@bp.route('/assignment/<int:assignment_id>/submissions')
+@login_required
+@role_required('Teacher')
+def view_assignment_submissions(assignment_id):
+    """Displays all submissions for a specific assignment."""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    submissions_list = []
+    assignment_title = "Assignment Submissions"
+    subject_name = "Unknown Subject"
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher.teacher_assignment_list')) # Redirect back to assignment list
+
+    try:
+        # Fetch assignment details and verify teacher ownership via subject
+        assignment_response = supabase.table('assignments') \
+            .select('title, subjects!inner(name, teacher_id)') \
+            .eq('id', assignment_id) \
+            .eq('subjects.teacher_id', teacher_id) \
+            .maybe_single() \
+            .execute()
+
+        if not (assignment_response and assignment_response.data):
+            flash('Assignment not found or you do not have permission to view its submissions.', 'warning')
+            return redirect(url_for('teacher.teacher_assignment_list'))
+
+        assignment_title = assignment_response.data.get('title', assignment_title)
+        if assignment_response.data.get('subjects'):
+             subject_name = assignment_response.data['subjects'].get('name', subject_name)
+
+
+        # Fetch submissions for this specific assignment
+        submissions_response = supabase.table('submissions') \
+            .select('*, profiles(first_name, last_name)') \
+            .eq('assignment_id', assignment_id) \
+            .order('submitted_at', desc=True) \
+            .execute()
+            
+        raw_submissions = submissions_response.data or []
+        for sub in raw_submissions:
+            # Add student display name
+            profile = sub.get('profiles')
+            if profile:
+                fname = profile.get('first_name', '')
+                lname = profile.get('last_name', '')
+                sub['student_display_name'] = f"{fname} {lname}".strip() if fname or lname else "Unknown Student"
+            else:
+                sub['student_display_name'] = "Unknown Student"
+                
+            # Format submitted_at (similar logic as in gradebook)
+            if sub.get('submitted_at'):
+                try:
+                    submitted_dt_str = sub['submitted_at']
+                    if submitted_dt_str.endswith('Z'): submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
+                    elif not ('+' in submitted_dt_str or '-' in submitted_dt_str[10:]): submitted_dt_str += '+00:00' # Assume UTC if no offset
+
+                    if '.' in submitted_dt_str:
+                        main_part, fractional_part = submitted_dt_str.split('.', 1)
+                        tz_char = None
+                        if '+' in fractional_part: tz_char = '+'
+                        elif '-' in fractional_part: 
+                             potential_tz_dash_idx = fractional_part.rfind('-')
+                             if potential_tz_dash_idx > 0 and ':' in fractional_part[potential_tz_dash_idx:]: tz_char = '-' # Check for : after -
+                        
+                        if tz_char:
+                            ms_part, tz_part_val = fractional_part.split(tz_char, 1)
+                            submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_char}{tz_part_val}"
+                        else: 
+                            submitted_dt_str = f"{main_part}.{fractional_part[:6]}" # Assume no TZ if no +/- found after ms
+
+                    submitted_dt_utc = datetime.fromisoformat(submitted_dt_str)
+                    pht_tz = timezone(timedelta(hours=8))
+                    submitted_dt_pht = submitted_dt_utc.astimezone(pht_tz)
+                    sub['formatted_submitted_at'] = submitted_dt_pht.strftime("%b %d, %Y, %I:%M %p")
+                except Exception as dt_err: # Catch broader errors during parsing
+                    print(f"Error parsing submitted_at '{sub['submitted_at']}' for assignment {assignment_id}: {dt_err}")
+                    sub['formatted_submitted_at'] = sub['submitted_at'] # Raw if formatting fails
+            else:
+                sub['formatted_submitted_at'] = "N/A"
+                
+            submissions_list.append(sub)
+
+    except PostgrestAPIError as e:
+        flash(f'Database error fetching submissions: {e.message}', 'danger')
+        print(f"Supabase DB Error (View Assignment Submissions): {e}")
+        return redirect(url_for('teacher.teacher_assignment_list'))
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'danger')
+        print(f"Unexpected Error (View Assignment Submissions): {e}")
+        return redirect(url_for('teacher.teacher_assignment_list'))
+
+    # Render a new template (or reuse/adapt an existing one)
+    # Let's create a new one: 'TeacherAssignmentSubmissions.html'
+    return render_template(
+        'TeacherAssignmentSubmissions.html', 
+        submissions=submissions_list,
+        assignment_title=assignment_title,
+        subject_name=subject_name,
+        assignment_id=assignment_id, # Pass for potential back links etc.
+        user_name=user_name
+    )

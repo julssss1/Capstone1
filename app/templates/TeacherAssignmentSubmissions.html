@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Submissions for {{ assignment_title }} - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    {# Reuse existing CSS for consistency #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/Teacher-GradeTable.css') }}"> 
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                {# Highlight Assignments List as active or related #}
+                <li class="active"><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-list-ul"></i> Assignments</a></li> 
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content admin-content">
+        <header class="page-header">
+            <h2>Submissions for Assignment: "{{ assignment_title }}"</h2>
+            <p>Subject: {{ subject_name }}</p>
+             {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+            <a href="{{ url_for('teacher.teacher_assignment_list') }}" class="action-btn back-btn" style="margin-top: 10px;">&larr; Back to Assignments List</a>
+        </header>
+
+        <div class="grade-table-container">
+            <table class="grade-table">
+                <thead>
+                    <tr>
+                        <th>Student Name</th>
+                        <th>Submitted At</th>
+                        <th class="numeric">Grade</th>
+                        <th>Feedback</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for submission in submissions %}
+                    <tr>
+                        <td>{{ submission.student_display_name | default('N/A') }}</td>
+                        <td>{{ submission.formatted_submitted_at | default(submission.submitted_at | default('N/A')) }}</td>
+                        <td class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
+                        <td>{{ submission.feedback | default('') }}</td>
+                        <td>{{ submission.status | default('N/A') }}</td>
+                        <td>
+                            {# Link to the individual submission review page #}
+                            <a href="{{ url_for('teacher.review_submission', submission_id=submission.id) }}" class="action-btn view">Grade/View</a>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 20px;">
+                            No submissions found for this assignment yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </main>
+</body>
+</html>
