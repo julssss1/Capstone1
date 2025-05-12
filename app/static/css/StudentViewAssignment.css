@@ -24,19 +24,30 @@
     color: #333;
 }
 
-
-.live-practice-layout {
+/* New parent container for side-by-side modules */
+.practice-and-camera-section {
     display: flex;
-    flex-direction: row-reverse; /* Camera on the right */
-    gap: 20px;
+    gap: 20px; /* Space between the two modules */
     margin-bottom: 20px;
-}
-.live-practice-layout > div { /* Direct children: camera container and prediction/notes container */
-    flex-basis: 50%;
+    align-items: flex-start; /* Align items to the top */
 }
 
-.prediction-area h4,
-.camera-feed-module h4 { /* Changed from .camera-feed-area */
+.practice-submission-module,
+.camera-module {
+    flex-basis: 50%; /* Each module takes up half the width */
+    /* Inherits .assignment-detail-card styles for padding, shadow, etc. */
+    display: flex;
+    flex-direction: column;
+    /* align-items: center; */ /* Removed to allow h3 to be full width if needed before text-align */
+}
+
+.camera-module h3 { /* Targeting the main title of the camera module */
+    text-align: center;
+    width: 100%; /* Ensure it can center across the module width */
+}
+
+.practice-submission-module .prediction-area h4,
+.camera-module h4 { /* Titles for sub-sections like "Current Prediction" or old "Camera Feed" */
     margin-top: 0;
     margin-bottom: 10px;
     font-size: 1.1em;
@@ -51,9 +62,11 @@
     align-items: center; /* Center button and video container */
 }
 
-.start-camera-button { /* Style for the new button */
+.camera-module .start-camera-button { /* Style for the new button */
     padding: 10px 20px;
     font-size: 1em;
+    width: auto; /* Make button width fit content */
+    align-self: center; /* Center the button itself within the flex column */
     background-color: var(--primary-color); /* Using variable from StudentDashboard.css */
     color: white;
     border: none;
@@ -141,16 +154,16 @@
     text-align: center;
 }
 
-/* Form group styling within the live practice/submission area */
-.live-practice-submission-area .form-group {
+/* Form group styling within the practice-submission-module */
+.practice-submission-module .form-group {
     margin-bottom: 15px;
 }
-.live-practice-submission-area .form-group label {
+.practice-submission-module .form-group label {
     font-weight: 500; 
     display: block; 
     margin-bottom: 5px;
 }
-.live-practice-submission-area textarea#submission-notes {
+.practice-submission-module textarea#submission-notes {
     min-height: 150px; 
     width: 100%; 
     padding: 10px; 
@@ -159,9 +172,9 @@
     box-sizing: border-box; 
     font-family: 'Poppins', sans-serif; 
     font-size: 0.95em;
-    margin-bottom: 15px; /* If it's the last element before file input */
+    margin-bottom: 15px; 
 }
-.live-practice-submission-area input[type="file"]#submission-file {
+.practice-submission-module input[type="file"]#submission-file {
     width: 100%; 
     padding: 10px; 
     border: 1px solid #ddd; 
@@ -170,7 +183,7 @@
     background-color: #f8f9fa;
 }
 
-.submit-button { /* General submit button, can be reused or made specific */
+.practice-submission-module .submit-button { 
     width: 100%; 
     padding: 12px; 
     font-size: 1em; 
@@ -180,15 +193,11 @@
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    margin-top: 10px; /* Space above the button */
+    margin-top: 10px; 
 }
-.submit-button:hover {
+.practice-submission-module .submit-button:hover {
     background-color: #218838;
     border-color: #1e7e34;
 }
 
 /* Ensure StudentAssignment.css specific styles don't conflict or are merged if needed */
-/* For example, .submission-form-area might be defined in StudentAssignment.css */
-/* If StudentAssignment.css already has good styles for .form-group, label, textarea, input[type=file], */
-/* then some of the specific styles above might be redundant or could be moved to StudentViewAssignment.css */
-/* for overrides or specific adjustments. */

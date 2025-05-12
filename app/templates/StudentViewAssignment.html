@@ -65,39 +65,39 @@
             </div>
         </section>
 
-        <section class="assignment-detail-card live-practice-submission-area">
-            <h3>Live Sign Practice & Notes</h3>
-            <p>Use the camera to practice signs. Hold a sign stable for ~3 seconds to add it to your notes.</p>
-            <div class="live-practice-layout">
-                <div class="camera-feed-module"> {# Adapted from .video-module #}
-                    <h4>Camera Feed</h4>
-                    <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
-                    <div class="video-feed-container"> {# Adapted from .video-container #}
-                        <img id="video_feed_assignment_img" data-video-feed-url="{{ url_for('student.video_feed') }}" alt="Video Feed" style="display: none;">
-                        <p id="video_feed_placeholder_text">Click "Start Camera & Practice" to begin.</p>
-                    </div>
-                    <p class="camera-note-text">Ensure good lighting and clear view of your hand.</p>
-                </div>
+        <div class="practice-and-camera-section"> {# New parent flex container for side-by-side modules #}
+            <section class="assignment-detail-card practice-submission-module"> {# Module 1: Practice & Submission #}
+                <h3>Practice & Submit</h3>
+                <p>Use the camera to practice. Stable signs appear in notes. Upload a file if needed.</p>
                 <div class="prediction-area">
                     <h4>Current Prediction</h4>
                     <div id="prediction_text" data-get-prediction-url="{{ url_for('student.get_prediction') }}">
                         Waiting for prediction...
                     </div>
                     <div id="stability_timer_text"></div>
-                    
-                    <div class="form-group">
-                        <label for="submission-notes">Hand Sign will appear here</label>
-                        <textarea id="submission-notes" name="submission_notes" placeholder="Practice signs using the camera, or type additional notes here..."></textarea>
-                    </div>
-                     <div class="form-group">
-                        <label for="submission-file">Upload File (Optional):</label>
-                        <input type="file" id="submission-file" name="submission_file">
-                    </div>
-                    <button type="submit" class="submit-button">Submit Assignment</button>
                 </div>
-            </div>
-        </section>
-        </form> {# Form now ends after the live practice section #}
+                <div class="form-group">
+                    <label for="submission-notes">Notes (Signs practiced will appear here):</label>
+                    <textarea id="submission-notes" name="submission_notes" placeholder="Recognized signs will appear here..." readonly></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="submission-file">Upload File (Optional):</label>
+                    <input type="file" id="submission-file" name="submission_file">
+                </div>
+                <button type="submit" class="submit-button">Submit Assignment</button>
+            </section>
+
+            <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}
+                <h3>Your Camera Feed</h3>
+                 <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
+                <div class="video-feed-container">
+                    <img id="video_feed_assignment_img" data-video-feed-url="{{ url_for('student.video_feed') }}" alt="Video Feed" style="display: none;">
+                    <p id="video_feed_placeholder_text">Click "Start Camera & Practice" to begin.</p>
+                </div>
+                <p class="camera-note-text">Ensure good lighting and clear view of your hand.</p>
+            </section>
+        </div>
+        </form> 
         {% else %}
         <p>Assignment details could not be loaded.</p>
         {% endif %}
