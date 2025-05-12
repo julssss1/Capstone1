@@ -25,7 +25,7 @@ stop_camera_feed_event = threading.Event() # Event to signal feed termination
 PREDICTION_BUFFER_SIZE = 10 # Number of frames to consider
 SMOOTHING_THRESHOLD = 0.9 # % of buffer that must agree
 STABLE_STATE_HOLD_DURATION = 1.5 # Seconds to hold a stable prediction
-MIN_PREDICTION_CONFIDENCE = 0.90 # Minimum confidence for an individual frame's prediction to be considered valid
+MIN_PREDICTION_CONFIDENCE = 0.80 # Minimum confidence for an individual frame's prediction to be considered valid
 NON_VALID_SIGN_STATES = {"Unknown", "No hand detected", "Processing Error", "Landmark count error", "Detect Error", "...", "Stab. Error", "Low Confidence"} # Define invalid states
 
 # Prediction State

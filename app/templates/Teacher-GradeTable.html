@@ -89,9 +89,7 @@
                         <td>{{ submission.student_display_name | default('N/A') }}</td>
                         {# Access assignment title via nested structure #}
                         <td>{{ submission.assignments.title | default('N/A') }}</td>
-                        {# Format timestamp if needed, showing raw for now #}
-                        <td>{{ submission.submitted_at | default('N/A') }}</td>
-                        {# Display grade, handle None #}
+                        <td>{{ submission.formatted_submitted_at | default(submission.submitted_at | default('N/A')) }}</td> {# Use formatted, fallback to raw #}
                         <td class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
                         {# Display feedback #}
                         <td>{{ submission.feedback | default('') }}</td>

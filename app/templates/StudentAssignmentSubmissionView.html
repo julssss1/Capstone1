@@ -18,17 +18,17 @@
         </div>
         <nav class="navigation">
             <ul>
-                <li><a href="#"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
-                <li><a href="#"><i class="fa-solid fa-book"></i> My Progress</a></li>
-                <li class="active"><a href="#"><i class="fas fa-tasks"></i> Assignments</a></li>
-                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
-                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li class="active"><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="{{ url_for('student.student_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li> {# Help & Support link can remain # if not implemented #}
             </ul>
         </nav>
         <div class="user-info">
              <p>Level: <strong>Student</strong></p>
-             <p>Welcome, Student Name</p>
-             <a href="#" class="logout-button">Logout</a>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
         </div>
     </aside>
 
@@ -105,9 +105,26 @@
                 </div>
             </div>
             {% endif %}
+
+            {% if submission.feedback %}
+            <div class="submitted-content-section teacher-feedback-section">
+                <h4>Teacher's Feedback:</h4>
+                <div class="submitted-notes"> {# Re-using .submitted-notes for similar styling #}
+                    <p>{{ submission.feedback }}</p>
+                </div>
+            </div>
+            {% endif %}
             
             <div class="submission-actions">
-                <a href="{{ url_for('student.student_assignment') }}" class="action-btn primary-btn"><i class="fas fa-arrow-left"></i> Back to Assignments</a>
+                <a href="{{ url_for('student.student_assignment') }}" class="action-btn secondary-btn"><i class="fas fa-arrow-left"></i> Back to Assignments</a>
+                {# Add Retake button - it needs the original assignment_id #}
+                {# submission.assignment_id should be directly available if selected in the route, 
+                   or submission.assignments.id if 'assignments' is the joined table object #}
+                {% if submission and submission.assignment_id %}
+                    <a href="{{ url_for('student.view_assignment_student', assignment_id=submission.assignment_id) }}" class="action-btn primary-btn"><i class="fas fa-redo"></i> Retake Assignment</a>
+                {% elif submission and submission.assignments and submission.assignments.id %}
+                     <a href="{{ url_for('student.view_assignment_student', assignment_id=submission.assignments.id) }}" class="action-btn primary-btn"><i class="fas fa-redo"></i> Retake Assignment</a>
+                {% endif %}
             </div>
         </section>
         {% else %}

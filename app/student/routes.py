@@ -8,7 +8,7 @@ from werkzeug.exceptions import NotFound
 from werkzeug.utils import secure_filename
 import os
 import json 
-from datetime import datetime
+from datetime import datetime, timezone, timedelta # Added timedelta
 
 ASSIGNMENT_UPLOAD_FOLDER = 'app/static/uploads/assignments' 
 
@@ -187,7 +187,7 @@ def student_progress():
 def view_subject_lessons(subject_id):
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Student')
-    student_id = session.get('user_id') # Get student_id for fetching their submissions
+    student_id = session.get('user_id') 
     subject = None
     lessons_with_assignment_status = []
 
@@ -204,7 +204,6 @@ def view_subject_lessons(subject_id):
             flash('Subject not found.', 'warning'); return redirect(url_for('student.student_progress'))
         subject = subject_res.data
         
-        # Fetch lessons and their related assignments
         lessons_res = supabase.table('lessons').select('*, assignments(*)').eq('subject_id', subject_id).order('id').execute()
         
         if lessons_res and lessons_res.data:
@@ -212,7 +211,6 @@ def view_subject_lessons(subject_id):
                 if lesson.get('assignments'):
                     assignment_ids_for_lesson = [asn['id'] for asn in lesson['assignments']]
                     if assignment_ids_for_lesson:
-                        # Fetch submissions for these specific assignments by the current student
                         submissions_res = supabase.table('submissions') \
                             .select('assignment_id, id') \
                             .eq('student_id', student_id) \
@@ -223,7 +221,6 @@ def view_subject_lessons(subject_id):
                         if submissions_res and submissions_res.data:
                             submissions_map = {sub['assignment_id']: sub['id'] for sub in submissions_res.data}
 
-                        # Augment assignments with their submission_id if submitted
                         for asn in lesson['assignments']:
                             asn['student_submission_id'] = submissions_map.get(asn['id'])
                 lessons_with_assignment_status.append(lesson)
@@ -494,42 +491,50 @@ def view_submission_details(submission_id):
             
             submission['grade'] = submission.get('grade') 
             submission['average_confidence'] = submission.get('average_confidence')
-            submission['status'] = submission.get('status', 'Submitted')
+            submission['status'] = submission.get('status', 'Submitted') # Default if not present
 
             if submission.get('submitted_at'):
                 try:
                     submitted_dt_str = submission['submitted_at']
-                    if submitted_dt_str.endswith('Z'): 
+                    # Ensure it's timezone-aware for fromisoformat
+                    if not ('+' in submitted_dt_str or submitted_dt_str.endswith('Z')):
+                        submitted_dt_str += '+00:00' # Assume UTC if no offset
+                    elif submitted_dt_str.endswith('Z'): 
                         submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
                     
+                    # Truncate microseconds to 6 digits
                     if '.' in submitted_dt_str:
                         main_part, fractional_part = submitted_dt_str.split('.', 1)
-                        tz_char = None
-                        if '+' in fractional_part: tz_char = '+'
-                        elif '-' in fractional_part: 
-                            # Check if it's a timezone minus by looking for ':' after it
-                            # This is a simplified check; robust timezone parsing can be complex
-                            # A more robust way to check for timezone offset like -07:00 or +05:30
-                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) :
-                                if '+' in fractional_part:
-                                    tz_char = '+'
-                                elif '-' in fractional_part:
-                                     # Ensure the dash is for timezone, not part of microseconds if format is unusual
-                                    potential_tz_dash_idx = fractional_part.rfind('-')
-                                    if potential_tz_dash_idx > 0: # Check if there's something before the dash
-                                        tz_char = '-'
-                        
-                        if tz_char:
-                            ms_part, tz_part_val = fractional_part.split(tz_char, 1)
-                            submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_char}{tz_part_val}"
-                        else: # No explicit timezone offset found in fractional part
+                        # Separate fractional seconds from timezone
+                        if '+' in fractional_part:
+                            ms_part, tz_part = fractional_part.split('+', 1)
+                            submitted_dt_str = f"{main_part}.{ms_part[:6]}+{tz_part}"
+                        elif '-' in fractional_part:
+                             # Check if it's a timezone minus by looking for ':' after it
+                            dash_idx = fractional_part.rfind('-')
+                            if dash_idx > 0 and fractional_part.count(':') > 0 : # Check for colon after last dash
+                                ms_part = fractional_part[:dash_idx]
+                                tz_part = fractional_part[dash_idx:]
+                                submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_part}"
+                            else: # No timezone, just fractional seconds
+                                submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
+                        else: # Only fractional seconds, no timezone part after '.'
                             submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
                             
-                    submitted_dt = datetime.fromisoformat(submitted_dt_str)
-                    submission['formatted_submitted_at'] = submitted_dt.strftime("%b %d, %Y, %I:%M %p")
+                    submitted_dt_utc = datetime.fromisoformat(submitted_dt_str)
+                    
+                    # Convert to PHT (UTC+8)
+                    pht_tz = timezone(timedelta(hours=8)) # Corrected: use timedelta directly
+                    submitted_dt_pht = submitted_dt_utc.astimezone(pht_tz)
+                    submission['formatted_submitted_at'] = submitted_dt_pht.strftime("%b %d, %Y, %I:%M %p")
                 except ValueError as ve:
                     print(f"ValueError parsing submitted_at '{submission['submitted_at']}': {ve}")
-                    submission['formatted_submitted_at'] = submission['submitted_at'][:16].replace('T', ' ') 
+                    # Fallback to simpler formatting if complex parsing fails
+                    try:
+                        fallback_dt = datetime.strptime(submission['submitted_at'][:19], "%Y-%m-%dT%H:%M:%S")
+                        submission['formatted_submitted_at'] = fallback_dt.strftime("%b %d, %Y, %I:%M %p UTC")
+                    except:
+                        submission['formatted_submitted_at'] = submission['submitted_at'] # Raw if everything fails
             else:
                 submission['formatted_submitted_at'] = "N/A"
         else:

@@ -3,7 +3,7 @@ from flask import render_template, request, session, redirect, url_for, flash, c
 from . import bp
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
-from datetime import datetime # Added import
+from datetime import datetime, timezone, timedelta # Ensure timedelta and timezone are imported
 
 @bp.route('/dashboard')
 @login_required
@@ -37,10 +37,167 @@ def teacher_dashboard():
                                         .select('id', count='exact') \
                                         .eq('teacher_id', teacher_id) \
                                         .execute()
-
             subjects_taught_count = subjects_response.count or 0
             
-            pending_assignments_count = 0 
+            # Calculate pending assignments (submitted but no feedback)
+            pending_assignments_count = 0
+            if subjects_taught_count > 0:
+                # Get all assignment IDs for subjects taught by this teacher
+                teacher_subject_ids = [s['id'] for s in subjects_response.data] # Assuming subjects_response.data contains the subjects
+
+                if teacher_subject_ids:
+                    # Count submissions for these assignments where feedback is null or empty
+                    # This requires a join or a subquery logic if not directly filterable.
+                    # A simpler approach: get all relevant assignments, then count submissions for them.
+                    
+                    assignments_for_teacher_res = supabase.table('assignments') \
+                        .select('id') \
+                        .in_('subject_id', teacher_subject_ids) \
+                        .execute()
+
+                    if assignments_for_teacher_res.data:
+                        assignment_ids_for_teacher = [a['id'] for a in assignments_for_teacher_res.data]
+                        if assignment_ids_for_teacher:
+                            pending_submissions_res = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .is_('feedback', 'null') \
+                                .execute()
+                            # Also consider empty string as no feedback
+                            pending_submissions_empty_feedback_res = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .eq('feedback', '') \
+                                .execute()
+                            
+                            count1 = pending_submissions_res.count or 0
+                            count2 = pending_submissions_empty_feedback_res.count or 0
+                            
+                            # This double counting is not ideal if a submission has NULL and then gets an empty string.
+                            # A better way is to fetch submissions and check in Python, or use a more complex SQL query.
+                            # For now, let's assume feedback being NULL is the primary indicator.
+                            # Or, more simply, count submissions whose status is 'Auto-Graded' or 'Submitted'
+                            # if those statuses imply pending review.
+
+                            # Let's refine to count submissions that are 'Auto-Graded' or 'Submitted'
+                            # Count submissions for these assignments where feedback is null OR feedback is an empty string.
+                            # Using 'or' condition in Supabase-py: .or_('feedback.is.null,feedback.eq.')
+                            
+                            # Query for feedback IS NULL
+                            pending_null_feedback_res = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .is_('feedback', 'null') \
+                                .execute()
+                            count_null_feedback = pending_null_feedback_res.count or 0
+
+                            # Query for feedback IS '' (empty string), but NOT NULL
+                            # This is tricky because we don't want to double count if feedback was NULL and then set to ''.
+                            # A more robust way is to fetch the feedback status and count in Python,
+                            # or use a view/RPC in Supabase if this gets too complex.
+
+                            # Let's simplify: count where feedback is NULL.
+                            # If you also want to count empty strings as "no feedback" and they are distinct from NULL,
+                            # the logic would need to be more careful to avoid double counting.
+                            # For now, assuming "no feedback" primarily means the feedback field is NULL.
+                            # If a teacher explicitly clears feedback to an empty string, that's a different case.
+                            # The most common "pending" state is NULL feedback.
+
+                            # If you want to count where feedback is NULL OR feedback is an empty string,
+                            # and these are mutually exclusive states for a given record at one time:
+                            # count_empty_feedback = 0
+                            # if you decide to also count empty strings:
+                            #   pending_empty_feedback_res = supabase.table('submissions') \
+                            #       .select('id', count='exact') \
+                            #       .in_('assignment_id', assignment_ids_for_teacher) \
+                            #       .eq('feedback', '') \
+                            #       .execute()
+                            #   count_empty_feedback = pending_empty_feedback_res.count or 0
+                            # pending_assignments_count = count_null_feedback + count_empty_feedback 
+                            # This sum is only correct if a record can't be both NULL and ''.
+
+                            # Let's use the .or_ filter for a single query
+                            # Counts rows where (feedback is null) OR (feedback = '')
+                            pending_feedback_query = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .filter('feedback', 'is', 'null') \
+                                .execute()
+                            
+                            # The .or_ filter needs to be applied carefully.
+                            # A simpler and often more reliable way for complex OR on same/different columns
+                            # is sometimes to fetch relevant data and count in Python, or use an RPC.
+
+                            # Given the client library's capabilities, let's try a filter that PostgREST understands for OR on the same column.
+                            # feedback=is.null OR feedback=eq.''
+                            # This might require raw PostgREST filter syntax if not directly supported.
+                            # For now, let's stick to counting NULLs as the primary "no feedback" indicator,
+                            # as this is the state before any teacher interaction.
+                            # If a teacher saves an empty string, that's an explicit action.
+
+                            # Count submissions where feedback is NULL OR feedback is an empty string
+                            # The .or_() filter in supabase-py takes a string of comma-separated conditions.
+                            # Each condition is column.operator.value
+                            # e.g., "feedback.is.null,feedback.eq." (the dot after eq is for empty string)
+
+                            # Let's try using the .or_ filter directly if supported for count
+                            # This is the correct way to form an OR condition for PostgREST
+                            # feedback=is.null OR feedback=eq.''
+                            # We need to ensure the client library translates this correctly.
+                            # A common way is to use the .filter() with 'or' condition.
+
+                            # Simpler: Count NULLs, then count empty strings, and sum.
+                            # This assumes a feedback field won't be both NULL and an empty string.
+                            
+                            query_null = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .is_('feedback', 'null') \
+                                .execute()
+                            count_null = query_null.count or 0
+
+                            query_empty = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .eq('feedback', '') \
+                                .execute()
+                            count_empty = query_empty.count or 0
+                            
+                            # This might double count if a feedback field could somehow be considered both null and empty by different queries,
+                            # or if the same submission ID appears due to some other reason.
+                            # However, NULL and '' are distinct.
+                            # A more robust way if there was overlap would be to fetch IDs and count unique IDs.
+                            # But for counting distinct conditions, summing counts from non-overlapping queries is fine.
+                            # The issue is if a submission has NULL, it's counted. If another has '', it's counted.
+                            # If the same submission had NULL and then was updated to '', it would only match one.
+                            # The problem is if the definition of "pending" means "feedback is NULL" OR "feedback is ''".
+                            # The most direct way to get this count is with a single query using an OR condition.
+
+                            # Count submissions where feedback is NULL
+                            query_null_feedback = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .is_('feedback', 'null') \
+                                .execute()
+                            count_null = query_null_feedback.count or 0
+
+                            # Count submissions where feedback is an empty string
+                            query_empty_feedback = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .eq('feedback', '') \
+                                .execute()
+                            count_empty = query_empty_feedback.count or 0
+
+                            # Count submissions where feedback is the literal string 'None'
+                            query_none_string_feedback = supabase.table('submissions') \
+                                .select('id', count='exact') \
+                                .in_('assignment_id', assignment_ids_for_teacher) \
+                                .eq('feedback', 'None') \
+                                .execute()
+                            count_none_string = query_none_string_feedback.count or 0
+                            
+                            pending_assignments_count = count_null + count_empty + count_none_string
 
         except PostgrestAPIError as e:
             flash(f'Database error loading dashboard: {e.message}', 'danger')
@@ -160,8 +317,46 @@ def teacher_gradebook():
                                 sub['student_display_name'] = f"{fname} {lname}".strip() if fname or lname else "Unknown Student"
                             else:
                                 sub['student_display_name'] = "Unknown Student"
+                            
+                            # Format submitted_at for display
+                            if sub.get('submitted_at'):
+                                try:
+                                    submitted_dt_str = sub['submitted_at']
+                                    if submitted_dt_str.endswith('Z'):
+                                        submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
+                                    
+                                    if '.' in submitted_dt_str:
+                                        main_part, fractional_part = submitted_dt_str.split('.', 1)
+                                        tz_char = None
+                                        if '+' in fractional_part: tz_char = '+'
+                                        elif '-' in fractional_part:
+                                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) :
+                                                if '+' in fractional_part: tz_char = '+' # Should not happen if - is present
+                                                elif '-' in fractional_part:
+                                                    potential_tz_dash_idx = fractional_part.rfind('-')
+                                                    if potential_tz_dash_idx > 0: tz_char = '-'
+                                        
+                                        if tz_char:
+                                            ms_part, tz_part_val = fractional_part.split(tz_char, 1)
+                                            submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_char}{tz_part_val}"
+                                        else: 
+                                            submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
+                                            
+                                    submitted_dt_utc = datetime.fromisoformat(submitted_dt_str)
+                                    pht_tz = timezone(timedelta(hours=8))
+                                    submitted_dt_pht = submitted_dt_utc.astimezone(pht_tz)
+                                    sub['formatted_submitted_at'] = submitted_dt_pht.strftime("%b %d, %Y, %I:%M %p")
+                                except ValueError as ve:
+                                    print(f"ValueError parsing submitted_at '{sub['submitted_at']}' in gradebook: {ve}")
+                                    try:
+                                        fallback_dt = datetime.strptime(sub['submitted_at'][:19], "%Y-%m-%dT%H:%M:%S")
+                                        sub['formatted_submitted_at'] = fallback_dt.strftime("%b %d, %Y, %I:%M %p UTC")
+                                    except:
+                                        sub['formatted_submitted_at'] = sub['submitted_at'] # Raw if all fails
+                            else:
+                                sub['formatted_submitted_at'] = "N/A"
+                                
                             grades_to_display.append(sub)
-
 
                 except ValueError:
                     flash("Invalid subject filter value.", "warning")
@@ -578,16 +773,20 @@ def review_submission(submission_id):
             if submission_details.get('submitted_at'):
                 try:
                     submitted_dt_str = submission_details['submitted_at']
-                    if submitted_dt_str.endswith('Z'): 
+                    # Ensure it's timezone-aware for fromisoformat
+                    if not ('+' in submitted_dt_str or submitted_dt_str.endswith('Z')):
+                        submitted_dt_str += '+00:00' # Assume UTC if no offset
+                    elif submitted_dt_str.endswith('Z'): 
                         submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
                     
+                    # Truncate microseconds to 6 digits
                     if '.' in submitted_dt_str:
                         main_part, fractional_part = submitted_dt_str.split('.', 1)
                         tz_char = None
                         if '+' in fractional_part: tz_char = '+'
                         elif '-' in fractional_part: 
-                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) :
-                                if '+' in fractional_part: tz_char = '+'
+                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) : # Check for : after -
+                                if '+' in fractional_part: tz_char = '+' # Should not happen if - is present
                                 elif '-' in fractional_part:
                                     potential_tz_dash_idx = fractional_part.rfind('-')
                                     if potential_tz_dash_idx > 0: tz_char = '-'
@@ -598,11 +797,19 @@ def review_submission(submission_id):
                         else: 
                             submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
                             
-                    submitted_dt = datetime.fromisoformat(submitted_dt_str)
-                    submission_details['formatted_submitted_at'] = submitted_dt.strftime("%b %d, %Y, %I:%M %p")
+                    submitted_dt_utc = datetime.fromisoformat(submitted_dt_str)
+                    
+                    # Convert to PHT (UTC+8)
+                    pht_tz = timezone(timedelta(hours=8))
+                    submitted_dt_pht = submitted_dt_utc.astimezone(pht_tz)
+                    submission_details['formatted_submitted_at'] = submitted_dt_pht.strftime("%b %d, %Y, %I:%M %p PHT")
                 except ValueError as ve:
-                    print(f"ValueError parsing submitted_at '{submission_details['submitted_at']}': {ve}")
-                    submission_details['formatted_submitted_at'] = submission_details['submitted_at'][:16].replace('T', ' ') 
+                    print(f"ValueError parsing submitted_at '{submission_details['submitted_at']}' in teacher review: {ve}")
+                    try: # Fallback to simpler UTC formatting
+                        fallback_dt = datetime.strptime(submission_details['submitted_at'][:19], "%Y-%m-%dT%H:%M:%S")
+                        submission_details['formatted_submitted_at'] = fallback_dt.strftime("%b %d, %Y, %I:%M %p UTC")
+                    except: # Raw if all fails
+                        submission_details['formatted_submitted_at'] = submission_details['submitted_at'] 
             else:
                 submission_details['formatted_submitted_at'] = "N/A"
         else:
