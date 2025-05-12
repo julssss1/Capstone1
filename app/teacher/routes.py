@@ -3,6 +3,7 @@ from flask import render_template, request, session, redirect, url_for, flash, c
 from . import bp
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
+from datetime import datetime # Added import
 
 @bp.route('/dashboard')
 @login_required
@@ -544,3 +545,154 @@ def teacher_assignment_list():
         assignments_with_counts=assignments_with_counts,
         user_name=user_name
     )
+
+@bp.route('/submission/<int:submission_id>/review', methods=['GET'])
+@login_required
+@role_required('Teacher')
+def review_submission(submission_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    submission_details = None
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher.teacher_gradebook')) # Or other appropriate teacher page
+
+    try:
+        # Fetch submission details, including related assignment, student profile, subject, and lesson
+        # Ensure the teacher has permission to view this submission (e.g., by checking if the assignment's subject is taught by them)
+        submission_response = supabase.table('submissions') \
+            .select('*, profiles(first_name, last_name), assignments!inner(*, subjects!inner(name, teacher_id), lessons(title))') \
+            .eq('id', submission_id) \
+            .eq('assignments.subjects.teacher_id', teacher_id) \
+            .maybe_single() \
+            .execute()
+
+        if submission_response and submission_response.data:
+            submission_details = submission_response.data
+            # Format submitted_at for display
+            if submission_details.get('submitted_at'):
+                try:
+                    submitted_dt_str = submission_details['submitted_at']
+                    if submitted_dt_str.endswith('Z'): 
+                        submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
+                    
+                    if '.' in submitted_dt_str:
+                        main_part, fractional_part = submitted_dt_str.split('.', 1)
+                        tz_char = None
+                        if '+' in fractional_part: tz_char = '+'
+                        elif '-' in fractional_part: 
+                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) :
+                                if '+' in fractional_part: tz_char = '+'
+                                elif '-' in fractional_part:
+                                    potential_tz_dash_idx = fractional_part.rfind('-')
+                                    if potential_tz_dash_idx > 0: tz_char = '-'
+                        
+                        if tz_char:
+                            ms_part, tz_part_val = fractional_part.split(tz_char, 1)
+                            submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_char}{tz_part_val}"
+                        else: 
+                            submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
+                            
+                    submitted_dt = datetime.fromisoformat(submitted_dt_str)
+                    submission_details['formatted_submitted_at'] = submitted_dt.strftime("%b %d, %Y, %I:%M %p")
+                except ValueError as ve:
+                    print(f"ValueError parsing submitted_at '{submission_details['submitted_at']}': {ve}")
+                    submission_details['formatted_submitted_at'] = submission_details['submitted_at'][:16].replace('T', ' ') 
+            else:
+                submission_details['formatted_submitted_at'] = "N/A"
+        else:
+            flash('Submission not found or you do not have permission to review it.', 'warning')
+            return redirect(url_for('teacher.teacher_gradebook')) # Or other appropriate teacher page
+            
+    except PostgrestAPIError as e:
+        flash(f'Database error fetching submission for review: {e.message}', 'danger')
+        print(f"Supabase DB Error (Review Submission GET): {e}")
+        return redirect(url_for('teacher.teacher_gradebook'))
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'danger')
+        print(f"Unexpected Error (Review Submission GET): {e}")
+        return redirect(url_for('teacher.teacher_gradebook'))
+
+    return render_template(
+        'TeacherAssignmentSubmissionView.html',
+        submission=submission_details,
+        user_name=user_name
+    )
+
+@bp.route('/submission/<int:submission_id>/update_feedback', methods=['POST'])
+@login_required
+@role_required('Teacher')
+def update_submission_feedback(submission_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    feedback_text = request.form.get('feedback_text')
+    override_grade_str = request.form.get('override_grade')
+    new_status = request.form.get('submission_status')
+
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+
+    try:
+        # First, verify the teacher has permission to update this submission
+        # (e.g., by checking if the assignment's subject is taught by them)
+        submission_check_response = supabase.table('submissions') \
+            .select('id, assignments!inner(subjects!inner(teacher_id))') \
+            .eq('id', submission_id) \
+            .eq('assignments.subjects.teacher_id', teacher_id) \
+            .maybe_single() \
+            .execute()
+
+        if not (submission_check_response and submission_check_response.data):
+            flash('Submission not found or you do not have permission to update it.', 'danger')
+            return redirect(url_for('teacher.teacher_gradebook'))
+
+        update_data = {}
+        if feedback_text is not None: # Allow empty string for feedback
+            update_data['feedback'] = feedback_text
+        
+        final_grade = None
+        if override_grade_str:
+            try:
+                final_grade = float(override_grade_str)
+                if not (0 <= final_grade <= 100):
+                    flash('Override grade must be between 0 and 100.', 'danger')
+                    return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+                update_data['grade'] = final_grade
+            except ValueError:
+                flash('Invalid format for override grade. Please enter a number.', 'danger')
+                return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+        
+        if new_status:
+            update_data['status'] = new_status
+        
+        if not update_data:
+            flash('No changes to save.', 'info')
+            return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+
+        print(f"Updating submission {submission_id} with: {update_data}")
+        update_response = supabase.table('submissions').update(update_data).eq('id', submission_id).execute()
+
+        if update_response and hasattr(update_response, 'error') and update_response.error:
+            raise PostgrestAPIError(update_response.error)
+        
+        flash('Feedback and grade updated successfully!', 'success')
+        return redirect(url_for('teacher.review_submission', submission_id=submission_id))
+
+    except PostgrestAPIError as e:
+        flash(f'Database error updating submission: {e.message}', 'danger')
+        print(f"Supabase DB Error (Update Submission Feedback POST): {e}")
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'danger')
+        print(f"Unexpected Error (Update Submission Feedback POST): {e}")
+    
+    return redirect(url_for('teacher.review_submission', submission_id=submission_id))

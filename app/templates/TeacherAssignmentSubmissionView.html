@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Assignment Submission - Handspoken CAES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}"> {# Assuming a base teacher style #}
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}"> {# Assuming a base teacher style #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignmentSubmissionView.css') }}"> {# New CSS file #}
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <aside class="side-menu"> {# Assuming similar sidebar structure for teacher #}
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book-open"></i> My Subjects</a></li>
+                <li class="active"><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-book"></i> Gradebook</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2><i class="fas fa-edit"></i> Review Assignment Submission</h2>
+            {% if submission %}
+            <p>Reviewing submission for "{{ submission.assignments.title }}" by Student: {{ submission.profiles.first_name | default('') }} {{ submission.profiles.last_name | default('') }} (ID: {{ submission.student_id }})</p>
+            {% else %}
+            <p>Could not load submission details.</p>
+            {% endif %}
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if submission %}
+        <section class="submission-review-card">
+            <div class="submission-header">
+                <h3>{{ submission.assignments.title | default('N/A') }}</h3>
+                <span class="submission-status {{ submission.status | lower | replace(' ', '-') }}">{{ submission.status | default('Unknown') }}</span>
+            </div>
+            
+            <div class="assignment-details-grid">
+                <div><p><strong>Student:</strong> {{ submission.profiles.first_name | default('') }} {{ submission.profiles.last_name | default('') }}</p></div>
+                <div><p><strong>Subject:</strong> {{ submission.assignments.subjects.name | default('N/A') }}</p></div>
+                <div><p><strong>Lesson:</strong> {{ submission.assignments.lessons.title | default('N/A') }}</p></div>
+                <div><p><strong>Submitted On:</strong> {{ submission.formatted_submitted_at | default('N/A') }}</p></div>
+                <div><p><strong>Auto-Grade:</strong> {{ '%.2f'|format(submission.grade) if submission.grade is not none else 'N/A' }}</p></div>
+                <div><p><strong>Avg. Confidence:</strong> {{ '%.2f%%'|format(submission.average_confidence * 100) if submission.average_confidence is not none else 'N/A' }}</p></div>
+            </div>
+
+            {% if submission.submission_content %}
+            <div class="submitted-content-section">
+                <h4>Student's Submitted Notes:</h4>
+                <div class="submitted-notes">
+                    <p>{{ submission.submission_content }}</p> {# Changed from submission.notes to submission_content #}
+                </div>
+            </div>
+            {% endif %}
+
+            {# File display logic - assuming file_path is not in submissions table for now
+            {% if submission.file_path %} ... {% else %} ... {% endif %}
+            #}
+            <div class="submitted-content-section">
+                <h4>Submitted File:</h4>
+                <div class="submitted-files">
+                     <p><em>File display logic to be implemented if file_path is stored.</em></p>
+                </div>
+            </div>
+
+            <hr class="feedback-separator">
+
+            <form method="POST" action="{{ url_for('teacher.update_submission_feedback', submission_id=submission.id) }}" class="feedback-form">
+                <h4>Provide Feedback & Grade</h4>
+                
+                <div class="form-group">
+                    <label for="feedback_text">Feedback:</label>
+                    <textarea name="feedback_text" id="feedback_text" rows="5" class="form-control">{{ submission.feedback | default('') }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="override_grade">Override Grade (0-100):</label>
+                    <input type="number" name="override_grade" id="override_grade" class="form-control" 
+                           value="{{ '%.2f'|format(submission.grade) if submission.grade is not none else '' }}" 
+                           min="0" max="100" step="0.01">
+                    <small>Leave blank to keep auto-grade (if any) or if no grade change is needed.</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="submission_status">Update Status:</label>
+                    <select name="submission_status" id="submission_status" class="form-control">
+                        <option value="Auto-Graded" {% if submission.status == 'Auto-Graded' %}selected{% endif %}>Auto-Graded (No Change)</option>
+                        <option value="Reviewed" {% if submission.status == 'Reviewed' %}selected{% endif %}>Reviewed</option>
+                        <option value="Graded by Teacher" {% if submission.status == 'Graded by Teacher' %}selected{% endif %}>Graded by Teacher</option>
+                        <option value="Needs Revision" {% if submission.status == 'Needs Revision' %}selected{% endif %}>Needs Revision</option>
+                    </select>
+                </div>
+
+                <div class="submission-actions">
+                    <button type="submit" class="action-btn primary-btn"><i class="fas fa-save"></i> Save Feedback & Grade</button>
+                    <a href="{{ url_for('teacher.teacher_gradebook') }}" class="action-btn secondary-btn"><i class="fas fa-times"></i> Cancel</a>
+                </div>
+            </form>
+        </section>
+        {% else %}
+        <div class="alert alert-warning">
+            Could not load submission details. Please try again or contact support.
+        </div>
+        {% endif %}
+    </main>
+</body>
+</html>

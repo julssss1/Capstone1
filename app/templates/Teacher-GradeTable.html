@@ -96,8 +96,7 @@
                         {# Display feedback #}
                         <td>{{ submission.feedback | default('') }}</td>
                         <td>
-                            {# Add actions like 'View Submission' or 'Edit Grade' here later #}
-                            <button type="button" class="action-btn view" onclick="alert('View/Edit Grade not implemented yet.')">Grade/View</button>
+                            <a href="{{ url_for('teacher.review_submission', submission_id=submission.id) }}" class="action-btn view">Grade/View</a>
                         </td>
                     </tr>
                     {% else %}

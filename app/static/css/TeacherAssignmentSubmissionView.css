@@ -1,0 +1,215 @@
+/* Styles for Teacher Assignment Submission Review Page */
+
+/* Inherits a lot from TeacherDashboard.css or a base admin/teacher style */
+
+.submission-review-card {
+    background-color: #fff;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 20px;
+}
+
+.submission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.submission-header h3 {
+    margin: 0;
+    font-size: 1.6em;
+    color: #333;
+}
+
+.submission-status {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: 500;
+    color: #fff;
+}
+
+/* Status-specific colors - align with student view if desired */
+.submission-status.submitted, .submission-status.auto-graded { background-color: #007bff; }
+.submission-status.reviewed, .submission-status.graded-by-teacher { background-color: #28a745; } /* Green for reviewed/graded */
+.submission-status.needs-revision { background-color: #ffc107; color: #333; } /* Yellow for needs revision */
+.submission-status.unknown { background-color: #6c757d; }
+
+
+.assignment-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 15px 25px; /* row-gap column-gap */
+    margin-bottom: 20px;
+    font-size: 0.95em;
+}
+
+.assignment-details-grid p {
+    margin: 5px 0;
+    color: #555;
+}
+
+.assignment-details-grid strong {
+    color: #333;
+}
+
+.submitted-content-section {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid #f0f0f0;
+}
+
+.submitted-content-section h4 {
+    font-size: 1.2em;
+    color: #444;
+    margin-bottom: 10px;
+}
+
+.submitted-notes p,
+.submitted-files p {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    border: 1px solid #eee;
+    white-space: pre-wrap; /* Preserve line breaks in notes */
+    word-wrap: break-word;
+    color: #333;
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+.submitted-files ul {
+    list-style: none;
+    padding-left: 0;
+}
+.submitted-files li a {
+    text-decoration: none;
+    color: #007bff;
+}
+.submitted-files li a:hover {
+    text-decoration: underline;
+}
+.submitted-files i {
+    margin-right: 8px;
+}
+
+
+.feedback-separator {
+    margin: 30px 0;
+    border: 0;
+    border-top: 1px solid #ddd;
+}
+
+.feedback-form h4 {
+    font-size: 1.3em;
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #495057;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 1em;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+    box-sizing: border-box; /* Important for width 100% */
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+}
+
+textarea.form-control {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.form-group small {
+    display: block;
+    margin-top: 5px;
+    font-size: 0.85em;
+    color: #6c757d;
+}
+
+.submission-actions {
+    margin-top: 30px;
+    display: flex;
+    gap: 15px; /* Space between buttons */
+}
+
+.action-btn {
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.action-btn.primary-btn {
+    background-color: #007bff;
+    color: white;
+}
+.action-btn.primary-btn:hover {
+    background-color: #0056b3;
+}
+
+.action-btn.secondary-btn {
+    background-color: #6c757d;
+    color: white;
+}
+.action-btn.secondary-btn:hover {
+    background-color: #545b62;
+}
+
+.alert {
+    padding: 15px;
+    margin-bottom: 20px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+}
+.alert-success {
+    color: #155724;
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+}
+.alert-danger {
+    color: #721c24;
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+}
+.alert-warning {
+    color: #856404;
+    background-color: #fff3cd;
+    border-color: #ffeeba;
+}
+.alert-info {
+    color: #0c5460;
+    background-color: #d1ecf1;
+    border-color: #bee5eb;
+}
