@@ -130,4 +130,22 @@ document.addEventListener('DOMContentLoaded', function () {
         // For example: navigator.sendBeacon('/release_camera_signal');
         // But for now, relying on stream termination and server-side finally block.
     });
+
+    if (submissionNotesTextarea) {
+        submissionNotesTextarea.addEventListener('keydown', function(event) {
+            // Allow backspace, delete, arrow keys, home, end, select all (Ctrl+A)
+            if (event.key === 'Backspace' || 
+                event.key === 'Delete' || 
+                event.key.startsWith('Arrow') || // ArrowLeft, ArrowRight, ArrowUp, ArrowDown
+                event.key === 'Home' || 
+                event.key === 'End' ||
+                (event.ctrlKey && event.key.toLowerCase() === 'a')) {
+                return; // Allow default action
+            }
+            // Prevent typing other characters
+            if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
+                event.preventDefault();
+            }
+        });
+    }
 });
