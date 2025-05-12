@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const videoFeedImg = document.getElementById('video_feed_assignment_img'); // Updated ID
     const videoFeedContainer = document.querySelector('.video-feed-container'); // Parent of img and placeholder text
 
+    let recordedSignAttempts = []; // Array to store {sign, confidence}
     let lastPrediction = "";
     let stableCounter = 0;
     const STABILITY_THRESHOLD = 30; // Approx 3 seconds if interval is 100ms (30 * 100ms = 3000ms)
@@ -23,50 +24,65 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         fetch(getPredictionUrl)
-            .then(response => response.text())
-            .then(text => {
-                if (text && text !== "No prediction" && text.trim() !== "") {
-                    predictionTextElement.textContent = text;
-                    if (text === lastPrediction) {
+            .then(response => response.json()) // Expect JSON now
+            .then(data => {
+                // data should be an object like {"sign": "A", "confidence": 0.95}
+                const sign = data.sign;
+                const confidence = data.confidence; // This is the confidence of the last processed frame
+
+                if (sign && sign !== "No prediction" && sign.trim() !== "") {
+                    // Display the sign from the server (which might include "Detect: ...")
+                    // For user display, we might want to show just the sign.
+                    // The `predictionTextElement` is used by the regex later, so it needs the full "Detect: X (Y%)"
+                    // This means `get_prediction` should ideally return the raw display text too, or JS reconstructs it.
+                    // For now, let's assume `sign_logic.py` still makes `predictionTextElement.textContent` show the detailed string.
+                    // The `sign` variable from JSON is the clean sign.
+                    
+                    predictionTextElement.textContent = sign; // This will now be just the sign letter or "Ready..." etc.
+                                                        // The detailed "Detect: X (Y%)" is on the video feed itself.
+
+                    if (sign === lastPrediction) {
                         stableCounter++;
-                        const lowerTextCompare = text.toLowerCase().trim();
-                        // Only show "Holding..." if it's a valid sign being held
-                        if (lowerTextCompare !== 'ready' && lowerTextCompare !== 'ready...' && lowerTextCompare !== 'no prediction' && stableCounter > 0 && stableCounter < STABILITY_THRESHOLD) {
+                        const lowerSignCompare = sign.toLowerCase().trim();
+                        
+                        if (lowerSignCompare !== 'ready' && lowerSignCompare !== 'ready...' && lowerSignCompare !== 'no prediction' && lowerSignCompare !== 'low confidence' && stableCounter > 0 && stableCounter < STABILITY_THRESHOLD) {
                             stabilityTimerTextElement.textContent = `Holding: ${stableCounter}/${STABILITY_THRESHOLD}`;
                         } else {
-                            // Clear timer text if it's a placeholder or threshold is met/not started
                             stabilityTimerTextElement.textContent = ""; 
                         }
 
                         if (stableCounter === STABILITY_THRESHOLD) {
-                            const lowerText = text.toLowerCase().trim();
-                            // Exclude "ready", "ready...", and "no prediction" from being appended
-                            if (lowerText !== 'ready' && lowerText !== 'ready...' && lowerText !== 'no prediction') {
+                            const lowerSign = sign.toLowerCase().trim();
+                            if (lowerSign !== 'ready' && lowerSign !== 'ready...' && lowerSign !== 'no prediction' && lowerSign !== 'low confidence') {
                                 const currentNotes = submissionNotesTextarea.value;
                                 const separator = currentNotes.length > 0 ? " " : "";
-                                submissionNotesTextarea.value += separator + text;
+                                
+                                // Use the sign and confidence directly from the JSON response
+                                submissionNotesTextarea.value += separator + sign; 
+                                recordedSignAttempts.push({ sign: sign, confidence: confidence });
+                                console.log("Recorded attempt:", { sign: sign, confidence: confidence });
                                 
                                 predictionTextElement.style.color = '#28a745';
                                 setTimeout(() => {
                                     predictionTextElement.style.color = '#007bff';
                                 }, 500);
                                 stabilityTimerTextElement.textContent = "Added to notes!";
-                                setTimeout(() => { stabilityTimerTextElement.textContent = ""; }, 3000); // Clear "Added" message after 3 seconds
+                                setTimeout(() => { stabilityTimerTextElement.textContent = ""; }, 3000);
                             } else {
-                                stabilityTimerTextElement.textContent = ""; // Clear timer if it was "Ready"
+                                stabilityTimerTextElement.textContent = ""; 
                             }
-                            stableCounter = 0; // Reset after action or if it was "Ready"
+                            stableCounter = 0; 
                         }
                     } else {
-                        lastPrediction = text;
+                        lastPrediction = sign; 
                         stableCounter = 0;
-                        stabilityTimerTextElement.textContent = ""; // Clear timer text
+                        stabilityTimerTextElement.textContent = ""; 
                     }
-                } else if (text === "No prediction" || text.trim() === "") {
+                } else if (sign === "No prediction" || (sign && sign.trim() === "") || !sign) {
                     predictionTextElement.textContent = "Waiting for prediction...";
                     lastPrediction = ""; 
                     stableCounter = 0;
-                    stabilityTimerTextElement.textContent = ""; // Clear timer text
+                    stabilityTimerTextElement.textContent = ""; 
                 }
             })
             .catch(error => {
@@ -105,13 +121,23 @@ document.addEventListener('DOMContentLoaded', function () {
         startCameraButton.addEventListener('click', startSignPractice);
     }
     
-    // Initial check: if video_feed_img already has a src (e.g. if page was reloaded after starting)
-    // This part might be tricky if the stream doesn't auto-restart well.
-    // For now, we rely on the button click.
+    // Add hidden input to form for submitting recordedSignAttempts
+    const form = document.querySelector('form[action*="/submit"]'); // Find the submission form
+    if (form) {
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = 'sign_attempts_json';
+        form.appendChild(hiddenInput);
+
+        form.addEventListener('submit', function() {
+            hiddenInput.value = JSON.stringify(recordedSignAttempts);
+        });
+    }
+
 
     // Ensure all elements are present before adding event listener or starting interval
-    if (startCameraButton && document.getElementById('video_feed_assignment_img') && predictionTextElement && submissionNotesTextarea && stabilityTimerTextElement) {
-        startCameraButton.addEventListener('click', startSignPractice);
+    if (startCameraButton && videoFeedImg && predictionTextElement && submissionNotesTextarea && stabilityTimerTextElement) {
+        // Event listener already added above
     } else {
         console.error("One or more critical elements for sign practice are missing from the DOM on StudentViewAssignment page.");
     }

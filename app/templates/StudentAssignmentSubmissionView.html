@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assignment Submission - Handspoken CAES</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentAssignmentSubmissionView.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="#"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="#"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li class="active"><a href="#"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, Student Name</p>
+             <a href="#" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2><i class="fas fa-check-circle"></i> Assignment Submission Details</h2>
+            {% if submission %}
+            <p>Details for your submission to "{{ submission.assignments.title }}".</p>
+            {% else %}
+            <p>Could not load submission details.</p>
+            {% endif %}
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if submission %}
+        <section class="submission-summary-card">
+            <div class="submission-header">
+                <h3>{{ submission.assignments.title | default('N/A') }}</h3>
+                <span class="submission-status {{ submission.status | lower | replace(' ', '-') }}">{{ submission.status | default('Unknown') }}</span>
+            </div>
+            
+            <div class="assignment-details-grid">
+                <div>
+                    <p><strong>Subject:</strong> {{ submission.assignments.subjects.name | default('N/A') }}</p>
+                </div>
+                <div>
+                    <p><strong>Lesson:</strong> {{ submission.assignments.lessons.title | default('N/A') }}</p>
+                </div>
+                <div>
+                    <p><strong>Due Date:</strong> {{ submission.assignments.due_date[:10] if submission.assignments.due_date else 'N/A' }}</p>
+                </div>
+                <div>
+                    <p><strong>Submitted On:</strong> {{ submission.formatted_submitted_at | default('N/A') }}</p> 
+                </div>
+                <div>
+                    <p><strong>Grade:</strong> {{ '%.2f'|format(submission.grade) if submission.grade is not none else 'Not Graded Yet' }}</p>
+                </div>
+                <div>
+                    <p><strong>Average Sign Confidence:</strong> {{ '%.2f%%'|format(submission.average_confidence * 100) if submission.average_confidence is not none else 'N/A' }}</p>
+                </div>
+            </div>
+
+            {% if submission.notes %}
+            <div class="submitted-content-section">
+                <h4>Your Submitted Notes:</h4>
+                <div class="submitted-notes">
+                    <p>{{ submission.notes }}</p>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if submission.file_path %}
+            <div class="submitted-content-section">
+                <h4>Your Submitted File:</h4>
+                <div class="submitted-files">
+                    <ul>
+                        {# Use submission.file_url which is constructed in the route #}
+                        <li><a href="{{ submission.file_url | default('#') }}" target="_blank"><i class="fas fa-file-alt"></i> {{ submission.file_path.split('/')[-1] }}</a></li>
+                    </ul>
+                </div>
+            </div>
+            {% else %}
+            <div class="submitted-content-section">
+                <h4>Your Submitted File:</h4>
+                <div class="submitted-files">
+                     <p><em>No file was submitted for this assignment.</em></p>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="submission-actions">
+                <a href="{{ url_for('student.student_assignment') }}" class="action-btn primary-btn"><i class="fas fa-arrow-left"></i> Back to Assignments</a>
+            </div>
+        </section>
+        {% else %}
+        <div class="alert alert-warning">
+            Could not load submission details. Please try again or contact support.
+        </div>
+        {% endif %}
+    </main>
+</body>
+</html>

@@ -30,7 +30,8 @@ NON_VALID_SIGN_STATES = {"Unknown", "No hand detected", "Processing Error", "Lan
 
 # Prediction State
 prediction_buffer = deque(maxlen=PREDICTION_BUFFER_SIZE)
-stable_prediction_display = "Initializing..." 
+stable_prediction_display = "Initializing..."
+last_processed_frame_confidence = 0.0 # Confidence of the last frame's valid instantaneous prediction
 last_valid_prediction_timestamp = None
 # --------------------------------
 
@@ -210,20 +211,17 @@ def generate_frames():
                     predicted_class_index = np.argmax(prediction)
                     confidence = np.max(prediction)
                     
+                    global last_processed_frame_confidence # Ensure we modify the global
                     if confidence >= MIN_PREDICTION_CONFIDENCE:
                         predicted_letter = CLASS_NAMES[predicted_class_index]
-                        if predicted_letter == 'J':
-                            current_prediction_text = f"Detect: J (Dynamic) ({confidence*100:.2f}%)"
-                        elif predicted_letter == 'Z':
-                            current_prediction_text = f"Detect: Z (Dynamic) ({confidence*100:.2f}%)"
-                        else:
-                            current_prediction_text = f"Detect: {predicted_letter} ({confidence*100:.2f}%)"
+                        current_prediction_text = f"Detect: {predicted_letter} ({confidence*100:.2f}%)"
                         instantaneous_prediction = predicted_letter
+                        last_processed_frame_confidence = confidence # Store confidence of this valid prediction
                     else:
-                        predicted_letter = "Low Confidence" # For display if needed
+                        # predicted_letter = "Low Confidence" # Not needed as instantaneous_prediction handles it
                         current_prediction_text = f"Detect: Low Confidence ({confidence*100:.2f}%)"
-                        instantaneous_prediction = "Low Confidence" # This will go into the buffer
-
+                        instantaneous_prediction = "Low Confidence" 
+                        last_processed_frame_confidence = 0.0 # Reset if low confidence
                 else:
                     current_prediction_text = "Detect: Landmark count error"
                     instantaneous_prediction = "Landmark count error"
@@ -251,13 +249,18 @@ def generate_frames():
                     is_stable_candidate = (most_common_count >= required_count)
 
                     if is_stable_candidate:
+                        # global current_stable_sign_confidence # Not needed anymore here
                         if most_common_pred not in NON_VALID_SIGN_STATES:
                             if stable_prediction_display != most_common_pred:
                                 stable_prediction_display = most_common_pred
+                                # When stable_prediction_display is updated to a valid sign,
+                                # last_processed_frame_confidence should hold the confidence of the
+                                # instantaneous prediction that contributed to this stability.
                             last_valid_prediction_timestamp = current_time
                         else: # Non-valid state is stable
                             if stable_prediction_display not in NON_VALID_SIGN_STATES and stable_prediction_display != "Ready...":
                                 stable_prediction_display = "Ready..."
+                            # current_stable_sign_confidence = 0.0 # Not needed
                             last_valid_prediction_timestamp = None
                     else: # Not stable
                         if last_valid_prediction_timestamp is not None and (current_time - last_valid_prediction_timestamp >= STABLE_STATE_HOLD_DURATION):
@@ -353,11 +356,25 @@ def release_resources():
         print("Resources released and state reset.")
 
 def get_stable_prediction():
-    """Returns the current stable prediction."""
-    global stable_prediction_display
-    if not is_initialized:
-        initialize_resources() 
-    return stable_prediction_display
+    """Returns the current stable prediction and the confidence of the last valid processed frame."""
+    global stable_prediction_display, last_processed_frame_confidence, is_initialized, stop_camera_feed_event
+    import json
+
+    if not is_initialized and not stop_camera_feed_event.is_set():
+        print("get_stable_prediction: resources not initialized and feed not stopped, attempting to initialize.")
+        initialize_resources()
+    
+    # If the stable display is a non-sign state, report confidence as 0
+    current_confidence = 0.0
+    if stable_prediction_display not in NON_VALID_SIGN_STATES and \
+       stable_prediction_display != "Ready..." and \
+       stable_prediction_display != "Initializing..." and \
+       stable_prediction_display != "...":
+        current_confidence = float(last_processed_frame_confidence) # Ensure it's a standard Python float
+    else:
+        current_confidence = 0.0 # Ensure it's a float even for non-sign states
+
+    return json.dumps({"sign": str(stable_prediction_display), "confidence": float(current_confidence)}) # Ensure both are standard types
 
 def get_available_signs():
     """Returns the list of class names loaded from the model/pickle file."""

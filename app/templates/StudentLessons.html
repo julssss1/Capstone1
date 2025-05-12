@@ -82,15 +82,21 @@
                         </a>
                         {# Display linked assignments for this lesson #}
                         {% if lesson.assignments and lesson.assignments|length > 0 %}
-                            {% for assignment in lesson.assignments %}
-                                <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment.id) }}" class="lesson-link">
-                                    <i class="fas fa-pencil-alt"></i> {{ assignment.title | default('View Assignment') }}
-                                </a>
+                            {% for assignment_item in lesson.assignments %} {# Renamed to avoid conflict with outer loop var if any #}
+                                {% if assignment_item.student_submission_id %}
+                                    <a href="{{ url_for('student.view_submission_details', submission_id=assignment_item.student_submission_id) }}" class="lesson-link submitted">
+                                        <i class="fas fa-check-circle"></i> {{ assignment_item.title | default('View Submission') }} (View Submission)
+                                    </a>
+                                {% else %}
+                                    <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="lesson-link">
+                                        <i class="fas fa-pencil-alt"></i> {{ assignment_item.title | default('Start Assignment') }}
+                                    </a>
+                                {% endif %}
                             {% endfor %}
                         {% else %}
-                            <span class="lesson-link disabled">
-                                <i class="fas fa-pencil-alt"></i> No assignments for this lesson
-                            </span>
+                            <p class="no-assignments-text">
+                                <i class="fas fa-info-circle"></i> No assignments for this lesson.
+                            </p>
                         {% endif %}
                     </div>
                 </div>

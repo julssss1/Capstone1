@@ -1,0 +1,165 @@
+/* Inherits base styles from StudentDashboard.css if linked */
+
+/* Card for the submission summary */
+.submission-summary-card {
+    background-color: var(--bg-light, #FFFFFF);
+    border-radius: 10px;
+    padding: 25px 30px;
+    box-shadow: 0 4px 15px var(--shadow-color, rgba(0, 0, 0, 0.08));
+    border-left: 5px solid var(--primary-color, #4A90E2); /* Accent border */
+}
+
+.submission-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border-color, #E0E5EB);
+}
+
+.submission-header h3 {
+    font-size: 1.6em;
+    font-weight: 600;
+    color: var(--primary-color, #4A90E2);
+    margin: 0;
+}
+
+.submission-status {
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 15px;
+    color: white;
+}
+
+.submission-status.submitted {
+    background-color: var(--accent-color, #F5A623); /* Orange for submitted, awaiting grade */
+}
+.submission-status.graded {
+    background-color: var(--secondary-color, #50E3C2); /* Teal/Green for graded */
+}
+/* Add more statuses as needed */
+
+.assignment-details-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 25px;
+    font-size: 0.95em;
+}
+
+.assignment-details-grid p {
+    margin: 0;
+    color: var(--text-color-light, #555);
+}
+
+.assignment-details-grid p strong {
+    color: var(--text-color, #333);
+    margin-right: 5px;
+}
+
+.submitted-content-section {
+    margin-bottom: 25px;
+}
+
+.submitted-content-section h4 {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: var(--text-color, #333);
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px dashed var(--border-color, #E0E5EB);
+}
+
+.submitted-notes {
+    background-color: #f9f9f9; /* Slightly off-white for notes background */
+    padding: 15px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color, #E0E5EB);
+    min-height: 80px;
+    white-space: pre-wrap; /* Preserve line breaks from textarea */
+    font-size: 0.95em;
+    line-height: 1.6;
+}
+.submitted-notes p {
+    margin-bottom: 10px;
+}
+.submitted-notes p:last-child {
+    margin-bottom: 0;
+}
+
+
+.submitted-files ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.submitted-files li {
+    background-color: #f9f9f9;
+    padding: 10px 15px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+    border: 1px solid var(--border-color, #E0E5EB);
+    font-size: 0.95em;
+}
+
+.submitted-files li a {
+    color: var(--primary-color, #4A90E2);
+    text-decoration: none;
+    font-weight: 500;
+}
+.submitted-files li a:hover {
+    text-decoration: underline;
+}
+.submitted-files li i {
+    margin-right: 8px;
+    color: var(--text-color-light, #555);
+}
+
+.submission-actions {
+    margin-top: 30px;
+    text-align: center; /* Center buttons if they are inline-block */
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+}
+
+.submission-actions .action-btn {
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 6px;
+    font-weight: 500;
+    font-size: 1em;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    display: inline-flex; /* For icon alignment */
+    align-items: center;
+    gap: 8px; /* Space between icon and text */
+}
+
+.submission-actions .action-btn.primary-btn {
+    background-color: var(--primary-color, #4A90E2);
+    color: white;
+}
+.submission-actions .action-btn.primary-btn:hover {
+    background-color: #3a7bc8; /* Darker primary */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.submission-actions .action-btn.secondary-btn {
+    background-color: var(--bg-color, #F7F9FC);
+    color: var(--text-color, #333);
+    border: 1px solid var(--border-color, #E0E5EB);
+}
+.submission-actions .action-btn.secondary-btn:hover {
+    background-color: #e9ecef; /* Slightly darker bg */
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+/* Page header icon styling */
+.page-header h2 i {
+    margin-right: 10px;
+    color: var(--secondary-color, #50E3C2); /* Teal for success icon */
+}

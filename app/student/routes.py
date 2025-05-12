@@ -5,29 +5,22 @@ from app.sign_logic import generate_frames, get_stable_prediction, get_available
 from supabase import Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
 from werkzeug.exceptions import NotFound
+from werkzeug.utils import secure_filename
+import os
+import json 
+from datetime import datetime
+
+ASSIGNMENT_UPLOAD_FOLDER = 'app/static/uploads/assignments' 
 
 @bp.route('/dashboard')
 @login_required
 @role_required('Student')
 def student_dashboard():
-    print(f"Accessing Student Dashboard BP for user: {session.get('user_name')}")
     model_signs = get_available_signs()
-    if model_signs:
-        available_signs = model_signs
-        print(f"Signs available from model: {available_signs}")
-    else:
-        print("Warning: Model classes not available. Using default sign list.")
-        available_signs = [chr(i) for i in range(ord('A'), ord('Z') + 1)]
-        available_signs.extend(['Hello', 'Thank You', 'I Love You'])
-        available_signs = sorted(list(set(available_signs)))
-
-    assignment_url = "#"
-
-
+    available_signs = model_signs if model_signs else sorted(list(set([chr(i) for i in range(ord('A'), ord('Z') + 1)] + ['Hello', 'Thank You', 'I Love You'])))
     return render_template(
         'StudentDashboard.html',
         available_signs=available_signs,
-        assignment_url=assignment_url,
         user_name=session.get('user_name', 'Student')
     )
 
@@ -35,524 +28,542 @@ def student_dashboard():
 @login_required
 @role_required('Student')
 def student_assignment():
-    """Renders the dedicated assignment page, listing all available assignments."""
-    print(f"Accessing Student Assignment page for user: {session.get('user_name')}")
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Student')
-    assignments_list = []
+    student_id = session.get('user_id')
+    assignments_with_status = []
 
+    if not student_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
     if not supabase:
-        flash('Supabase client not initialized. Cannot fetch assignments.', 'danger')
-    else:
-        try:
-            # Fetch all assignments and join with subjects table to get subject_name
-            # Assuming students can see assignments from all subjects for now.
-            # A real-world scenario might filter by subjects the student is enrolled in.
-            response = supabase.table('assignments') \
-                               .select('*, subjects(name), lessons(title)') \
-                               .order('due_date', desc=False) \
-                               .execute()
-            if response.data:
-                assignments_list = response.data
-            else:
-                assignments_list = []
-                if hasattr(response, 'error') and response.error:
-                    flash(f"Error fetching assignments: {response.error.message}", "danger")
-                else:
-                    print("No assignments found or error in fetching.") # No assignments is not an error to flash
+        flash('Database connection not available.', 'danger')
+        return render_template('StudentAssignment.html', user_name=user_name, assignments=assignments_with_status)
 
-        except PostgrestAPIError as e:
-            flash(f'Database error fetching assignments: {e.message}', 'danger')
-            print(f"Supabase DB Error (Student Assignments): {e}")
-        except Exception as e:
-            flash('An unexpected error occurred while loading assignments.', 'danger')
-            print(f"Unexpected Error (Student Assignments): {e}")
+    try:
+        assignments_response = supabase.table('assignments') \
+                                   .select('*, subjects(name), lessons(title)') \
+                                   .order('due_date', desc=False) \
+                                   .execute()
+        
+        if assignments_response and assignments_response.data:
+            all_assignments = assignments_response.data
+            assignment_ids = [a['id'] for a in all_assignments]
+            submissions_map = {}
+            if assignment_ids:
+                submissions_response = supabase.table('submissions') \
+                                           .select('assignment_id, id, status, grade') \
+                                           .eq('student_id', student_id) \
+                                           .in_('assignment_id', assignment_ids) \
+                                           .execute()
+                if submissions_response and submissions_response.data:
+                    submissions_map = {
+                        sub['assignment_id']: {
+                            'submission_id': sub['id'], 
+                            'status': sub.get('status', 'Submitted'), 
+                            'grade': sub.get('grade')
+                        } for sub in submissions_response.data
+                    }
             
-    return render_template(
-        'StudentAssignment.html', 
-        user_name=user_name,
-        assignments=assignments_list
-    )
+            for assignment_item in all_assignments: 
+                submission_info = submissions_map.get(assignment_item['id'])
+                if submission_info:
+                    assignment_item['submission_status'] = submission_info['status']
+                    assignment_item['submission_id'] = submission_info['submission_id']
+                    assignment_item['grade'] = submission_info['grade']
+                else:
+                    assignment_item['submission_status'] = 'Not Submitted'
+                    assignment_item['submission_id'] = None
+                    assignment_item['grade'] = None
+                assignments_with_status.append(assignment_item)
+        elif hasattr(assignments_response, 'error') and assignments_response.error:
+            flash(f"Error fetching assignments: {assignments_response.error.message}", "danger")
+
+    except PostgrestAPIError as e: 
+        flash(f'Database error fetching assignments: {e.message}', 'danger')
+        print(f"Supabase DB Error (Student Assignments): {e}")
+    except Exception as e: 
+        flash(f'Error loading assignments: {e}', 'danger')
+        print(f"Error in student_assignment: {e}")
+            
+    return render_template('StudentAssignment.html', user_name=user_name, assignments=assignments_with_status)
 
 @bp.route('/video_feed')
 @login_required
 @role_required('Student')
 def video_feed():
-    print("Request received for student video feed endpoint.")
-    return Response(generate_frames(),
-                    mimetype='multipart/x-mixed-replace; boundary=frame')
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 @bp.route('/get_prediction')
 @login_required
 @role_required('Student')
 def get_prediction():
-    prediction = get_stable_prediction()
-    response = Response(prediction, mimetype='text/plain')
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
+    prediction_data = get_stable_prediction() 
+    return Response(prediction_data, mimetype='application/json')
 
 @bp.route('/settings')
 @login_required
 @role_required('Student')
 def student_settings():
-    """Renders the student settings page, fetching user email."""
-    print(f"Accessing Student Settings page for user: {session.get('user_name')}")
     user_name = session.get('user_name', 'Student')
     user_email = "Not available"
     access_token = session.get('access_token')
     supabase: Client = current_app.supabase
     user_id = session.get('user_id')
-    avatar_url = url_for('static', filename='Images/yvan.png')
+    profile_data = {} 
 
     if access_token and supabase and user_id:
         try:
-            user_response = supabase.auth.get_user(jwt=access_token)
-            if user_response.user:
-                user_email = user_response.user.email or "Email not set"
-                print(f"Fetched user details for settings page: Email={user_email}")
-
-                # Initialize profile attributes to be passed to template
-                profile_first_name = session.get('user_name', 'Student') # Fallback
-                profile_middle_name = None
-                profile_last_name = ""
-
-
-                profile_response = supabase.table('profiles') \
-                                           .select('first_name, last_name, middle_name, avatar_path') \
-                                           .eq('id', user_id) \
-                                           .maybe_single() \
-                                           .execute()
-
-                if profile_response.data:
-                    profile_data = profile_response.data
-                    profile_first_name = profile_data.get('first_name', '')
-                    profile_middle_name = profile_data.get('middle_name') # Will be None if not present or null
-                    profile_last_name = profile_data.get('last_name', '')
-                    
-                    # Update session user_name if needed (without middle initial for general use)
-                    session_user_name = f"{profile_first_name or ''} {profile_last_name or ''}".strip()
-                    if session_user_name:
-                        session['user_name'] = session_user_name
-                    
-                    user_name = session_user_name # user_name for sidebar can remain First Last
-
-                    avatar_path = profile_data.get('avatar_path')
-                    if avatar_path:
-                        try:
-                            avatar_url = supabase.storage.from_('avatars').get_public_url(avatar_path)
-                            print(f"Generated public URL for avatar: {avatar_url}")
-                        except Exception as storage_error:
-                            print(f"Error generating public URL for {avatar_path}: {storage_error}")
-                else:
-                    print(f"No profile found in 'profiles' table for user_id: {user_id}")
-
-            else:
-                 print("Could not fetch user details using token for settings page.")
-                 flash('Could not load user details. Session might be invalid.', 'warning')
-
-        except AuthApiError as e:
-            print(f"AuthApiError fetching user details for settings: {e}")
-            flash('Authentication error fetching user details. Please log in again.', 'danger')
-            if "Invalid JWT" in e.message or "expired" in e.message:
-                 return redirect(url_for('auth.login'))
-        except PostgrestAPIError as e:
-            print(f"Database error fetching profile details: {e}")
-            flash('Error loading profile information.', 'warning')
+            user_auth_details = supabase.auth.get_user(jwt=access_token)
+            if user_auth_details and user_auth_details.user: 
+                user_email = user_auth_details.user.email or "Email not set"
+            
+            profile_res = supabase.table('profiles').select('*').eq('id', user_id).maybe_single().execute()
+            if profile_res and profile_res.data:
+                profile_data = profile_res.data
+                db_first_name = profile_data.get('first_name','')
+                db_last_name = profile_data.get('last_name','')
+                if db_first_name or db_last_name:
+                    user_name = f"{db_first_name} {db_last_name}".strip()
+                session['user_name'] = user_name 
         except Exception as e:
-            print(f"Unexpected error fetching user details for settings: {e}")
-            flash('An error occurred loading your details.', 'warning')
+            flash(f'Error fetching profile details: {e}', 'warning')
+            print(f"Error in student_settings profile fetch: {e}")
+    else:
+        flash('Session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
 
-    elif not access_token:
-         print("No access token found in session for settings page.")
-         flash('Session expired or invalid. Please log in again.', 'warning')
-         return redirect(url_for('auth.login'))
-    elif not user_id:
-         print("No user ID found in session for settings page.")
-         flash('User session invalid. Please log in again.', 'warning')
-         return redirect(url_for('auth.login'))
+    avatar_url = profile_data.get('avatar_path')
+    if avatar_url and not avatar_url.startswith('http'): 
+        try:
+            avatar_url = supabase.storage.from_('avatars').get_public_url(avatar_url)
+        except Exception as e: 
+            print(f"Error getting public URL for avatar: {e}")
+            avatar_url = url_for('static', filename='Images/yvan.png') 
+    elif not avatar_url:
+        avatar_url = url_for('static', filename='Images/yvan.png')
 
     return render_template(
         'StudentSettings.html', 
-        # Pass individual name parts for flexible display in template header
-        profile_first_name=profile_first_name,
-        profile_middle_name=profile_middle_name,
-        profile_last_name=profile_last_name,
-        user_name=user_name, # For sidebar, keep as First Last
+        profile_first_name=profile_data.get('first_name'),
+        profile_middle_name=profile_data.get('middle_name'),
+        profile_last_name=profile_data.get('last_name'),
+        user_name=user_name, 
         user_email=user_email, 
         avatar_url=avatar_url
     )
-
 
 @bp.route('/my_progress')
 @login_required
 @role_required('Student')
 def student_progress():
-    """Renders the student progress page fetching data from Supabase."""
-    print(f"Accessing Student Progress page for user: {session.get('user_name')}")
-    supabase: Client = current_app.supabase
-    user_id = session.get('user_id')
     user_name = session.get('user_name', 'Student')
-
+    supabase: Client = current_app.supabase
     all_subjects = []
-
-    if not user_id:
-        flash('User session not found. Please log in again.', 'danger')
-        return redirect(url_for('auth.login'))
-
     if not supabase:
-        flash('Supabase client not initialized. Cannot fetch progress.', 'danger')
-        return render_template('StudentProgress.html', title='My Progress', all_subjects=all_subjects, user_name=user_name)
-
+        flash('Database connection not available.', 'danger')
+        return render_template('StudentProgress.html', title='My Progress', user_name=user_name, all_subjects=all_subjects) 
+    
     try:
         print("Attempting to fetch all subjects for progress page...")
-        try:
-            subjects_response = supabase.table('subjects') \
-                                        .select('id, name, description') \
-                                        .order('name') \
-                                        .execute()
-            print(f"Raw response data for all_subjects fetch: data={subjects_response.data}")
-            all_subjects = subjects_response.data or []
-            print(f"Assigned all_subjects: {all_subjects}")
-        except Exception as subj_e:
-            flash('Error loading available subjects list.', 'warning')
-            print(f"EXCEPTION fetching all subjects for progress page: {subj_e}")
-            all_subjects = []
-
-
+        subjects_response = supabase.table('subjects').select('id, name, description').order('name').execute()
+        
+        if subjects_response and subjects_response.data:
+            all_subjects = subjects_response.data
+        elif hasattr(subjects_response, 'error') and subjects_response.error:
+            flash(f"Error fetching subjects for progress: {subjects_response.error.message}", "warning")
+            print(f"Error fetching subjects for progress page: {subjects_response.error}")
+            
     except Exception as e:
-        flash('An error occurred loading subject data.', 'danger')
-        print(f"Error fetching subjects for progress page: {e}")
-        all_subjects = []
+        flash(f"Error loading subjects: {e}", "warning")
+        print(f"Error in student_progress fetching subjects: {e}")
+            
+    return render_template('StudentProgress.html', title='My Progress', user_name=user_name, all_subjects=all_subjects)
 
-    return render_template(
-        'StudentProgress.html',
-        title='My Progress',
-        all_subjects=all_subjects,
-        user_name=user_name
-    )
-
-from werkzeug.exceptions import NotFound
 
 @bp.route('/subject/<int:subject_id>/lessons')
 @login_required
 @role_required('Student')
 def view_subject_lessons(subject_id):
-    """Renders the list of lessons for a specific subject."""
-    print(f"Accessing lesson list for subject ID: {subject_id} for user: {session.get('user_name')}")
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Student')
-    subject_name = "Subject Lessons"
-    lessons_list = []
+    student_id = session.get('user_id') # Get student_id for fetching their submissions
+    subject = None
+    lessons_with_assignment_status = []
 
+    if not student_id:
+        flash("User session not found.", "danger")
+        return redirect(url_for('auth.login'))
     if not supabase:
-        flash('Supabase client not initialized. Cannot fetch lesson data.', 'danger')
-        return render_template('StudentLessons.html', subject_id=subject_id, subject_name=subject_name, lessons=lessons_list, user_name=user_name)
+        flash('Database connection not available.', 'danger')
+        return render_template('StudentLessons.html', subject=subject, lessons=lessons_with_assignment_status, user_name=user_name, subject_name="Lessons")
 
     try:
-        print(f"Fetching subject name for ID: {subject_id}")
-        subject_response = supabase.table('subjects') \
-                                   .select('name') \
-                                   .eq('id', subject_id) \
-                                   .maybe_single() \
-                                   .execute()
+        subject_res = supabase.table('subjects').select('*').eq('id', subject_id).maybe_single().execute()
+        if not (subject_res and subject_res.data): 
+            flash('Subject not found.', 'warning'); return redirect(url_for('student.student_progress'))
+        subject = subject_res.data
+        
+        # Fetch lessons and their related assignments
+        lessons_res = supabase.table('lessons').select('*, assignments(*)').eq('subject_id', subject_id).order('id').execute()
+        
+        if lessons_res and lessons_res.data:
+            for lesson in lessons_res.data:
+                if lesson.get('assignments'):
+                    assignment_ids_for_lesson = [asn['id'] for asn in lesson['assignments']]
+                    if assignment_ids_for_lesson:
+                        # Fetch submissions for these specific assignments by the current student
+                        submissions_res = supabase.table('submissions') \
+                            .select('assignment_id, id') \
+                            .eq('student_id', student_id) \
+                            .in_('assignment_id', assignment_ids_for_lesson) \
+                            .execute()
+                        
+                        submissions_map = {}
+                        if submissions_res and submissions_res.data:
+                            submissions_map = {sub['assignment_id']: sub['id'] for sub in submissions_res.data}
 
-        if subject_response.data:
-            subject_name = subject_response.data.get('name', 'Subject Lessons')
-            print(f"Found subject: {subject_name}")
-        else:
-            print(f"Subject with ID {subject_id} not found.")
-            flash('Subject not found.', 'warning')
-            return redirect(url_for('student.student_progress'))
-
-        print(f"Fetching all lessons for subject ID: {subject_id} including their assignments")
-        lessons_response = supabase.table('lessons') \
-                                   .select('*, assignments(*)') \
-                                   .eq('subject_id', subject_id) \
-                                   .order('id') \
-                                   .execute()
-
-        if lessons_response and lessons_response.data:
-            lessons_list = lessons_response.data
-            print(f"Found {len(lessons_list)} lessons for subject {subject_id}.")
-        else:
-            lessons_list = []
-            print(f"No lessons found for subject {subject_id}.")
-
-    except PostgrestAPIError as e:
-        flash(f'Database error fetching lesson list: {e.message}', 'danger')
-        lessons_list = []
-        print(f"Supabase DB Error fetching lesson list for subject {subject_id}: {e}")
+                        # Augment assignments with their submission_id if submitted
+                        for asn in lesson['assignments']:
+                            asn['student_submission_id'] = submissions_map.get(asn['id'])
+                lessons_with_assignment_status.append(lesson)
+        
     except Exception as e:
-        flash('An unexpected error occurred while loading the lesson list.', 'danger')
-        lessons_list = []
-        print(f"Unexpected Error fetching lesson list for subject {subject_id}: {e}")
+        flash(f"Error loading lessons: {e}", 'danger')
+        print(f"Error in view_subject_lessons: {e}")
+        
+    return render_template('StudentLessons.html', subject=subject, lessons=lessons_with_assignment_status, user_name=user_name, subject_name=subject.get('name') if subject else "Lessons")
 
-    return render_template(
-        'StudentLessons.html',
-        subject_id=subject_id,
-        subject_name=subject_name,
-        lessons=lessons_list,
-        user_name=user_name
-    )
 
 @bp.route('/lesson/<int:lesson_id>/content')
 @login_required
 @role_required('Student')
 def view_lesson_content(lesson_id):
-    """Renders the content view for a specific lesson using StudentLessonView.html."""
-    print(f"Accessing content for lesson ID: {lesson_id} for user: {session.get('user_name')}")
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Student')
-    subject_name = "Lesson Content"
-    lesson_data = None
-    subject_id = None
-
-    if not supabase:
-        flash('Supabase client not initialized. Cannot fetch lesson content.', 'danger')
-        return render_template('StudentLessonView.html', subject_id=subject_id, subject_name=subject_name, lesson_data=lesson_data, user_name=user_name)
-
+    lesson = None
     try:
-        print(f"Fetching lesson details for lesson ID: {lesson_id}")
-        lesson_response = supabase.table('lessons') \
-                                  .select('title, description, content, subject_id, subjects(name)') \
-                                  .eq('id', lesson_id) \
-                                  .maybe_single() \
-                                  .execute()
-
-        if lesson_response and lesson_response.data:
-            lesson_data = lesson_response.data
-            subject_id = lesson_data.get('subject_id')
-            print(f"Found lesson titled: {lesson_data.get('title')}")
-
-            if lesson_data.get('subjects') and isinstance(lesson_data['subjects'], dict):
-                subject_name = lesson_data['subjects'].get('name', subject_name)
-            else:
-                 if subject_id:
-                     subj_resp = supabase.table('subjects').select('name').eq('id', subject_id).maybe_single().execute()
-                     if subj_resp.data:
-                         subject_name = subj_resp.data.get('name', subject_name)
-
-            if not isinstance(lesson_data.get('content'), (list, dict)):
-                 print(f"Warning: Lesson content for lesson {lesson_id} is not a list or dict: {type(lesson_data.get('content'))}")
-
-        else:
-            lesson_data = None
-            print(f"No lesson found for lesson ID {lesson_id}.")
-            flash('Lesson not found.', 'warning')
-            return redirect(url_for('student.student_progress'))
-
-    except PostgrestAPIError as e:
-        flash(f'Database error fetching lesson content: {e.message}', 'danger')
-        lesson_data = None
-        print(f"Supabase DB Error fetching content for lesson {lesson_id}: {e}")
-        return redirect(url_for('student.student_progress'))
+        lesson_res = supabase.table('lessons').select('*, subjects(name)').eq('id', lesson_id).maybe_single().execute()
+        if not (lesson_res and lesson_res.data): 
+            flash('Lesson not found.', 'warning'); return redirect(url_for('student.student_progress'))
+        lesson = lesson_res.data
     except Exception as e:
-        flash('An unexpected error occurred while loading lesson content.', 'danger')
-        print(f"Unexpected Error fetching content for lesson {lesson_id}: {e}")
-        return redirect(url_for('student.student_progress'))
+        flash(f"Error loading lesson content: {e}", 'danger')
+        print(f"Error in view_lesson_content: {e}")
+    subject_name_from_join = lesson.get('subjects', {}).get('name') if lesson and lesson.get('subjects') else "Lesson"
+    return render_template('StudentLessonView.html', lesson_data=lesson, user_name=user_name, subject_name=subject_name_from_join)
 
-    return render_template(
-        'StudentLessonView.html',
-        subject_id=subject_id,
-        subject_name=subject_name,
-        lesson_data=lesson_data,
-        user_name=user_name
-    )
 
 @bp.route('/update_profile', methods=['POST'])
 @login_required
 @role_required('Student')
 def update_profile():
-    """Handles profile picture upload."""
-    from werkzeug.utils import secure_filename
-    from datetime import datetime
-    import os
-
     supabase: Client = current_app.supabase
     user_id = session.get('user_id')
     bucket_name = "avatars"
+    file = request.files.get('profile_picture')
 
-    if not user_id or not supabase:
-        flash('Session invalid or Supabase client not available.', 'danger')
-        return redirect(url_for('auth.login'))
+    if not file or file.filename == '':
+        flash('No file selected.', 'warning'); return redirect(url_for('student.student_settings'))
 
-    if 'profile_picture' not in request.files:
-        flash('No profile picture file selected.', 'warning')
-        return redirect(url_for('student.student_settings'))
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
+        filename = secure_filename(file.filename)
+        timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
+        storage_path = f"{user_id}/{timestamp}_{filename}"
+        try:
+            file_content = file.read()
+            supabase.storage.from_(bucket_name).upload(
+                path=storage_path, file=file_content, 
+                file_options={"content-type": file.content_type, "cache-control": "3600", "upsert": "false"}
+            )
+            update_profiles_response = supabase.table('profiles').update({'avatar_path': storage_path}).eq('id', user_id).execute()
+            
+            if update_profiles_response and hasattr(update_profiles_response, 'error') and update_profiles_response.error:
+                 flash(f'Database update failed: {update_profiles_response.error.message}', 'danger')
+            elif update_profiles_response: 
+                 flash('Profile picture updated successfully!', 'success')
+            else: 
+                 flash('Profile picture uploaded, but database update response was unexpected.', 'warning')
 
-    file = request.files['profile_picture']
-
-    if file.filename == '':
-        flash('No selected file.', 'warning')
-        return redirect(url_for('student.student_settings'))
-
-    if file:
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
-        if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
-
-            filename = secure_filename(file.filename)
-            timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
-            storage_path = f"{user_id}/{timestamp}_{filename}"
-
-            try:
-                print(f"Attempting to upload {filename} to Supabase Storage at path: {storage_path}")
-                file_content = file.read()
-                file.seek(0)
-
-                upload_response = supabase.storage.from_(bucket_name).upload(
-                    path=storage_path,
-                    file=file_content,
-                    file_options={"content-type": file.content_type}
-                )
-                print("Upload attempt finished.")
-
-                print(f"File uploaded successfully. Updating profile table for user {user_id} with path: {storage_path}")
-                update_data = {'avatar_path': storage_path}
-                update_response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
-
-                if update_response.data:
-                     flash('Profile picture updated successfully!', 'success')
-                     print(f"Profile table updated successfully for user {user_id}.")
-                else:
-                     flash('Profile picture uploaded, but database update failed. Please contact support.', 'warning')
-                     print(f"Profile table update potentially failed for user {user_id} (no data returned). Response: {update_response}")
-
-            except PostgrestAPIError as db_error:
-                 flash(f'Database update failed: {db_error.message}', 'error')
-                 print(f"Database error updating profile for user {user_id}: {db_error}")
-                 try:
-                     print(f"Attempting to remove orphaned file: {storage_path}")
-                     supabase.storage.from_(bucket_name).remove([storage_path])
-                 except Exception as remove_error:
-                     print(f"Failed to remove orphaned file {storage_path} after DB error: {remove_error}")
-            except Exception as e:
-                flash(f'Error uploading file: {e}', 'error')
-                print(f"Error during profile picture upload for user {user_id}: {e}")
-
-        else:
-            flash('Invalid file type. Allowed types: png, jpg, jpeg, gif.', 'danger')
-
+        except Exception as e:
+            flash(f'Error uploading file: {e}', 'danger'); print(f"Upload error: {e}")
+    else:
+        flash('Invalid file type.', 'danger')
     return redirect(url_for('student.student_settings'))
+
 
 @bp.route('/assignment/<int:assignment_id>/view')
 @login_required
 @role_required('Student')
 def view_assignment_student(assignment_id):
-    """Renders the detailed view for a specific assignment for a student."""
     supabase: Client = current_app.supabase
-    user_name = session.get('user_name', 'Student')
-    assignment_details = None
-
-    if not supabase:
-        flash('Supabase client not initialized. Cannot fetch assignment details.', 'danger')
-        return redirect(url_for('student.student_assignment'))
-
+    assignment_data = None 
     try:
-        response = supabase.table('assignments') \
-                           .select('*, subjects(name), lessons(title)') \
-                           .eq('id', assignment_id) \
-                           .maybe_single() \
-                           .execute()
-        
-        if response.data:
-            assignment_details = response.data
-        else:
-            flash('Assignment not found.', 'warning')
-            return redirect(url_for('student.student_assignment'))
-
-    except PostgrestAPIError as e:
-        flash(f'Database error fetching assignment details: {e.message}', 'danger')
-        print(f"Supabase DB Error (View Student Assignment): {e}")
-        return redirect(url_for('student.student_assignment'))
+        assignment_res = supabase.table('assignments').select('*, subjects(name), lessons(title)').eq('id', assignment_id).maybe_single().execute()
+        if not (assignment_res and assignment_res.data): 
+            flash('Assignment not found.', 'warning'); return redirect(url_for('student.student_assignment'))
+        assignment_data = assignment_res.data
     except Exception as e:
-        flash('An unexpected error occurred while loading the assignment.', 'danger')
-        print(f"Unexpected Error (View Student Assignment): {e}")
+        flash(f"Error loading assignment: {e}", 'danger'); print(f"Error in view_assignment_student: {e}")
         return redirect(url_for('student.student_assignment'))
+    return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'))
 
-    return render_template(
-        'StudentViewAssignment.html',
-        assignment=assignment_details,
-        user_name=user_name
-    )
 
 @bp.route('/assignment/<int:assignment_id>/submit', methods=['POST'])
 @login_required
 @role_required('Student')
 def submit_assignment_work(assignment_id):
-    """Handles the submission of work for a specific assignment."""
-    # This is a placeholder.
-    # Actual implementation would handle file uploads to Supabase Storage (if any),
-    # save submission details (file path/link, notes, student_id, assignment_id, submission_timestamp)
-    # to the 'submissions' table.
-    flash(f'Submission for assignment ID {assignment_id} received (not fully implemented).', 'info')
-    # For now, redirect back to the assignment view page or the main assignment list.
-    return redirect(url_for('student.view_assignment_student', assignment_id=assignment_id))
+    supabase: Client = current_app.supabase
+    student_id = session.get('user_id')
+    form_notes = request.form.get('submission_notes')
+    file = request.files.get('submission_file')
+    sign_attempts_json = request.form.get('sign_attempts_json')
+    
+    file_path_to_store = None 
+    recorded_sign_attempts = []
+    average_confidence = 0.0
+    calculated_grade = 0.0
+    current_assignment_id = int(assignment_id)
+
+    if not student_id:
+        flash('User session invalid.', 'danger'); return redirect(url_for('auth.login'))
+    if not supabase:
+        flash('Database connection error.', 'danger'); return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+
+    if not os.path.exists(ASSIGNMENT_UPLOAD_FOLDER):
+        try: os.makedirs(ASSIGNMENT_UPLOAD_FOLDER)
+        except OSError as e: flash(f'Upload directory error: {e}', 'danger'); return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+
+    if file and file.filename:
+        if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt', 'mp4', 'mov', 'avi'}:
+            filename = secure_filename(file.filename)
+            timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
+            unique_filename = f"{student_id}_{current_assignment_id}_{timestamp}_{filename}"
+            file_path_on_disk = os.path.join(ASSIGNMENT_UPLOAD_FOLDER, unique_filename)
+            try:
+                file.save(file_path_on_disk)
+                # file_path_to_store = os.path.join('uploads/assignments', unique_filename).replace('\\', '/') # If saving to DB
+                print(f"File saved to: {file_path_on_disk}") 
+            except Exception as e:
+                flash(f'Error saving file: {e}', 'danger')
+                return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+        else:
+            flash('Invalid file type.', 'danger')
+            return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+
+    if sign_attempts_json:
+        try:
+            recorded_sign_attempts = json.loads(sign_attempts_json)
+            if recorded_sign_attempts:
+                valid_attempts = [attempt for attempt in recorded_sign_attempts if isinstance(attempt, dict) and attempt.get('confidence') is not None]
+                if valid_attempts:
+                    total_confidence = sum(attempt.get('confidence', 0.0) for attempt in valid_attempts)
+                    average_confidence = total_confidence / len(valid_attempts)
+                    calculated_grade = round(average_confidence * 100, 2)
+            print(f"Attempts: {recorded_sign_attempts}, Avg Conf: {average_confidence}, Grade: {calculated_grade}")
+        except Exception as e:
+            flash('Error processing sign attempts data.', 'warning'); print(f"Error parsing sign_attempts_json: {e}")
+
+    submission_id = None
+    try:
+        existing_submission_res = supabase.table('submissions') \
+            .select('id') \
+            .eq('student_id', student_id) \
+            .eq('assignment_id', current_assignment_id) \
+            .maybe_single().execute()
+
+        if existing_submission_res and hasattr(existing_submission_res, 'error') and existing_submission_res.error:
+            raise PostgrestAPIError(existing_submission_res.error)
+        
+        is_update = False
+        if existing_submission_res and existing_submission_res.data:
+            submission_id = existing_submission_res.data['id']
+            is_update = True
+            print(f"Found existing submission ID: {submission_id}. Preparing for update.")
+
+        data_for_db = {
+            'student_id': student_id,
+            'assignment_id': current_assignment_id,
+            'submission_content': form_notes,
+            'submitted_at': datetime.utcnow().isoformat(),
+            'grade': calculated_grade,
+            'average_confidence': average_confidence,
+            'status': 'Auto-Graded'
+            # 'file_path': file_path_to_store, # Omitted as 'submissions' table doesn't have this column
+        }
+
+        if is_update:
+            print(f"Updating submission ID {submission_id} with: {data_for_db}")
+            db_response = supabase.table('submissions').update(data_for_db).eq('id', submission_id).execute()
+        else: 
+            print(f"Inserting new submission with: {data_for_db}")
+            db_response = supabase.table('submissions').insert(data_for_db, returning="representation").execute()
+
+        if db_response and hasattr(db_response, 'error') and db_response.error: 
+            raise PostgrestAPIError(db_response.error)
+
+        if not is_update: 
+            if db_response and db_response.data and len(db_response.data) > 0: 
+                submission_id = db_response.data[0]['id']
+                print(f"New submission created with ID: {submission_id}")
+            else: 
+                print("Insert operation did not return data. Attempting manual fetch of submission ID...")
+                fetch_res = supabase.table('submissions').select('id') \
+                    .eq('student_id', student_id) \
+                    .eq('assignment_id', current_assignment_id) \
+                    .order('submitted_at', desc=True).limit(1).maybe_single().execute()
+                if fetch_res and hasattr(fetch_res, 'error') and fetch_res.error:
+                    raise PostgrestAPIError(fetch_res.error)
+                if fetch_res and fetch_res.data:
+                    submission_id = fetch_res.data['id']
+                    print(f"Manually fetched submission ID: {submission_id}")
+                else:
+                    flash('Submission created, but failed to confirm submission ID. Please check assignments.', 'danger')
+                    return redirect(url_for('student.student_assignment'))
+        
+        if submission_id:
+            if recorded_sign_attempts:
+                attempts_to_insert = [{
+                    'submission_id': submission_id, 
+                    'student_id': student_id,
+                    'related_assignment_id': current_assignment_id, 
+                    'sign_recognized': att.get('sign'),
+                    'confidence_score': att.get('confidence'), 
+                    'timestamp': datetime.utcnow().isoformat() 
+                } for att in recorded_sign_attempts if isinstance(att, dict) and att.get('sign') is not None]
+                
+                if attempts_to_insert:
+                    sign_attempts_res = supabase.table('sign_attempts').insert(attempts_to_insert, returning="minimal").execute()
+                    if sign_attempts_res and hasattr(sign_attempts_res, 'error') and sign_attempts_res.error: 
+                        flash(f"Submission saved, but error saving sign attempts: {sign_attempts_res.error.message}", 'warning')
+                    else:
+                        print(f"Saved {len(attempts_to_insert)} sign attempts for submission {submission_id}")
+            
+            if calculated_grade >= 100.0: 
+                badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score').maybe_single().execute()
+                if badge_res and badge_res.data and not (hasattr(badge_res, 'error') and badge_res.error):
+                    badge_id = badge_res.data['id']
+                    user_badge_res = supabase.table('user_badges').select('id').eq('user_id', student_id).eq('badge_id', badge_id).eq('submission_id', submission_id).maybe_single().execute()
+                    if not (user_badge_res and user_badge_res.data) and not (hasattr(user_badge_res, 'error') and user_badge_res.error) :
+                        badge_insert_res = supabase.table('user_badges').insert({'user_id': student_id, 'badge_id': badge_id, 'submission_id': submission_id, 'earned_at': datetime.utcnow().isoformat()}).execute()
+                        if badge_insert_res and hasattr(badge_insert_res, 'error') and badge_insert_res.error: 
+                             flash(f"Error awarding badge: {badge_insert_res.error.message}", 'warning')
+                        else:
+                             flash('Congratulations! You earned the "Perfect Score" badge!', 'success')
+            
+            flash('Assignment submitted and auto-graded successfully!', 'success')
+            return redirect(url_for('student.view_submission_details', submission_id=submission_id))
+        else: 
+            flash('Failed to obtain submission ID after operation.', 'danger')
+            return redirect(url_for('student.student_assignment'))
+
+    except PostgrestAPIError as e:
+        flash(f'Database operation error: {e.message} (Code: {e.code if hasattr(e, "code") else "N/A"})', 'danger')
+        print(f"Supabase DB Error (Submit Assignment): {e}, Details: {getattr(e, 'details', '')}, Hint: {getattr(e, 'hint', '')}")
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'danger')
+        print(f"Unexpected Error (Submit Assignment): {e}")
+    
+    return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+
+
+@bp.route('/submission/<int:submission_id>')
+@login_required
+@role_required('Student')
+def view_submission_details(submission_id):
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Student')
+    student_id = session.get('user_id')
+    submission = None 
+
+    if not student_id: flash('User session invalid.', 'danger'); return redirect(url_for('auth.login'))
+    if not supabase: flash('Database connection error.', 'danger'); return redirect(url_for('student.student_assignment'))
+
+    try:
+        submission_res = supabase.table('submissions') \
+                           .select('*, grade, average_confidence, status, assignments(*, subjects(name), lessons(title))') \
+                           .eq('id', submission_id) \
+                           .eq('student_id', student_id) \
+                           .maybe_single().execute()
+        
+        if submission_res and submission_res.data: 
+            submission = submission_res.data
+            if 'submission_content' in submission and 'notes' not in submission: 
+                submission['notes'] = submission['submission_content']
+            
+            submission['grade'] = submission.get('grade') 
+            submission['average_confidence'] = submission.get('average_confidence')
+            submission['status'] = submission.get('status', 'Submitted')
+
+            if submission.get('submitted_at'):
+                try:
+                    submitted_dt_str = submission['submitted_at']
+                    if submitted_dt_str.endswith('Z'): 
+                        submitted_dt_str = submitted_dt_str[:-1] + '+00:00'
+                    
+                    if '.' in submitted_dt_str:
+                        main_part, fractional_part = submitted_dt_str.split('.', 1)
+                        tz_char = None
+                        if '+' in fractional_part: tz_char = '+'
+                        elif '-' in fractional_part: 
+                            # Check if it's a timezone minus by looking for ':' after it
+                            # This is a simplified check; robust timezone parsing can be complex
+                            # A more robust way to check for timezone offset like -07:00 or +05:30
+                            if fractional_part.count(':') > 0 and (fractional_part.rfind('-') > 0 or fractional_part.rfind('+') > 0) :
+                                if '+' in fractional_part:
+                                    tz_char = '+'
+                                elif '-' in fractional_part:
+                                     # Ensure the dash is for timezone, not part of microseconds if format is unusual
+                                    potential_tz_dash_idx = fractional_part.rfind('-')
+                                    if potential_tz_dash_idx > 0: # Check if there's something before the dash
+                                        tz_char = '-'
+                        
+                        if tz_char:
+                            ms_part, tz_part_val = fractional_part.split(tz_char, 1)
+                            submitted_dt_str = f"{main_part}.{ms_part[:6]}{tz_char}{tz_part_val}"
+                        else: # No explicit timezone offset found in fractional part
+                            submitted_dt_str = f"{main_part}.{fractional_part[:6]}"
+                            
+                    submitted_dt = datetime.fromisoformat(submitted_dt_str)
+                    submission['formatted_submitted_at'] = submitted_dt.strftime("%b %d, %Y, %I:%M %p")
+                except ValueError as ve:
+                    print(f"ValueError parsing submitted_at '{submission['submitted_at']}': {ve}")
+                    submission['formatted_submitted_at'] = submission['submitted_at'][:16].replace('T', ' ') 
+            else:
+                submission['formatted_submitted_at'] = "N/A"
+        else:
+            flash('Submission not found or permission denied.', 'warning')
+            return redirect(url_for('student.student_assignment'))
+            
+    except Exception as e:
+        flash(f'Error fetching submission: {e}', 'danger')
+        print(f"Error in view_submission_details: {e}")
+        return redirect(url_for('student.student_assignment'))
+
+    return render_template('StudentAssignmentSubmissionView.html', submission=submission, user_name=user_name)
 
 
 @bp.route('/change_password', methods=['POST'])
 @login_required
 @role_required('Student')
 def change_password():
-    """Handles the password change form submission using Supabase Auth."""
-    current_password = request.form.get('current_password')
     new_password = request.form.get('new_password')
-    user_id = session.get('user_id')
     supabase: Client = current_app.supabase
-    access_token = session.get('access_token')
-    refresh_token = session.get('refresh_token')
+    access_token = session.get('access_token') 
 
-    if not new_password:
-        flash('New password cannot be empty.', 'danger')
+    if not new_password or len(new_password) < 6:
+        flash('New password must be at least 6 characters long.', 'danger')
         return redirect(url_for('student.student_settings'))
-
-    if len(new_password) < 6:
-         flash('New password must be at least 6 characters long.', 'danger')
-         return redirect(url_for('student.student_settings'))
-
-    if not user_id:
-        flash('User session not found. Please log in again.', 'danger')
-        return redirect(url_for('auth.login'))
-
-    if not supabase:
-        flash('Supabase client not initialized. Cannot update password.', 'danger')
-        return redirect(url_for('student.student_settings'))
-
-    if not access_token:
-        flash('User authentication token not found. Please log in again.', 'danger')
-        print(f"Missing access token for user {user_id} during password change attempt.")
-        return redirect(url_for('auth.login'))
-
-    if not refresh_token:
-        flash('User authentication refresh token not found. Please log in again.', 'danger')
-        print(f"Missing refresh token for user {user_id} during password change attempt.")
+    if not access_token or not supabase: 
+        flash('Session or connection error. Please re-login.', 'danger')
         return redirect(url_for('auth.login'))
 
     try:
-        print(f"Setting Supabase auth session for user {user_id} before password update.")
-        supabase.auth.set_session(access_token=access_token, refresh_token=refresh_token)
-
-        print(f"Attempting password update for the currently authenticated user.")
-        update_response = supabase.auth.update_user(
-             {"password": new_password}
-        )
-
-        if update_response.user:
-            flash('Password updated successfully!', 'success')
-            print(f"Password updated successfully for user associated with the token.")
-        else:
-            flash('Failed to update password. Please try again or re-login.', 'danger')
-            print(f"Password update failed for user. Response: {update_response}")
-
-    except AuthApiError as e:
-        flash(f'Authentication error updating password: {e.message}', 'danger')
-        print(f"Supabase Auth Error updating password: {e}")
-        if "Invalid JWT" in e.message or "expired" in e.message:
-             flash('Your session may have expired. Please log in again.', 'warning')
-             return redirect(url_for('auth.login'))
+        supabase.auth.update_user({"password": new_password}) 
+        flash('Password updated successfully!', 'success')
     except Exception as e:
-        flash('An unexpected error occurred while updating password.', 'danger')
-        print(f"Unexpected Error updating password: {e}")
+        flash(f'Error updating password: {e}', 'danger')
+        print(f"Password update error: {e}")
 
     return redirect(url_for('student.student_settings'))

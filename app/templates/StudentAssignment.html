@@ -71,9 +71,13 @@
                             <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}">{{ assignment_item.title | default('N/A') }}</a>
                         </td>
                         <td>{{ assignment_item.due_date[:10] if assignment_item.due_date and assignment_item.due_date|length >=10 else (assignment_item.due_date if assignment_item.due_date else 'N/A') }}</td>
-                        <td>Not Submitted</td> {# Placeholder status #}
+                        <td class="status-{{ assignment_item.submission_status | lower | replace(' ', '-') }}">{{ assignment_item.submission_status | default('Not Submitted') }}</td>
                         <td>
-                            <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="action-btn">View Assigment</a>
+                            {% if assignment_item.submission_status == 'Not Submitted' %}
+                                <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="action-btn">View & Submit</a>
+                            {% else %}
+                                <a href="{{ url_for('student.view_submission_details', submission_id=assignment_item.submission_id) }}" class="action-btn submitted">View Submission</a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
