@@ -1,7 +1,7 @@
 # app/teacher/routes.py
 from flask import render_template, request, session, redirect, url_for, flash, current_app
 from . import bp
-from app.utils import login_required, role_required
+from app.utils import login_required, role_required, check_and_award_badges # Added check_and_award_badges
 from supabase import Client, PostgrestAPIError
 from datetime import datetime, timezone, timedelta # Ensure timedelta and timezone are imported
 
@@ -879,6 +879,25 @@ def update_submission_feedback(submission_id):
         if update_response and hasattr(update_response, 'error') and update_response.error:
             raise PostgrestAPIError(update_response.error)
         
+        # Fetch the updated submission to get student_id, grade, and status for badge logic
+        updated_submission_response = supabase.table('submissions') \
+            .select('student_id, grade, status') \
+            .eq('id', submission_id) \
+            .maybe_single() \
+            .execute()
+
+        if updated_submission_response.data:
+            sub_data = updated_submission_response.data
+            # Call badge awarding function
+            check_and_award_badges(
+                submission_id=submission_id,
+                student_id=sub_data['student_id'],
+                grade=sub_data['grade'], # This will be the final grade
+                status=sub_data['status'],
+                supabase_client=supabase
+            )
+            # flash('Badge check complete.', 'info') # Optional: for debugging
+
         flash('Feedback and grade updated successfully!', 'success')
         return redirect(url_for('teacher.review_submission', submission_id=submission_id))
 
