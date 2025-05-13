@@ -1,0 +1,243 @@
+/* body styling is now handled by StudentDashboard.css */
+
+.profile-content-wrapper {
+    width: 100%;
+    padding: 0; /* Rely on main-content padding from StudentDashboard.css */
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Center the card horizontally */
+}
+
+.profile-container {
+    background-color: #ffffff;
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    width: 100%;
+    max-width: 700px; /* Base max-width for smaller screens */
+    overflow: hidden;
+    margin: 20px auto; /* Add some margin top/bottom, auto for horizontal centering */
+}
+
+.profile-header {
+    background-color: #007bff; /* Blue header */
+    color: white;
+    padding: 25px;
+    display: flex;
+    align-items: center;
+    border-top-left-radius: 15px;
+    border-top-right-radius: 15px;
+}
+
+.profile-picture-container {
+    margin-right: 20px;
+}
+
+.profile-picture {
+    width: 100px; /* Adjust size as needed */
+    height: 100px; /* Adjust size as needed */
+    border-radius: 50%;
+    border: 3px solid white;
+    object-fit: cover; /* Ensures the image covers the area without distortion */
+}
+
+.profile-info-header h1 {
+    margin: 0 0 5px 0;
+    font-size: 1.8em;
+}
+
+.profile-info-header p {
+    margin: 0 0 10px 0;
+    font-size: 1em;
+    opacity: 0.9;
+}
+
+.progress-bar-container {
+    background-color: #e9ecef; /* Light grey for the bar background */
+    border-radius: 10px;
+    height: 15px; /* Progress bar height */
+    width: 200px; /* Progress bar width */
+    overflow: hidden;
+    margin-bottom: 5px;
+}
+
+.progress-bar {
+    background-color: #28a745; /* Green progress */
+    height: 100%;
+    border-radius: 10px;
+    transition: width 0.5s ease-in-out;
+}
+
+.profile-info-header span {
+    font-size: 0.9em;
+    opacity: 0.8;
+}
+
+.profile-main-content {
+    padding: 25px;
+    display: grid;
+    grid-template-columns: 1fr; /* Default to single column for mobile-first */
+    gap: 25px; /* Increased gap slightly */
+}
+
+.about-section, .information-section, .badges-section {
+    background-color: #f8f9fa; /* Slightly off-white for sections */
+    padding: 25px; /* Increased padding slightly */
+    border-radius: 10px;
+    border: 1px solid #dee2e6;
+}
+
+.about-section h2, .information-section h2, .badges-section h2 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 1.4em;
+    color: #333;
+    border-bottom: 1px solid #ccc;
+    padding-bottom: 10px;
+}
+
+.add-note-box {
+    border: 2px dashed #007bff;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    color: #007bff;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.add-note-box:hover {
+    background-color: #e7f3ff;
+}
+
+.plus-icon {
+    font-size: 1.5em;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.information-section ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.information-section ul li {
+    margin-bottom: 10px;
+    font-size: 1em;
+    color: #555;
+}
+
+.information-section ul li::before {
+    content: "•";
+    color: #007bff;
+    font-weight: bold;
+    display: inline-block;
+    width: 1em;
+    margin-left: -1em;
+}
+
+.badges-section .badge-item {
+    display: flex;
+    align-items: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    background-color: #fff;
+}
+
+.badge-icon {
+    width: 40px; /* Adjust as needed */
+    height: 40px; /* Adjust as needed */
+    margin-right: 15px;
+    object-fit: contain;
+}
+
+.badge-item span {
+    font-size: 1em;
+    color: #333;
+}
+
+.profile-footer {
+    padding: 20px;
+    text-align: right;
+    border-top: 1px solid #e0e0e0;
+}
+
+.edit-account-button {
+    background-color: #007bff;
+    color: white;
+    padding: 10px 20px;
+    text-decoration: none;
+    border-radius: 20px; /* Pill shape */
+    font-size: 1em;
+    font-weight: bold;
+    transition: background-color 0.3s ease;
+    border: none;
+    cursor: pointer;
+}
+
+.edit-account-button:hover {
+    background-color: #0056b3;
+}
+
+/* Responsive adjustments */
+@media (min-width: 768px) { /* Tablet and larger */
+    .profile-container {
+        max-width: 900px; /* Increased for tablets */
+    }
+    .profile-main-content {
+        /* Two columns for "About" and "Information" on wider screens */
+        grid-template-columns: 1fr 1fr;
+    }
+    .about-section {
+      grid-column: 1 / 2;
+    }
+    .information-section {
+      grid-column: 2 / 3;
+    }
+    .badges-section {
+        grid-column: 1 / -1; /* Span full width */
+    }
+}
+
+@media (min-width: 1024px) { /* Desktop */
+    .profile-container {
+        max-width: 1100px; /* Increased max-width for desktops */
+    }
+}
+
+@media (max-width: 767px) { /* Mobile phones */
+    .profile-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    .profile-picture-container {
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+    .profile-info-header {
+        align-items: center; /* Center progress bar etc. */
+    }
+    .profile-info-header h1 {
+        font-size: 1.6em;
+    }
+    .progress-bar-container {
+        width: 100%; /* Make progress bar responsive */
+        max-width: 300px; /* Optional: cap its width on mobile */
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .profile-main-content {
+        grid-template-columns: 1fr; /* Ensure single column on mobile */
+    }
+    .about-section, .information-section, .badges-section {
+        padding: 20px;
+    }
+    .edit-account-button {
+        width: 100%;
+        text-align: center;
+        box-sizing: border-box; /* Ensure padding doesn't make it overflow */
+    }
+}

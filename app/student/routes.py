@@ -101,10 +101,117 @@ def get_prediction():
     prediction_data = get_stable_prediction() 
     return Response(prediction_data, mimetype='application/json')
 
-@bp.route('/settings')
+
+@bp.route('/account_profile')
 @login_required
 @role_required('Student')
-def student_settings():
+def student_account_profile():
+    supabase: Client = current_app.supabase
+    user_id = session.get('user_id')
+    # user_name is fetched later from profile_data or uses session default
+    profile_data = {}
+    badges = []
+    user_level = "Neophyte"  # Default, as in the template
+    progress_to_next_level = 25  # Default percentage, as in the template
+    user_grade = "N/A"  # Default, as in the template
+
+    if not user_id or not supabase:
+        flash('User session or database connection invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    try:
+        # Fetch profile data
+        profile_res = supabase.table('profiles').select('*').eq('id', user_id).maybe_single().execute()
+        if profile_res and profile_res.data:
+            profile_data = profile_res.data
+            avatar_path = profile_data.get('avatar_path')
+            if avatar_path and not avatar_path.startswith('http') and not avatar_path.startswith('/static/'):
+                try:
+                    profile_data['avatar_path'] = supabase.storage.from_('avatars').get_public_url(avatar_path)
+                except Exception as e:
+                    print(f"Error getting public URL for avatar '{avatar_path}': {e}")
+                    profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
+            elif not avatar_path:
+                profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
+
+            # Fetch user email from auth.users
+            access_token = session.get('access_token')
+            if access_token:
+                user_auth_details = supabase.auth.get_user(jwt=access_token)
+                if user_auth_details and user_auth_details.user:
+                    profile_data['email'] = user_auth_details.user.email or "Email not set"
+                else:
+                    profile_data['email'] = "Could not fetch email"
+            else:
+                profile_data['email'] = "Email not available (session/token issue)"
+        else: # Default if profile_res fails or no data
+            profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
+            profile_data['email'] = "Profile not found"
+
+
+        # Fetch badges
+        badges_res = supabase.table('user_badges') \
+            .select('badges(name, icon_url, description)') \
+            .eq('user_id', user_id) \
+            .execute()
+        if badges_res and badges_res.data:
+            raw_badges = [item.get('badges') for item in badges_res.data if item.get('badges')]
+            for badge_data in raw_badges:
+                if badge_data:  # Ensure badge_data is not None
+                    db_icon_path = badge_data.get('icon_url')
+                    if db_icon_path:
+                        try:
+                            # Use the 'badges' bucket as identified from the new provided URL
+                            badge_data['icon_url'] = supabase.storage.from_('badges').get_public_url(db_icon_path)
+                        except Exception as e:
+                            print(f"Error getting public URL for badge icon '{db_icon_path}' from 'badges' bucket: {e}")
+                            badge_data['icon_url'] = url_for('static', filename='Images/default_badge.png') # Fallback to local static if Supabase storage fails
+                    else:
+                        # If icon_url is not in DB, use default
+                        badge_data['icon_url'] = url_for('static', filename='Images/default_badge.png')
+                    
+                    # The template uses badge.level, which is not directly in the schema shown.
+                    # We'll rely on the template's default or you might need to add 'level' to badges table or derive it.
+                    badges.append(badge_data)
+        
+        # Ensure essential names are present for the template, even if empty
+        profile_data['first_name'] = profile_data.get('first_name', '')
+        profile_data['last_name'] = profile_data.get('last_name', '')
+        profile_data['middle_name'] = profile_data.get('middle_name', '')
+
+
+    except Exception as e:
+        flash(f'Error fetching account profile details: {str(e)}', 'danger')
+        print(f"Error in student_account_profile: {e}")
+        # Ensure defaults for critical template variables on error
+        if not profile_data.get('avatar_path'):
+            profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
+        if not profile_data.get('email'):
+            profile_data['email'] = "Error fetching email"
+        profile_data.setdefault('first_name', 'N/A')
+        profile_data.setdefault('last_name', '')
+    
+    profile_data['student_id'] = user_id # Explicitly add student_id
+
+
+    # Construct user_name for display if needed, or rely on template's {{ user.first_name }} {{ user.last_name }}
+    display_user_name = f"{profile_data.get('first_name','')} {profile_data.get('last_name','')} ".strip() or session.get('user_name', 'Student')
+
+    return render_template(
+        'StudentAccountProfile.html',
+        user=profile_data,
+        badges=badges,
+        user_level=user_level,
+        progress_to_next_level=progress_to_next_level,
+        user_grade=user_grade, # This is separate in template, so pass it
+        user_name=display_user_name # For consistency if any part of template uses user_name directly
+    )
+
+
+@bp.route('/edit_account_settings')
+@login_required
+@role_required('Student')
+def student_edit_account_settings():
     user_name = session.get('user_name', 'Student')
     user_email = "Not available"
     access_token = session.get('access_token')
@@ -261,7 +368,7 @@ def update_profile():
     file = request.files.get('profile_picture')
 
     if not file or file.filename == '':
-        flash('No file selected.', 'warning'); return redirect(url_for('student.student_settings'))
+        flash('No file selected.', 'warning'); return redirect(url_for('student.student_edit_account_settings'))
 
     allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
     if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
@@ -287,7 +394,7 @@ def update_profile():
             flash(f'Error uploading file: {e}', 'danger'); print(f"Upload error: {e}")
     else:
         flash('Invalid file type.', 'danger')
-    return redirect(url_for('student.student_settings'))
+    return redirect(url_for('student.student_edit_account_settings'))
 
 
 @bp.route('/assignment/<int:assignment_id>/view')
@@ -559,7 +666,7 @@ def change_password():
 
     if not new_password or len(new_password) < 6:
         flash('New password must be at least 6 characters long.', 'danger')
-        return redirect(url_for('student.student_settings'))
+        return redirect(url_for('student.student_edit_account_settings'))
     if not access_token or not supabase: 
         flash('Session or connection error. Please re-login.', 'danger')
         return redirect(url_for('auth.login'))
@@ -571,4 +678,4 @@ def change_password():
         flash(f'Error updating password: {e}', 'danger')
         print(f"Password update error: {e}")
 
-    return redirect(url_for('student.student_settings'))
+    return redirect(url_for('student.student_edit_account_settings'))

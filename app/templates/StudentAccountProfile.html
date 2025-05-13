@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Profile - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Main dashboard layout CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <!-- Page-specific CSS for profile content -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentAccountProfile.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <!-- Ensure the 'active' class is applied correctly based on the current page -->
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li class="active"><a href="{{ url_for('student.student_account_profile') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p> <!-- This might need to be dynamic if levels change -->
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <!-- Optional: Add a page header similar to dashboard if desired -->
+        <header class="page-header">
+            <h2>Account Profile</h2>
+            <p>View and manage your account details.</p>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </header>
+
+        <!-- Profile-specific content starts here, wrapped in its own container for styling -->
+        <div class="profile-content-wrapper">
+            <div class="profile-container"> <!-- This is the class from your original StudentAccountProfile.css -->
+                <header class="profile-header">
+                    <div class="profile-picture-container">
+                        <img src="{{ user.avatar_path or url_for('static', filename='Images/default_avatar.png') }}" alt="Profile Picture" class="profile-picture">
+                    </div>
+                    <div class="profile-info-header">
+                        <h1>{{ user.first_name }} {{ user.last_name }}</h1>
+                        <p>Current Level: {{ user_level | default('Neophyte') }}</p>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar"></div>
+                        </div>
+                        <span>Progress To Next Level</span>
+                    </div>
+                </header>
+
+                <main class="profile-main-content">
+                    <section class="about-section">
+                        <h2>About</h2>
+                        <div class="add-note-box">
+                            <span class="plus-icon">+</span> Add Note Here
+                        </div>
+                    </section>
+
+                    <section class="information-section">
+                        <h2>Information</h2>
+                        <ul>
+                            <li>Name: {{ user.first_name }} {{ user.middle_name or '' }} {{ user.last_name }}</li>
+                            <li>Grade: {{ user_grade | default('N/A') }}</li>
+                            <li>Email: {{ user.email }}</li>
+                            <li>StudentID: {{ user.student_id | default('N/A') }}</li>
+                        </ul>
+                    </section>
+
+                    <section class="badges-section">
+                        <h2>Badges</h2>
+                        {% if badges and badges|length > 0 %}
+                            {% for badge in badges %}
+                            <div class="badge-item">
+                                <img src="{{ badge.icon_url or url_for('static', filename='Images/default_badge.png') }}" alt="{{ badge.name }}" class="badge-icon">
+                                <span>{{ badge.name }} ({{ badge.level | default('Beginner') }})</span>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p>No badges earned yet.</p>
+                        {% endif %}
+                    </section>
+                </main>
+
+                <footer class="profile-footer">
+                    <a href="{{ url_for('student.student_edit_account_settings') }}" class="edit-account-button">Edit Account</a>
+                </footer>
+            </div>
+        </div>
+    </main>
+    <!-- Include any necessary JS scripts here -->
+</body>
+</html>
