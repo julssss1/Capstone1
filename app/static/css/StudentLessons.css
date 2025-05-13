@@ -151,3 +151,19 @@
         width: 100px;
     }
 }
+
+/* Additional styles for teacher-specific elements if needed */
+.add-activity-link {
+    display: flex;
+    align-items: center;
+    color: #2a6fdb; /* Or your theme's link color */
+    text-decoration: none;
+    padding: 8px 0;
+    font-weight: 500;
+}
+.add-activity-link i {
+    margin-right: 8px;
+}
+.add-activity-link:hover {
+    text-decoration: underline;
+}

@@ -1,5 +1,3 @@
-
-
 .assignment-form-container {
     background-color: var(--bg-light);
     border-radius: 10px;
@@ -115,4 +113,52 @@
 
 .btn:active {
     transform: translateY(1px);
+}
+
+.assignments-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+.assignments-table th, .assignments-table td {
+    border: 1px solid #ddd;
+    padding: 12px;
+    text-align: left;
+}
+.assignments-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+}
+.assignments-table tr:nth-child(even) {
+    background-color: #f2f2f2;
+}
+.assignments-table .action-btn {
+    padding: 6px 12px;
+    font-size: 0.9em;
+    text-decoration: none;
+    border-radius: 4px;
+    color: white;
+    background-color: #007bff; /* Primary button color */
+    border: none;
+    cursor: pointer;
+}
+.assignments-table .action-btn:hover {
+    background-color: #0056b3;
+}
+.no-assignments {
+    padding: 20px;
+    text-align: center;
+    color: #777;
+}
+.table-container {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+.table-header-icon {
+    margin-right: 8px;
+}
+.table-icon-gray {
+    color: #6c757d;
 }
