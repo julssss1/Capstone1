@@ -2,24 +2,40 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Internal Server Error</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}"> {# Basic styling #}
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Server Error - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}"> 
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/error_pages.css') }}">
 </head>
-<body>
-    <div class="login-container" style="text-align: center;">
-        <h1>500 - Internal Server Error</h1>
-        <p>Sorry, something went wrong on our end. Please try again later.</p>
-        <p>
-            {% if session.get('user_role') == 'Teacher' %}
-            <a href="{{ url_for('teacher.teacher_dashboard') }}">Go to Dashboard</a>
-            {% elif session.get('user_role') == 'Student' %}
-            <a href="{{ url_for('student.student_dashboard') }}">Go to Dashboard</a>
-            {% elif session.get('user_role') == 'Admin' %}
-            <a href="{{ url_for('admin.admin_dashboard') }}">Go to Dashboard</a>
-            {% else %}
-            <a href="{{ url_for('auth.login') }}">Go to Login</a>
-            {% endif %}
+<body class="error-page-body">
+    <div class="error-page-container error-illustration-500">
+        <div class="error-illustration">
+            <i class="fas fa-tools fa-icon-placeholder"></i>
+            <!-- Example with img: <img src="{{ url_for('static', filename='Images/error-500-hand.svg') }}" alt="Oops hand sign"> -->
+        </div>
+        <h1 class="error-code code-500">500</h1>
+        <h2 class="error-message-main">Uh Oh! Server Trouble</h2>
+        <p class="error-suggestion">
+            It seems we're experiencing some technical difficulties on our end.
+            Our team has been notified. Please try again in a little while.
         </p>
+        <div class="error-actions">
+            {% if session.get('user_role') == 'Teacher' %}
+            <a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+            {% elif session.get('user_role') == 'Student' %}
+            <a href="{{ url_for('student.student_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+            {% elif session.get('user_role') == 'Admin' %}
+            <a href="{{ url_for('admin.admin_dashboard') }}"><i class="fas fa-tachometer-alt"></i> Go to Dashboard</a>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}"><i class="fas fa-sign-in-alt"></i> Go to Login</a>
+            {% endif %}
+             <a href="javascript:location.reload();" class="secondary-action"><i class="fas fa-redo"></i> Try Again</a>
+        </div>
+
          {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
                 <div class="flash-messages">

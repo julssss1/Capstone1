@@ -1,0 +1,161 @@
+:root {
+    --primary-color: #4A90E2; /* Blue from login.css */
+    --secondary-color: #50E3C2; /* Teal from login.css */
+    --accent-color: #F5A623;   /* Orange from login.css */
+    --text-color: #333;
+    --text-color-light: #555;
+    --bg-color: #F7F9FC;     /* Light background like dashboards */
+    --bg-light: #FFFFFF;
+    --border-color: #E0E5EB;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --font-family: 'Poppins', sans-serif;
+
+    --error-red: #E74C3C;
+    --error-orange: var(--accent-color);
+    --error-blue: #3498DB; /* A slightly different blue for server errors */
+}
+
+html {
+    height: 100%;
+}
+
+body.error-page-body { /* Add this class to the body tag of error pages */
+    font-family: var(--font-family);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px; /* Add padding for small screens */
+    box-sizing: border-box;
+}
+
+.error-page-container {
+    background: var(--bg-light);
+    width: 90%;
+    max-width: 550px; /* Slightly wider than login for more content */
+    padding: 40px 30px;
+    border-radius: 15px; /* Softer corners */
+    box-shadow: 0 10px 30px var(--shadow-color);
+    text-align: center;
+    border-top: 5px solid var(--primary-color); /* Thematic accent */
+}
+
+.error-illustration {
+    margin-bottom: 25px;
+}
+
+.error-illustration img { /* For custom SVG/PNG illustrations */
+    max-width: 120px; /* Adjust as needed */
+    height: auto;
+    margin-bottom: 10px;
+}
+
+.error-illustration .fa-icon-placeholder { /* For Font Awesome icons */
+    font-size: 5em; /* Large icon */
+    margin-bottom: 15px;
+    display: block;
+}
+
+/* Specific colors for illustrations */
+.error-illustration-403 .fa-icon-placeholder { color: var(--error-red); }
+.error-illustration-404 .fa-icon-placeholder { color: var(--error-orange); }
+.error-illustration-500 .fa-icon-placeholder { color: var(--error-blue); }
+.error-illustration-403 { border-top-color: var(--error-red) !important; }
+.error-illustration-404 { border-top-color: var(--error-orange) !important; }
+.error-illustration-500 { border-top-color: var(--error-blue) !important; }
+
+
+.error-code {
+    font-size: 3em; /* Larger Error Code */
+    font-weight: 700;
+    margin-bottom: 0px;
+}
+.error-code.code-403 { color: var(--error-red); }
+.error-code.code-404 { color: var(--error-orange); }
+.error-code.code-500 { color: var(--error-blue); }
+
+.error-message-main {
+    font-size: 1.6em;
+    font-weight: 600;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    color: var(--text-color);
+}
+
+.error-suggestion {
+    font-size: 1em;
+    color: var(--text-color-light);
+    margin-bottom: 30px;
+}
+
+.error-actions a {
+    display: inline-block;
+    padding: 12px 25px;
+    background-color: var(--primary-color);
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-weight: 500;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+    margin: 5px;
+    font-size: 0.95em;
+}
+
+.error-actions a:hover {
+    background-color: #3a7bc8; /* Darker primary */
+    transform: translateY(-2px);
+}
+
+.error-actions a .fas {
+    margin-right: 8px;
+}
+
+/* Flash messages styling (can reuse from login.css if globally defined) */
+.flash-messages {
+    margin-top: 20px;
+    margin-bottom: 0; /* No extra space if it's the last item */
+}
+.alert {
+    padding: 10px 15px;
+    margin-bottom: 15px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    font-size: 0.9em;
+    text-align: center;
+}
+.alert-success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+.alert-info    { color: #0c5460; background-color: #d1ecf1; border-color: #bee5eb; }
+.alert-warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+.alert-danger  { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+
+
+@media (max-width: 600px) {
+    .error-page-container {
+        padding: 30px 20px;
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+    .error-illustration img {
+        max-width: 100px;
+    }
+    .error-illustration .fa-icon-placeholder {
+        font-size: 4em;
+    }
+    .error-code {
+        font-size: 2.5em;
+    }
+    .error-message-main {
+        font-size: 1.3em;
+    }
+    .error-actions a {
+        padding: 10px 20px;
+        font-size: 0.9em;
+        display: block;
+        width: fit-content;
+        margin: 10px auto;
+    }
+}
