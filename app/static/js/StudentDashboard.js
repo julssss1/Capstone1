@@ -175,31 +175,39 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     async function fetchPrediction() {
-        if (!currentPracticeSign || !videoFeedElement || videoFeedElement.style.display !== 'block') {
-            return; 
+    if (!currentPracticeSign || !videoFeedElement || videoFeedElement.style.display !== 'block') {
+        return;
+    }
+
+    try {
+        if (typeof predictionUrl === 'undefined') {
+            console.error("predictionUrl is not defined in fetchPrediction.");
+            return;
         }
+        const response = await fetch(predictionUrl + "?t=" + new Date().getTime());
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        // const predictionText = await response.text(); // OLD WAY
 
-        try {
-            // Ensure predictionUrl is defined
-            if (typeof predictionUrl === 'undefined') {
-                console.error("predictionUrl is not defined in fetchPrediction.");
-                return;
-            }
-            const response = await fetch(predictionUrl + "?t=" + new Date().getTime());
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            const predictionText = await response.text();
+        const predictionData = await response.json(); // NEW: Parse as JSON
+        const predictedSign = predictionData.sign;    // NEW: Extract the sign
+        const confidence = predictionData.confidence; // NEW: Extract confidence (optional for debug)
 
-            if (detectedSignDisplay) {
-                 detectedSignDisplay.textContent = predictionText || "...";
-            }
-            updateFeedback(predictionText || "...");
-        } catch (error) {
-            console.error("Error fetching prediction:", error);
-            // Optionally update UI to show error
+        if (detectedSignDisplay) {
+            // detectedSignDisplay.textContent = predictionText || "..."; // OLD WAY
+            detectedSignDisplay.textContent = `Sign: ${predictedSign}, Conf: ${(confidence * 100).toFixed(2)}%`; // NEW: Display sign and confidence
+        }
+        // updateFeedback(predictionText || "..."); // OLD WAY
+        updateFeedback(predictedSign || "...");   // NEW: Pass only the sign string to updateFeedback
+    } catch (error) {
+        console.error("Error fetching prediction:", error);
+        if (feedbackElement) {
+            feedbackElement.textContent = "Error getting prediction. Check console.";
+            feedbackElement.className = 'status-incorrect';
         }
     }
+}
 
     function updateFeedback(prediction) {
         if (!currentPracticeSign || !feedbackElement) return;
