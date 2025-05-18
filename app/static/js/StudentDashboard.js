@@ -192,11 +192,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         const predictionData = await response.json(); // NEW: Parse as JSON
         const predictedSign = predictionData.sign;    // NEW: Extract the sign
-        const confidence = predictionData.confidence; // NEW: Extract confidence (optional for debug)
+       
 
         if (detectedSignDisplay) {
             // detectedSignDisplay.textContent = predictionText || "..."; // OLD WAY
-            detectedSignDisplay.textContent = `Sign: ${predictedSign}, Conf: ${(confidence * 100).toFixed(2)}%`; // NEW: Display sign and confidence
+            detectedSignDisplay.textContent = `Sign: ${predictedSign}`; // NEW: Display sign and confidence
         }
         // updateFeedback(predictionText || "..."); // OLD WAY
         updateFeedback(predictedSign || "...");   // NEW: Pass only the sign string to updateFeedback

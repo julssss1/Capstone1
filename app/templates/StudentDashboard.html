@@ -53,32 +53,40 @@
 
         <section class="assignments-overview">
              <h3>Assignments Overview</h3>
-             {% if assignments %}
+             {% if assignments and assignments|length > 0 %}
                  {% for assignment in assignments %}
                  <div class="assignment-card {% if assignment.status == 'Completed' %}completed{% endif %}">
                     <div class="card-icon">
-                        <span>{% if assignment.status == 'Completed' %}✅{% else %}📚{% endif %}</span>
+                        <!-- Using Font Awesome icons for status -->
+                        {% if assignment.status == 'Completed' %}
+                            <i class="fas fa-check-circle"></i>
+                        {% else %}
+                            <i class="fas fa-book-open"></i>
+                        {% endif %}
                     </div>
                     <div class="card-details">
                         <p class="card__content">{{ assignment.title }}</p>
                         <div class="card__date">
                             {% if assignment.status == 'Completed' %}
-                                Completed: {{ assignment.completed_at | format_datetime if assignment.completed_at else 'N/A' }}
+                                {% if assignment.completed_at %}
+                                    Completed: {{ assignment.completed_at }}
+                                {% else %}
+                                    Status: Completed
+                                {% endif %}
                             {% elif assignment.due_date %}
-                                Due: {{ assignment.due_date | format_datetime }}
+                                Due: {{ assignment.due_date }}
                             {% else %}
                                 No Due Date
                             {% endif %}
                         </div>
                     </div>
-        
-                    <a href="{{ assignment.url | default('#') }}" class="card__arrow" aria-label="View Assignment Details">
+                    <a href="{{ assignment.url }}" class="card__arrow" aria-label="View {{ 'Submission' if assignment.status == 'Completed' else 'Assignment' }}">
                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="18" width="18"><path fill="#fff" d="M13.4697 17.9697C13.1768 18.2626 13.1768 18.7374 13.4697 19.0303C13.7626 19.3232 14.2374 19.3232 14.5303 19.0303L20.3232 13.2374C21.0066 12.554 21.0066 11.446 20.3232 10.7626L14.5303 4.96967C14.2374 4.67678 13.7626 4.67678 13.4697 4.96967C13.1768 5.26256 13.1768 5.73744 13.4697 6.03033L18.6893 11.25H4C3.58579 11.25 3.25 11.5858 3.25 12C3.25 12.4142 3.58579 12.75 4 12.75H18.6893L13.4697 17.9697Z"></path></svg>
                    </a>
                  </div>
                  {% endfor %}
              {% else %}
-                 <p>No assignments found.</p>
+                 <p class="no-assignments-info">No assignments to display right now. Great job, or check back later!</p>
              {% endif %}
         </section>
 
