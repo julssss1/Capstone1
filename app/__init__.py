@@ -45,13 +45,13 @@ def create_app(config_class='config.Config'):
           
 
     from .auth import routes as auth_routes
-    from .student import routes as student_routes
-    from .teacher import routes as teacher_routes
+    from .student import bp as student_bp
+    from .teacher import bp as teacher_bp  # Changed from 'routes as teacher_routes'
     from .admin import routes as admin_routes
 
     app.register_blueprint(auth_routes.bp) 
-    app.register_blueprint(student_routes.bp, url_prefix='/student')
-    app.register_blueprint(teacher_routes.bp, url_prefix='/teacher')
+    app.register_blueprint(student_bp, url_prefix='/student')
+    app.register_blueprint(teacher_bp, url_prefix='/teacher') # Changed from 'teacher_routes.bp'
     app.register_blueprint(admin_routes.bp, url_prefix='/admin')
 
     

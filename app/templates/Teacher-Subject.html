@@ -58,7 +58,7 @@
                 </div>
                 <div class="card-actions">
                      <a href="{{ url_for('teacher.manage_subject_content', subject_id=lesson.id) }}" class="action-btn manage">Manage Content</a>
-                     <a href="{{ url_for('teacher.create_assignment_for_lesson', lesson_id=lesson.id) }}" class="action-btn assignment">New Assignment</a>
+                     <a href="{{ url_for('teacher.create_assignment_for_subject', subject_id=lesson.id) }}" class="action-btn assignment">New Assignment</a>
                      <a href="{{ url_for('teacher.teacher_gradebook', subject_filter=lesson.id) }}" class="action-btn grades">View Grades</a>
                 </div>
             </div>
