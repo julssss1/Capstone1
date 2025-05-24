@@ -83,8 +83,12 @@ def initialize_resources():
                     min_tracking_confidence=0.6)
                 print("MediaPipe Hands initialized.")
 
+            # Debug print for NO_CAMERA environment variable
+            no_camera_env_var = os.getenv('NO_CAMERA')
+            print(f"DEBUG: Value of NO_CAMERA environment variable: '{no_camera_env_var}' (type: {type(no_camera_env_var)})")
+
             # Camera Initialization (conditional)
-            if not os.getenv('NO_CAMERA'):
+            if not no_camera_env_var: # Use the fetched variable
                 try:
                     print("Attempting to initialize camera (device 0)...")
                     if cap and cap.isOpened(): # If cap exists and is open, release it first
