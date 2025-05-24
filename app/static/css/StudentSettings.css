@@ -168,3 +168,84 @@
 .save-btn:hover {
     background-color: #0056b3;
 }
+
+/* Responsive adjustments for StudentSettings.html */
+@media (max-width: 768px) {
+    .student-info-header {
+        flex-direction: column; /* Stack items vertically */
+        align-items: flex-start; /* Align items to the start */
+        text-align: center; /* Center text for profile picture and details */
+    }
+
+    .profile-picture-container {
+        margin-right: 0;
+        margin-bottom: 15px; /* Add space below picture */
+        align-self: center; /* Center the picture container itself */
+    }
+
+    .student-details,
+    .student-contact {
+        text-align: center; /* Center text within these blocks */
+        width: 100%; /* Allow them to take full width */
+    }
+    
+    .student-contact {
+        margin-top: 10px; /* Add some space above contact info */
+    }
+
+    .settings-container {
+        padding: 20px; /* Reduce padding */
+    }
+
+    .settings-container h2 {
+        font-size: 1.4em; /* Slightly smaller heading */
+    }
+
+    .form-row {
+        flex-direction: column; /* Stack form groups in a row vertically */
+        gap: 15px; /* Adjust gap for vertical stacking */
+    }
+
+    .password-section .form-group input[type="password"] {
+        padding: 10px 12px; /* Adjust padding for smaller inputs */
+    }
+
+    .form-actions {
+        justify-content: center; /* Center the save button */
+    }
+
+    .save-btn,
+    .profile-picture-section .upload-btn,
+    .profile-picture-section .save-btn { /* Target both save buttons */
+        width: 100%; /* Make buttons full width */
+        padding: 12px; /* Adjust padding for better touch targets */
+        font-size: 1em;
+    }
+
+    .profile-picture-section .settings-form {
+        display: flex;
+        flex-direction: column;
+        gap: 10px; /* Space between choose and upload buttons */
+    }
+}
+
+@media (max-width: 480px) {
+    .student-info-header {
+        padding: 15px;
+    }
+    .profile-picture {
+        width: 70px;
+        height: 70px;
+    }
+    .student-details p,
+    .student-contact p {
+        font-size: 0.95em;
+    }
+    .settings-container h2 {
+        font-size: 1.3em;
+    }
+    .settings-section > label,
+    .password-section-label {
+        font-size: 1em;
+    }
+}

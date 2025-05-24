@@ -284,3 +284,54 @@ body {
 .assignments-table td a:hover {
     text-decoration: underline;
 }
+
+/* Responsive Table Styles for StudentAssignment.html */
+@media screen and (max-width: 768px) {
+    .assignments-table {
+        border: 0;
+    }
+
+    .assignments-table thead {
+        display: none; /* Hide table headers */
+    }
+
+    .assignments-table tr {
+        display: block;
+        margin-bottom: 1em;
+        border: 1px solid var(--border-color);
+        border-radius: 6px;
+        box-shadow: 0 2px 4px var(--shadow-color);
+    }
+    
+    .assignments-table td {
+        display: block;
+        text-align: right; /* Align cell content to the right */
+        padding-left: 50%; /* Create space for the label */
+        position: relative; /* For pseudo-element positioning */
+        border-bottom: 1px solid #eee; /* Add a light border between "rows" */
+    }
+
+    .assignments-table td:last-child {
+        border-bottom: 0; /* No border for the last cell in a "card" */
+    }
+
+    .assignments-table td::before {
+        content: attr(data-label); /* Use data-label attribute for the header text */
+        position: absolute;
+        left: 10px; /* Position label to the left */
+        width: calc(50% - 20px); /* Adjust width considering padding */
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left; /* Align label text to the left */
+        font-weight: bold;
+        color: var(--primary-color);
+    }
+
+    /* Adjust action button for better stacking if needed */
+    .assignments-table .action-btn {
+        display: block; /* Make button take full width of its container */
+        width: auto; /* Adjust width as needed, or let it be full */
+        margin: 8px auto; /* Center button if it's not full width */
+        padding: 10px 15px;
+    }
+}

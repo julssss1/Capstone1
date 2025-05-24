@@ -12,6 +12,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -65,14 +68,14 @@
                 <tbody>
                     {% for assignment_item in assignments %}
                     <tr>
-                        <td>{{ assignment_item.subjects.name if assignment_item.subjects else 'N/A' }}</td>
-                        <td>{{ assignment_item.lessons.title if assignment_item.lessons else 'N/A (General)' }}</td>
-                        <td>
+                        <td data-label="Subject">{{ assignment_item.subjects.name if assignment_item.subjects else 'N/A' }}</td>
+                        <td data-label="Lesson">{{ assignment_item.lessons.title if assignment_item.lessons else 'N/A (General)' }}</td>
+                        <td data-label="Assignment Name">
                             <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}">{{ assignment_item.title | default('N/A') }}</a>
                         </td>
-                        <td>{{ assignment_item.due_date[:10] if assignment_item.due_date and assignment_item.due_date|length >=10 else (assignment_item.due_date if assignment_item.due_date else 'N/A') }}</td>
-                        <td class="status-{{ assignment_item.submission_status | lower | replace(' ', '-') }}">{{ assignment_item.submission_status | default('Not Submitted') }}</td>
-                        <td>
+                        <td data-label="Deadline">{{ assignment_item.due_date[:10] if assignment_item.due_date and assignment_item.due_date|length >=10 else (assignment_item.due_date if assignment_item.due_date else 'N/A') }}</td>
+                        <td data-label="Status" class="status-{{ assignment_item.submission_status | lower | replace(' ', '-') }}">{{ assignment_item.submission_status | default('Not Submitted') }}</td>
+                        <td data-label="Action">
                             {% if assignment_item.submission_status == 'Not Submitted' %}
                                 <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="action-btn">View & Submit</a>
                             {% else %}
@@ -90,5 +93,6 @@
             {% endif %}
         </section>
     </main>
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

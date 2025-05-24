@@ -163,3 +163,70 @@
     margin-right: 10px;
     color: var(--secondary-color, #50E3C2); /* Teal for success icon */
 }
+
+/* Responsive adjustments for StudentAssignmentSubmissionView.html */
+@media (max-width: 768px) {
+    .submission-summary-card {
+        padding: 20px; /* Reduce padding */
+    }
+
+    .submission-header {
+        flex-direction: column; /* Stack title and status */
+        align-items: flex-start; /* Align to start */
+        gap: 10px; /* Space between title and status */
+    }
+
+    .submission-header h3 {
+        font-size: 1.4em; /* Adjust title size */
+    }
+
+    .submission-status {
+        align-self: flex-start; /* Keep status badge to the left */
+    }
+
+    .assignment-details-grid {
+        grid-template-columns: 1fr; /* Stack grid items into a single column */
+        gap: 10px; /* Reduce gap */
+    }
+    
+    .assignment-details-grid p {
+        font-size: 0.9em; /* Slightly smaller text in grid */
+    }
+
+    .submitted-content-section h4 {
+        font-size: 1.1em; /* Adjust section titles */
+    }
+
+    .submitted-notes,
+    .submitted-files li {
+        font-size: 0.9em; /* Adjust text size in notes/files */
+        padding: 10px;
+    }
+
+    .submission-actions {
+        flex-direction: column; /* Stack buttons vertically */
+        gap: 10px;
+    }
+
+    .submission-actions .action-btn {
+        width: 100%; /* Make buttons full width */
+        justify-content: center; /* Center text/icon in button */
+    }
+}
+
+@media (max-width: 480px) {
+    .submission-summary-card {
+        padding: 15px;
+        border-left-width: 4px;
+    }
+    .submission-header h3 {
+        font-size: 1.3em;
+    }
+    .submission-status {
+        font-size: 0.85em;
+        padding: 5px 10px;
+    }
+    .submitted-content-section h4 {
+        font-size: 1em;
+    }
+}

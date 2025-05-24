@@ -202,3 +202,50 @@
 }
 
 /* Ensure StudentAssignment.css specific styles don't conflict or are merged if needed */
+
+/* Responsive adjustments for StudentViewAssignment.html */
+@media (max-width: 768px) {
+    .practice-and-camera-section {
+        flex-direction: column; /* Stack modules vertically */
+    }
+
+    .practice-submission-module,
+    .camera-module {
+        flex-basis: 100%; /* Each module takes full width when stacked */
+    }
+
+    .assignment-detail-card {
+        padding: 20px; /* Slightly reduce padding on smaller cards */
+    }
+
+    #prediction_text {
+        font-size: 1.3em; /* Adjust font size for smaller screens */
+        min-height: 40px;
+    }
+
+    .practice-submission-module textarea#submission-notes {
+        min-height: 120px; /* Adjust textarea height */
+    }
+
+    .practice-submission-module .submit-button,
+    .camera-module .start-camera-button {
+        width: 100%; /* Make buttons full width for easier tapping */
+        padding: 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .assignment-detail-card {
+        padding: 15px;
+    }
+    .assignment-detail-card h3 {
+        font-size: 1.1em; /* Further reduce heading size */
+    }
+    .practice-submission-module .prediction-area h4,
+    .camera-module h4 {
+        font-size: 1em;
+    }
+    #prediction_text {
+        font-size: 1.2em;
+    }
+}

@@ -16,6 +16,9 @@
     <script src="{{ url_for('static', filename='js/student_settings.js') }}" defer></script>
 </head>
 <body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -108,5 +111,6 @@
     </main>
 
     {# Removed password confirmation script #}
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

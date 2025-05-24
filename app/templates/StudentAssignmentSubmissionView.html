@@ -10,6 +10,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -133,5 +136,6 @@
         </div>
         {% endif %}
     </main>
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

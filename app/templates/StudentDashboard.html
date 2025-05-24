@@ -11,6 +11,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
 </head>
 <body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -137,5 +140,6 @@
         const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
     </script>
 <script src="{{ url_for('static', filename='js/StudentDashboard.js') }}" defer></script>
+<script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

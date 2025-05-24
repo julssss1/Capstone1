@@ -9,8 +9,10 @@ import threading
 import os # Import os module
 
 # Configuration
-MODEL_PATH = 'landmark_model.h5'
-LANDMARK_FILE = 'hand_landmarks.pkl'
+# Construct paths relative to the current file's directory
+CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(CURRENT_DIR, '..', 'landmark_model.h5')
+LANDMARK_FILE = os.path.join(CURRENT_DIR, '..', 'hand_landmarks.pkl')
 
 # Model & Resources
 model = None
