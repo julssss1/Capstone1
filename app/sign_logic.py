@@ -74,40 +74,42 @@ def initialize_resources():
                 min_tracking_confidence=0.6)
             print("MediaPipe Hands initialized.")
 
-            # Initialize Camera
-            print("Initializing camera (device 0)...")
-            cap = cv2.VideoCapture(0)
-            if not cap.isOpened():
-                print("Error: Could not open webcam.")
-                stable_prediction_display = "Error: Camera"
-             
-                return False
-            print("Camera initialized successfully.")
 
-            is_initialized = True
-            stable_prediction_display = "Ready..." 
-            print("Initialization complete.")
+            try:
+                print("Attempting to initialize camera (device 0)...")
+                cap = cv2.VideoCapture(0)
+                if not cap.isOpened():
+                    print("Warning: Could not open webcam. Camera-dependent features will be unavailable.")
+                    
+                else:
+                    print("Camera initialized successfully.")
+            except Exception as cam_exc:
+                print(f"Warning: Camera initialization failed - {cam_exc}. Camera-dependent features will be unavailable.")
+                cap = None # Ensure cap is None if it failed
+
+            is_initialized = True # Mark as initialized if model and hands are loaded, even if camera fails.
+            stable_prediction_display = "Ready..."
+            print("Resource initialization (model, landmarks, hands) complete.")
             return True
 
         except FileNotFoundError as e:
             print(f"Error: File not found during initialization - {e}")
             stable_prediction_display = "Error: File Missing"
+            # Ensure cleanup
+            if 'cap' in locals() and cap and cap.isOpened(): cap.release()
+            if 'hands' in locals() and hands: hands.close()
+            model, cap, hands, is_initialized = None, None, None, False
             return False
         except Exception as e:
             print(f"Error during resource initialization: {e}")
             stable_prediction_display = "Error: Init Failed"
-
-            if cap and cap.isOpened():
-                cap.release()
-            if hands:
-                hands.close()
-            model = None
-            cap = None
-            hands = None
-            is_initialized = False
+            # Ensure cleanup
+            if 'cap' in locals() and cap and cap.isOpened(): cap.release()
+            if 'hands' in locals() and hands: hands.close()
+            model, cap, hands, is_initialized = None, None, None, False
             return False
 
-# --- Frame Generation Function 
+# --- Frame Generation Function
 def generate_frames():
     """Generates camera frames with sign prediction overlays for web streaming."""
     global stable_prediction_display, last_valid_prediction_timestamp, prediction_buffer, hands, cap, model, CLASS_NAMES, stop_camera_feed_event
