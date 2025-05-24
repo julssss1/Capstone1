@@ -56,7 +56,10 @@
         <section class="subject-list">
             {% for subject in subjects %}
             <div class="subject-card">
-                <span>{{ subject.name }}</span>
+                <div> <!-- Wrapper for title and teacher name -->
+                    <span>{{ subject.name }}</span>
+                    <p class="teacher-name">Teacher: {{ subject.teacher_name | default('N/A') }}</p>
+                </div>
                 <div class="subject-actions">
                   
                     <a href="" class="action-btn view">View/Manage</a>

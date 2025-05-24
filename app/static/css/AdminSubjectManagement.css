@@ -34,8 +34,6 @@
 .subject-list {
     display: grid;
     gap: 15px;
-   
- 
 }
 
 .subject-card {
@@ -59,6 +57,14 @@
     font-weight: 500;
     font-size: 1.05em;
     color: var(--text-color);
+    display: block; /* Ensure title takes full width */
+    margin-bottom: 5px; /* Add some space below the title */
+}
+
+.subject-card .teacher-name {
+    font-size: 0.9em;
+    color: var(--text-secondary); /* Softer color for teacher name */
+    margin-bottom: 10px; /* Space before action buttons */
 }
 
 .subject-actions .action-btn {
