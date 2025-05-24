@@ -120,8 +120,11 @@ def login():
     return render_template('loginpage.html')
 
 @bp.route('/logout')
-@login_required 
+# @login_required # Removed decorator
 def logout():
+    # Get user name for flash message before clearing session
+    user_name = session.get('user_name', 'User') 
+
     # Release camera and related resources first
     try:
         print("Calling release_camera_resources from logout...")
@@ -132,7 +135,6 @@ def logout():
         flash('Could not properly stop camera feed, but proceeding with logout.', 'warning')
 
     supabase: Client = current_app.supabase
-    user_name = session.get('user_name', 'User') # Get name before clearing session
 
     if supabase:
         try:
