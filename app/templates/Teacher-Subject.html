@@ -12,6 +12,9 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/Teacher-subject.css') }}">
 </head>
 <body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -67,5 +70,6 @@
             {% endfor %}
         </section>
     </main>
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

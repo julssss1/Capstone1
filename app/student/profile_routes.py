@@ -1,7 +1,7 @@
 from flask import render_template, session, url_for, request, flash, redirect, current_app
 from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
-from supabase import Client, PostgrestAPIError, AuthApiError # Added AuthApiError
+from supabase import Client, PostgrestAPIError
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -37,58 +37,15 @@ def student_account_profile():
                 profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
 
             access_token = session.get('access_token')
-            refresh_token = session.get('refresh_token') # Get refresh token
-            user_email_fetched = False
-
             if access_token:
-                try:
-                    user_auth_details = supabase.auth.get_user(jwt=access_token)
-                    if user_auth_details and user_auth_details.user:
-                        profile_data['email'] = user_auth_details.user.email or "Email not set"
-                        user_email_fetched = True
-                except AuthApiError as e: # Catch Supabase specific auth errors
-                    print(f"Supabase auth error with current access token: {e}. Attempting refresh.")
-                    if "invalid token" in str(e).lower() or "token is expired" in str(e).lower() or "jwt expired" in str(e).lower() and refresh_token:
-                        try:
-                            # Attempt to refresh the session using the refresh token
-                            # Note: The exact method for supabase-py might be slightly different,
-                            # e.g., client.auth.set_session(access_token, refresh_token) and then it auto-refreshes,
-                            # or a more direct refresh method. refresh_session is a common pattern.
-                            new_auth_response = supabase.auth.refresh_session(refresh_token)
-                            if new_auth_response and new_auth_response.session:
-                                print("Supabase session refreshed successfully.")
-                                session['access_token'] = new_auth_response.session.access_token
-                                if new_auth_response.session.refresh_token: # Update refresh token if a new one is provided
-                                    session['refresh_token'] = new_auth_response.session.refresh_token
-                                
-                                # Retry get_user with the new token
-                                user_auth_details = supabase.auth.get_user(jwt=new_auth_response.session.access_token)
-                                if user_auth_details and user_auth_details.user:
-                                    profile_data['email'] = user_auth_details.user.email or "Email not set"
-                                    user_email_fetched = True
-                                else:
-                                    print("Failed to get user details even after token refresh.")
-                            else:
-                                print("Supabase token refresh failed or returned no session.")
-                        except AuthApiError as refresh_e:
-                            print(f"Error during Supabase token refresh: {refresh_e}")
-                        except Exception as general_refresh_e:
-                             print(f"Unexpected error during Supabase token refresh: {general_refresh_e}")
-                    else:
-                        print(f"Supabase auth error not JWT expiry related or no refresh token: {e}")
-                except Exception as e_gen:
-                    print(f"Generic error fetching user with token: {e_gen}")
-
-            if not user_email_fetched:
-                profile_data['email'] = "Could not fetch email (auth issue)"
-                # If tokens are bad and refresh failed, consider redirecting to login
-                if not access_token or (access_token and not user_email_fetched and "Supabase auth error" in locals().get('e', '') ): # Heuristic
-                    flash('Your session may have expired. Please log in again.', 'warning')
-                    # Potentially clear stale session tokens here before redirect
-                    session.pop('access_token', None)
-                    session.pop('refresh_token', None)
-                    return redirect(url_for('auth.login')) # Redirect if auth fails critically
-        else:
+                user_auth_details = supabase.auth.get_user(jwt=access_token)
+                if user_auth_details and user_auth_details.user:
+                    profile_data['email'] = user_auth_details.user.email or "Email not set"
+                else:
+                    profile_data['email'] = "Could not fetch email"
+            else:
+                profile_data['email'] = "Email not available (session/token issue)"
+        else: 
             profile_data['avatar_path'] = url_for('static', filename='Images/default_avatar.png')
             profile_data['email'] = "Profile not found"
 
