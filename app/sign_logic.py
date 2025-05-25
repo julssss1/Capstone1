@@ -352,6 +352,9 @@ def release_resources():
     print("Attempting to release resources...")
     stop_camera_feed_event.set()
 
+  
+    time.sleep(0.25)
+
     with initialization_lock: # Ensure thread-safe access
         if cap:
             if cap.isOpened():
