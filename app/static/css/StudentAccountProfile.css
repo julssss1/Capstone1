@@ -1,21 +1,4 @@
-/* General Body Styles */
-body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f0f2f5; /* Lighter grey background */
-    color: #1c1e21; /* Darker text color for better readability */
-    margin: 0;
-    padding: 20px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start; /* Align to top for scrollable content */
-    min-height: 100vh;
-    line-height: 1.6;
-}
 
-/* Styles for h:\html\CAPSTONEE\app\static\css\StudentAccountProfile.css */
-/* Assuming StudentDashboard.css handles the overall page structure (side menu, main content flex) */
-
-/* Wrapper for the profile-specific content within the main dashboard area */
 .profile-content-wrapper {
     padding: 20px;
     background-color: #f0f2f5; /* Light background for the content area */

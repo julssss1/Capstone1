@@ -74,23 +74,24 @@ def initialize_resources():
                 CLASS_NAMES = data['class_names']
                 print(f"Class names loaded: {len(CLASS_NAMES)} classes found.")
 
-            # Initialize MediaPipe Hands if not already initialized
-            if hands is None:
-                print("Initializing MediaPipe Hands...")
-                mp_hands_sol = mp.solutions.hands
-                hands = mp_hands_sol.Hands(
-                    static_image_mode=False,
-                    max_num_hands=1,
-                    min_detection_confidence=0.6,
-                    min_tracking_confidence=0.6)
-                print("MediaPipe Hands initialized.")
-
             # Debug print for NO_CAMERA environment variable
             no_camera_env_var = os.getenv('NO_CAMERA')
             print(f"DEBUG: Value of NO_CAMERA environment variable: '{no_camera_env_var}' (type: {type(no_camera_env_var)})")
 
-            # Camera Initialization (conditional)
-            if not no_camera_env_var: # Use the fetched variable
+            # Conditional Initialization for MediaPipe Hands and Camera
+            if not no_camera_env_var:
+                # Initialize MediaPipe Hands only if NO_CAMERA is not set
+                if hands is None:
+                    print("Initializing MediaPipe Hands (NO_CAMERA is not set)...")
+                    mp_hands_sol = mp.solutions.hands
+                    hands = mp_hands_sol.Hands(
+                        static_image_mode=False,
+                        max_num_hands=1,
+                        min_detection_confidence=0.6,
+                        min_tracking_confidence=0.6)
+                    print("MediaPipe Hands initialized.")
+                
+                # Initialize Camera only if NO_CAMERA is not set
                 try:
                     print("Attempting to initialize camera (device 0)...")
                     if cap and cap.isOpened(): # If cap exists and is open, release it first
@@ -106,15 +107,20 @@ def initialize_resources():
                     print(f"Warning: Camera initialization failed - {cam_exc}. Camera-dependent features will be unavailable.")
                     cap = None # Ensure cap is None if it failed
             else:
-                print("NO_CAMERA environment variable set. Skipping camera initialization.")
+                print("NO_CAMERA environment variable set. Skipping MediaPipe Hands and camera initialization.")
+                if hands: # If NO_CAMERA is set, but hands were somehow initialized before this check, close and None it.
+                    print("NO_CAMERA is set, ensuring MediaPipe Hands is closed and set to None.")
+                    hands.close()
+                    hands = None
                 if cap and cap.isOpened(): # If NO_CAMERA is set now, but cap was previously open
                     print("NO_CAMERA is set, releasing previously opened camera.")
                     cap.release()
                 cap = None
+                hands = None # Explicitly ensure hands is None if NO_CAMERA is set
 
-            is_initialized = True # Mark as initialized if model and hands are loaded. Camera is optional.
+            is_initialized = True # Mark as initialized if model and class_names are loaded. Camera and Hands are conditionally initialized.
             stable_prediction_display = "Ready..."
-            print("Resource initialization (model, landmarks, hands) complete.")
+            print("Resource initialization (model, landmarks) complete. Hands and Camera conditionally initialized.")
             return True
 
         except FileNotFoundError as e:
