@@ -113,7 +113,11 @@ def login():
         except Exception as e:
             # Catch other potential errors (network issues, etc.)
             flash('An unexpected error occurred during login.', 'danger')
+            print(f"Unexpected Login Error Type: {type(e)}")
+            print(f"Unexpected Login Error Args: {e.args}")
             print(f"Unexpected Login Error: {e}")
+            import traceback
+            traceback.print_exc() # This will print the full traceback for the exception
             return redirect(url_for('auth.login'))
 
     # GET request

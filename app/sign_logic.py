@@ -343,6 +343,69 @@ def generate_frames():
 
         print("Defensive cleanup in generate_frames exit done.")
 
+# --- New function for WebSocket single frame processing ---
+def get_prediction_for_frame(image_cv2, hands_processor, prediction_model, class_labels):
+    """Processes a single CV2 image frame and returns sign prediction and confidence."""
+    global last_processed_frame_confidence # To keep track of confidence for potential future use
+
+    if image_cv2 is None:
+        return "Error: No image provided", 0.0
+    if hands_processor is None or prediction_model is None or not class_labels:
+        return "Error: Resources not initialized", 0.0
+
+    mp_hands_sol = mp.solutions.hands # Access HandLandmark enum
+
+    # Image processing (similar to generate_frames)
+    # Assuming image_cv2 is already in BGR format from the client decoding
+    image_rgb = cv2.cvtColor(image_cv2, cv2.COLOR_BGR2RGB)
+    image_rgb.flags.writeable = False
+    results = hands_processor.process(image_rgb)
+    # image_bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR) # Not needed if we don't draw
+    # image_bgr.flags.writeable = True # Not needed
+
+    instantaneous_prediction = "No hand detected"
+    confidence = 0.0
+
+    if results.multi_hand_landmarks:
+        hand_landmarks = results.multi_hand_landmarks[0]
+        # Landmark normalization (copied from generate_frames)
+        landmarks_normalized = []
+        try:
+            wrist = hand_landmarks.landmark[0]
+            origin_x, origin_y = wrist.x, wrist.y
+            mcp_middle = hand_landmarks.landmark[mp_hands_sol.HandLandmark.MIDDLE_FINGER_MCP]
+            # Calculate scale based on a consistent distance, e.g., wrist to middle finger MCP
+            scale = np.sqrt((mcp_middle.x - origin_x)**2 + (mcp_middle.y - origin_y)**2)
+            scale = max(scale, 1e-6) # Avoid division by zero
+
+            for landmark in hand_landmarks.landmark:
+                norm_x = (landmark.x - origin_x) / scale
+                norm_y = (landmark.y - origin_y) / scale
+                landmarks_normalized.extend([norm_x, norm_y])
+
+            if len(landmarks_normalized) == 42: # 21 landmarks * 2 coordinates
+                landmark_input = np.array([landmarks_normalized], dtype=np.float32)
+                prediction_output = prediction_model.predict(landmark_input, verbose=0)
+                predicted_class_index = np.argmax(prediction_output)
+                confidence = float(np.max(prediction_output))
+
+                if confidence >= MIN_PREDICTION_CONFIDENCE:
+                    instantaneous_prediction = class_labels[predicted_class_index]
+                    last_processed_frame_confidence = confidence
+                else:
+                    instantaneous_prediction = "Low Confidence"
+                    last_processed_frame_confidence = 0.0 # Reset if below threshold
+            else:
+                instantaneous_prediction = "Landmark count error"
+        except Exception as e:
+            print(f"Error during single frame landmark processing: {e}")
+            instantaneous_prediction = "Detect Error"
+    else:
+        instantaneous_prediction = "No hand detected"
+        # prediction_buffer.append(instantaneous_prediction) # Buffer logic is not part of this function
+
+    return instantaneous_prediction, confidence
+
 # --- Functions for Routes ---
 
 def release_resources():

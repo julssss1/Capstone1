@@ -1,10 +1,11 @@
 document.addEventListener('DOMContentLoaded', function() {
     const startCameraButton = document.getElementById('start-camera-btn');
-    const videoFeedElement = document.getElementById('video-feed');
+    const videoPlayer = document.getElementById('webcam-video'); // Changed from videoFeedElement
+    const canvasElement = document.getElementById('webcam-canvas');
     const videoPlaceholderText = document.getElementById('video-placeholder-text');
     const feedbackElement = document.getElementById('feedback');
-    const detectedSignDisplay = document.getElementById('detected-sign-display');
-    const debugInfo = document.getElementById('debug-info');
+    const detectedSignDisplay = document.getElementById('detected-sign-display'); // For debug
+    // const debugInfo = document.getElementById('debug-info'); // For debug
     const instructionText = document.getElementById('instruction-text');
     const targetImage = document.getElementById('target-image');
     const imagePlaceholderText = document.getElementById('image-placeholder-text');
@@ -13,16 +14,16 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipSignLetter = document.getElementById('tip-sign-letter');
     const tipText = document.getElementById('tip-text');
 
-    let predictionInterval = null;
+    const socketStatusElement = document.getElementById('socket-status');
+    const predictionResultDisplayElement = document.getElementById('prediction-result-display');
+
+    let frameSenderInterval = null;
     let currentPracticeSign = null;
-    let lastStablePrediction = null;
     let successStartTime = null;
     const SUCCESS_HOLD_TIME = 1500; // ms
+    let localStream = null; // To store the MediaStream object
 
-    // These are expected to be set by inline script in the HTML template
-    // const predictionUrl = "{{ url_for('student.get_prediction') }}";
-    // const videoFeedUrl = "{{ url_for('student.video_feed') }}";
-    // const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
+    // const staticBaseUrl is expected to be set by inline script in the HTML template
 
     const signTips = {
         'A': "Make a fist, thumb alongside index finger.", 'B': "Flat hand, fingers together, thumb across palm.",
@@ -42,9 +43,45 @@ document.addEventListener('DOMContentLoaded', function() {
         'I Love You': "Extend thumb, index, pinky.",
     };
 
+    // --- Socket.IO Setup ---
+    const socket = io();
+
+    socket.on('connect', () => {
+        console.log('Connected to WebSocket server.');
+        if (socketStatusElement) socketStatusElement.textContent = 'Socket: Connected';
+    });
+
+    socket.on('disconnect', () => {
+        console.log('Disconnected from WebSocket server.');
+        if (socketStatusElement) socketStatusElement.textContent = 'Socket: Disconnected. Please refresh.';
+        stopFrameSending();
+    });
+
+    socket.on('status', (data) => {
+        console.log('Server status:', data.msg);
+        if (socketStatusElement) socketStatusElement.textContent = `Socket: ${data.msg}`;
+    });
+
+    socket.on('prediction_result', (data) => {
+        if (predictionResultDisplayElement) {
+            predictionResultDisplayElement.textContent = `Prediction: ${data.prediction} (Conf: ${data.confidence ? data.confidence.toFixed(2) : 'N/A'})`;
+        }
+        if (detectedSignDisplay) { // For debug display if still used
+            detectedSignDisplay.textContent = `Sign: ${data.prediction}, Conf: ${data.confidence ? data.confidence.toFixed(2) : 'N/A'}`;
+        }
+        updateFeedback(data.prediction); // Update main feedback logic
+    });
+
+    socket.on('prediction_error', (data) => {
+        console.error('Prediction error from server:', data.error);
+        if (predictionResultDisplayElement) predictionResultDisplayElement.textContent = `Prediction Error: ${data.error}`;
+    });
+    // --- End Socket.IO Setup ---
+
     if (startCameraButton) {
         startCameraButton.addEventListener('click', startCameraOnClick);
     }
+
     if (signButtonsContainer) {
         signButtonsContainer.addEventListener('click', function(event) {
             if (event.target.classList.contains('sign-btn')) {
@@ -57,58 +94,82 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.addEventListener('pagehide', function() {
-        stopPredictionPolling(); 
-        if (videoFeedElement && videoFeedElement.src !== "") {
-            videoFeedElement.src = ""; 
-            console.log("Cleared video feed source on page hide (StudentDashboard).");
-            if (videoPlaceholderText) videoPlaceholderText.style.display = 'block';
-            if (startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
-            videoFeedElement.style.display = 'none';
+        stopCamera(); // Stop camera and frame sending
+        if (socket && socket.connected) {
+            socket.disconnect();
         }
     });
 
-    function startCameraOnClick() {
+    async function startCameraOnClick() {
         console.log("Start Camera button clicked on Dashboard.");
-        if (!videoFeedElement || !videoFeedUrl) {
-            console.error("Video feed element or URL not found/configured!");
-            if (videoPlaceholderText) videoPlaceholderText.textContent = "Camera configuration error.";
+        if (!videoPlayer || !canvasElement) {
+            console.error("Video player or canvas element not found!");
+            if (videoPlaceholderText) videoPlaceholderText.textContent = "Camera elements missing.";
             return;
         }
 
-        if (startCameraButton) startCameraButton.classList.add('hidden');
-        if (videoPlaceholderText) videoPlaceholderText.style.display = 'none'; // Hide placeholder
-        
-        videoFeedElement.style.display = 'block';
-        videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime(); // Start the stream
-        console.log("Video feed source set to:", videoFeedElement.src);
+        try {
+            localStream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+            videoPlayer.srcObject = localStream;
+            videoPlayer.style.display = 'block';
+            if (videoPlaceholderText) videoPlaceholderText.style.display = 'none';
+            if (startCameraButton) startCameraButton.classList.add('hidden'); // Hide start button
 
-        videoFeedElement.onerror = handleStreamError;
-        videoFeedElement.onload = handleStreamLoad;
+            // Wait for video to be ready to get correct dimensions
+            videoPlayer.onloadedmetadata = () => {
+                canvasElement.width = videoPlayer.videoWidth;
+                canvasElement.height = videoPlayer.videoHeight;
+                startFrameSending();
+                console.log("Camera started and frame sending initiated.");
+            };
+        } catch (err) {
+            console.error("Error accessing webcam:", err);
+            if (videoPlaceholderText) videoPlaceholderText.textContent = "Could not access webcam. Check permissions.";
+            if (startCameraButton) startCameraButton.classList.remove('hidden');
+        }
     }
 
-    function handleStreamError() {
-        console.error("Error loading video feed stream from backend. Check Flask server and endpoint URL:", videoFeedUrl);
-        if(instructionText) instructionText.textContent = "Error loading video stream from server.";
-        if(feedbackElement) {
-            feedbackElement.textContent = 'Stream Error';
-            feedbackElement.className = 'status-incorrect';
+    function stopCamera() {
+        stopFrameSending();
+        if (localStream) {
+            localStream.getTracks().forEach(track => track.stop());
+            localStream = null;
+            console.log("Camera stream stopped.");
         }
-        if (videoPlaceholderText) {
-            videoPlaceholderText.textContent = "Could not load video stream. Check server logs.";
-            videoPlaceholderText.style.display = 'block';
+        if (videoPlayer) {
+            videoPlayer.srcObject = null;
+            videoPlayer.style.display = 'none';
         }
-        if(videoFeedElement) {
-            videoFeedElement.style.display = 'none';
-            videoFeedElement.src = ""; // Clear src on error
-        }
-        if(startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
-        stopPredictionPolling();
+        if (videoPlaceholderText) videoPlaceholderText.style.display = 'block';
+        if (startCameraButton) startCameraButton.classList.remove('hidden');
+        if (predictionResultDisplayElement) predictionResultDisplayElement.textContent = "Prediction: ...";
     }
 
-    function handleStreamLoad() {
-        console.log("Backend video feed stream connection established on Dashboard.");
-        startPredictionPolling();
-        if (debugInfo) debugInfo.style.display = 'block';
+    function startFrameSending() {
+        if (frameSenderInterval) clearInterval(frameSenderInterval);
+        if (!socket.connected) {
+            console.warn("Socket not connected. Cannot send frames.");
+            if (socketStatusElement) socketStatusElement.textContent = 'Socket: Not connected. Retrying...';
+            // Optionally, try to reconnect or alert user
+            return;
+        }
+
+        frameSenderInterval = setInterval(() => {
+            if (videoPlayer.readyState >= videoPlayer.HAVE_CURRENT_DATA && canvasElement && socket.connected) {
+                const context = canvasElement.getContext('2d');
+                context.drawImage(videoPlayer, 0, 0, canvasElement.width, canvasElement.height);
+                const dataURL = canvasElement.toDataURL('image/jpeg', 0.8); // Send JPEG at 80% quality
+                socket.emit('process_frame', { image_data_url: dataURL });
+            }
+        }, 200); // Send frame every 200ms (5 FPS) - adjust as needed
+    }
+
+    function stopFrameSending() {
+        if (frameSenderInterval) {
+            clearInterval(frameSenderInterval);
+            frameSenderInterval = null;
+            console.log("Frame sending stopped.");
+        }
     }
 
     function startPractice(sign) {
@@ -120,15 +181,11 @@ document.addEventListener('DOMContentLoaded', function() {
             feedbackElement.textContent = 'Waiting for your sign...';
             feedbackElement.className = 'status-waiting';
         }
-        lastStablePrediction = null;
         successStartTime = null;
 
-        // All image filenames are confirmed to be ALL CAPS with .PNG extension
-        // The 'sign' variable comes from button text, assume it's already the correct case (e.g., "A", "B")
-        const filename = sign + '.PNG'; 
-
-        const imageUrl = `${staticBaseUrl}Images/${filename}`;
-        console.log(`Setting target image URL to: ${imageUrl}`);
+        const filename = sign.toUpperCase() + '.PNG'; // Ensure uppercase for filename consistency
+        const imageUrl = `${staticBaseUrl}Images/${filename}`; // staticBaseUrl from HTML
+        
         if(targetImage) {
             targetImage.src = imageUrl;
             targetImage.alt = `Sign language gesture for ${sign}`;
@@ -144,75 +201,22 @@ document.addEventListener('DOMContentLoaded', function() {
             if(signTipsArea) signTipsArea.style.display = 'none';
         }
 
-        if (videoFeedElement && videoFeedElement.style.display === 'block' && !predictionInterval) {
-            startPredictionPolling();
-        } else if (videoFeedElement && videoFeedElement.style.display !== 'block') {
+        if (!localStream) { // If camera is not already started
              if(instructionText) instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
              if(feedbackElement) {
                 feedbackElement.textContent = 'Camera not active';
                 feedbackElement.className = 'status-waiting';
              }
+        } else if (!frameSenderInterval && socket.connected) {
+            // If camera is on but frames aren't sending (e.g., after a socket reconnect)
+            startFrameSending();
         }
     }
-
-    function startPredictionPolling() {
-        if (predictionInterval) { clearInterval(predictionInterval); }
-        // Ensure predictionUrl is defined (should be from inline script in HTML)
-        if (typeof predictionUrl !== 'undefined') {
-            predictionInterval = setInterval(fetchPrediction, 500); // Poll every 500ms
-            console.log("Prediction polling started.");
-        } else {
-            console.error("predictionUrl is not defined. Cannot start polling.");
-        }
-    }
-
-    function stopPredictionPolling() {
-         if (predictionInterval) {
-            clearInterval(predictionInterval);
-            predictionInterval = null;
-            console.log("Prediction polling stopped.");
-        }
-    }
-
-    async function fetchPrediction() {
-    if (!currentPracticeSign || !videoFeedElement || videoFeedElement.style.display !== 'block') {
-        return;
-    }
-
-    try {
-        if (typeof predictionUrl === 'undefined') {
-            console.error("predictionUrl is not defined in fetchPrediction.");
-            return;
-        }
-        const response = await fetch(predictionUrl + "?t=" + new Date().getTime());
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        // const predictionText = await response.text(); // OLD WAY
-
-        const predictionData = await response.json(); // NEW: Parse as JSON
-        const predictedSign = predictionData.sign;    // NEW: Extract the sign
-       
-
-        if (detectedSignDisplay) {
-            // detectedSignDisplay.textContent = predictionText || "..."; // OLD WAY
-            detectedSignDisplay.textContent = `Sign: ${predictedSign}`; // NEW: Display sign and confidence
-        }
-        // updateFeedback(predictionText || "..."); // OLD WAY
-        updateFeedback(predictedSign || "...");   // NEW: Pass only the sign string to updateFeedback
-    } catch (error) {
-        console.error("Error fetching prediction:", error);
-        if (feedbackElement) {
-            feedbackElement.textContent = "Error getting prediction. Check console.";
-            feedbackElement.className = 'status-incorrect';
-        }
-    }
-}
 
     function updateFeedback(prediction) {
         if (!currentPracticeSign || !feedbackElement) return;
 
-        const isCorrect = prediction.toLowerCase() === currentPracticeSign.toLowerCase();
+        const isCorrect = prediction && prediction.toLowerCase() === currentPracticeSign.toLowerCase();
 
         if (isCorrect) {
             if (!successStartTime) {
@@ -224,6 +228,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (timeHeld >= SUCCESS_HOLD_TIME) {
                     feedbackElement.textContent = `Great! You signed "${currentPracticeSign}"!`;
                     feedbackElement.className = 'status-success';
+                    // Optionally stop practice or move to next sign here
                 } else {
                      const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
                      feedbackElement.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
@@ -231,11 +236,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
         } else {
-            successStartTime = null;
-            if (prediction === "Ready..." || prediction === "..." || prediction === "No hand detected") {
+            successStartTime = null; // Reset timer if prediction changes or is incorrect
+            if (!prediction || prediction === "Ready..." || prediction === "..." || prediction === "No hand detected" || prediction === "Initializing...") {
                 feedbackElement.textContent = "Place your hand clearly in the frame.";
                 feedbackElement.className = 'status-waiting';
-            } else if (prediction === "Processing Error" || prediction === "System Error" || prediction === "Unknown" || prediction.startsWith("System Error")) {
+            } else if (prediction.includes("Error") || prediction === "Unknown" || prediction === "Low Confidence") {
                 feedbackElement.textContent = `Status: ${prediction}. Try adjusting hand position.`;
                 feedbackElement.className = 'status-incorrect';
             } else {

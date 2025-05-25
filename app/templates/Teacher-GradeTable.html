@@ -86,14 +86,14 @@
                     {% for submission in grades %}
                     <tr>
                         {# Use student_display_name added in the route #}
-                        <td>{{ submission.student_display_name | default('N/A') }}</td>
+                        <td data-label="Student Name">{{ submission.student_display_name | default('N/A') }}</td>
                         {# Access assignment title via nested structure #}
-                        <td>{{ submission.assignments.title | default('N/A') }}</td>
-                        <td>{{ submission.formatted_submitted_at | default(submission.submitted_at | default('N/A')) }}</td> {# Use formatted, fallback to raw #}
-                        <td class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
+                        <td data-label="Assignment">{{ submission.assignments.title | default('N/A') }}</td>
+                        <td data-label="Submitted At">{{ submission.formatted_submitted_at | default(submission.submitted_at | default('N/A')) }}</td> {# Use formatted, fallback to raw #}
+                        <td data-label="Grade" class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
                         {# Display feedback #}
-                        <td>{{ submission.feedback | default('') }}</td>
-                        <td>
+                        <td data-label="Feedback">{{ submission.feedback | default('') }}</td>
+                        <td data-label="Actions">
                             <a href="{{ url_for('teacher.review_submission', submission_id=submission.id) }}" class="action-btn view">Grade/View</a>
                         </td>
                     </tr>

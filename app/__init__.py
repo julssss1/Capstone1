@@ -1,26 +1,31 @@
 from flask import Flask, session, redirect, url_for, flash, render_template
 import os
-import threading 
-from supabase import create_client, Client 
-
+import threading
+from supabase import create_client, Client
+from flask_socketio import SocketIO
 
 from . import sign_logic
+
+# Initialize SocketIO with async_mode for eventlet
+socketio = SocketIO(async_mode='eventlet')
 
 def create_app(config_class='config.Config'):
     app = Flask(__name__, instance_relative_config=True)
 
+    # Initialize SocketIO with the Flask app
+    socketio.init_app(app)
+
     app.config.from_object(config_class)
-   
 
     url: str = app.config.get("SUPABASE_URL")
-    key: str = app.config.get("SUPABASE_SERVICE_KEY") 
+    key: str = app.config.get("SUPABASE_SERVICE_KEY")
 
     if not url or not key:
         print("*"*60)
         print("WARNING: Supabase URL or Service Key not configured in config.py.")
         print("Supabase integration will not work.")
         print("*"*60)
-        app.supabase = None 
+        app.supabase = None
     else:
         try:
             app.supabase = create_client(url, key)
@@ -29,32 +34,32 @@ def create_app(config_class='config.Config'):
             print("*"*60)
             print(f"ERROR: Failed to initialize Supabase client: {e}")
             print("*"*60)
-            app.supabase = None 
+            app.supabase = None
 
     print(f"App created. Static folder: {app.static_folder}, Template folder: {app.template_folder}")
     print(f"Attempting to load model from: {app.config.get('MODEL_PATH')}")
 
-    
     with app.app_context():
         sign_logic.initialize_resources()
-        
+
         if sign_logic.model is None or sign_logic.hands is None:
              print("*"*60)
              print("WARNING: Sign recognition initialization failed. Some features might not work.")
              print("*"*60)
-          
 
     from .auth import routes as auth_routes
     from .student import bp as student_bp
     from .teacher import bp as teacher_bp  # Changed from 'routes as teacher_routes'
     from .admin import bp as admin_bp # Changed from 'routes as admin_routes'
 
-    app.register_blueprint(auth_routes.bp) 
+    # Import and register socket event handlers
+    from . import socket_events # We will create this file next
+
+    app.register_blueprint(auth_routes.bp)
     app.register_blueprint(student_bp, url_prefix='/student')
     app.register_blueprint(teacher_bp, url_prefix='/teacher') # Changed from 'teacher_routes.bp'
     app.register_blueprint(admin_bp, url_prefix='/admin') # Changed from admin_routes.bp
 
-    
     @app.route('/')
     def home():
         if 'user_role' in session:
@@ -69,7 +74,7 @@ def create_app(config_class='config.Config'):
                 session.clear()
                 flash('Invalid session role. Please log in again.', 'warning')
                 return redirect(url_for('auth.login'))
-        return redirect(url_for('auth.login')) 
+        return redirect(url_for('auth.login'))
 
     @app.errorhandler(404)
     def page_not_found(e):
@@ -81,8 +86,8 @@ def create_app(config_class='config.Config'):
 
     @app.errorhandler(500)
     def internal_server_error(e):
-         print(f"Internal Server Error: {e}") 
+         print(f"Internal Server Error: {e}")
          return render_template('500.html'), 500
 
     print("App factory finished.")
-    return app
+    return app, socketio # Return both app and socketio instance

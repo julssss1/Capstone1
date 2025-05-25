@@ -1,20 +1,18 @@
+import eventlet
+eventlet.monkey_patch() # Explicitly monkey-patch at the very beginning
+
 from dotenv import load_dotenv
 load_dotenv() 
 
-from app import create_app 
+# Import create_app and the socketio instance from app package
+from app import create_app, socketio 
 
-
-app = create_app()
+# create_app now returns both the app and the initialized socketio instance
+app, socketio_instance = create_app()
 
 if __name__ == '__main__':
+   
+    print("Starting Flask-SocketIO development server with eventlet...")
 
-    from app import sign_logic
-    if sign_logic.model and sign_logic.hands:
-         print("Starting Flask development server...")
-
-         app.run(host='0.0.0.0', port=5000, debug=True, threaded=True, use_reloader=False)
-    else:
-         print("\n" + "="*50)
-         print("FATAL: Application startup aborted due to initialization errors.")
-         print("Please review the logs above for details.")
-         print("="*50 + "\n")
+    socketio_instance.run(app, host='0.0.0.0', port=5000, debug=True, use_reloader=False)
+  

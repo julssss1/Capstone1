@@ -73,11 +73,11 @@
                 <h3>Practice & Submit</h3>
                 <p>Use the camera to practice. Stable signs appear in notes. Upload a file if needed.</p>
                 <div class="prediction-area">
-                    <h4>Current Prediction</h4>
-                    <div id="prediction_text" data-get-prediction-url="{{ url_for('student.get_prediction') }}">
-                        Waiting for prediction...
-                    </div>
-                    <div id="stability_timer_text"></div>
+                    <h4>Live Prediction</h4>
+                    <div id="socket-status-assignment" class="status-waiting">Connecting to WebSocket...</div>
+                    <div id="prediction_text">Prediction: ...</div>
+                    <div id="confidence_text">Confidence: ...</div>
+                    <div id="stability_timer_text">Stability: ...</div>
                 </div>
                 <div class="form-group">
                     <label for="submission-notes">Notes (Signs practiced will appear here):</label>
@@ -92,9 +92,10 @@
 
             <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}
                 <h3>Your Camera Feed</h3>
-                 <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
+                <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
                 <div class="video-feed-container">
-                    <img id="video_feed_assignment_img" data-video-feed-url="{{ url_for('student.video_feed') }}" alt="Video Feed" style="display: none;">
+                    <video id="webcam-video-assignment" autoplay playsinline style="display: none; width: 100%; height: auto; border: 1px solid #ccc;"></video>
+                    <canvas id="webcam-canvas-assignment" style="display: none;"></canvas> 
                     <p id="video_feed_placeholder_text">Click "Start Camera & Practice" to begin.</p>
                 </div>
                 <p class="camera-note-text">Ensure good lighting and clear view of your hand.</p>
@@ -105,6 +106,12 @@
         <p>Assignment details could not be loaded.</p>
         {% endif %}
     </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script> {/* Added Socket.IO client */}
+    <script>
+        // These variables (getPredictionUrl, videoFeedUrl) are no longer needed for WebSocket approach
+        // and were causing BuildErrors if the old routes were removed.
+        // StudentViewAssignment.js should now use WebSockets exclusively for video/prediction.
+    </script>
     <script src="{{ url_for('static', filename='js/student_view_assignment.js') }}"></script>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>

@@ -99,3 +99,75 @@
     font-weight: 600;
     color: var(--primary-color);
 }
+
+/* Responsive Table Styles for Teacher-GradeTable.html */
+@media screen and (max-width: 768px) {
+    .controls-header {
+        flex-direction: column;
+        align-items: stretch; /* Make filter dropdowns take full width */
+    }
+    .filter-dropdown {
+        width: 100%; /* Full width for dropdowns on small screens */
+    }
+    .action-btn {
+        width: 100%; /* Full width for action buttons */
+        text-align: center;
+    }
+
+    .grade-table-container {
+        /* On smaller screens where card view is active, we might not need overflow-x,
+           but it can be kept as a fallback or if card view is only for very small screens.
+           For now, let's assume the card view handles it. */
+        overflow-x: visible; /* Or remove this line if card view is sufficient */
+        padding: 0; /* Remove padding if rows become cards with their own padding/margin */
+    }
+
+    .grade-table {
+        border: 0;
+        min-width: 0; /* Override min-width for card view */
+    }
+
+    .grade-table thead {
+        display: none; /* Hide table headers */
+    }
+
+    .grade-table tr {
+        display: block;
+        margin-bottom: 1em;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        box-shadow: 0 2px 5px var(--shadow-color);
+        background-color: var(--bg-light); /* Ensure cards have a background */
+    }
+    
+    .grade-table td {
+        display: block;
+        text-align: right; /* Align cell content to the right */
+        padding-left: 50%; /* Create space for the label */
+        position: relative; /* For pseudo-element positioning */
+        border-bottom: 1px dotted var(--border-color); /* Dotted border between "fields" in a card */
+    }
+
+    .grade-table td:last-child {
+        border-bottom: 0; /* No border for the last cell in a "card" */
+    }
+
+    .grade-table td::before {
+        content: attr(data-label); /* Use data-label attribute for the header text */
+        position: absolute;
+        left: 15px; /* Position label to the left, align with td padding */
+        width: calc(50% - 25px); /* Adjust width considering padding */
+        padding-right: 10px;
+        white-space: nowrap;
+        text-align: left; /* Align label text to the left */
+        font-weight: bold;
+        color: var(--primary-color); /* Use a distinct color for labels */
+        font-size: 0.9em;
+    }
+
+    .grade-table td.numeric,
+    .grade-table th.numeric { /* Ensure numeric alignment is maintained if needed, or overridden */
+        text-align: right; /* This will apply to the content part of the cell */
+    }
+    
+}

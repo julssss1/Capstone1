@@ -126,17 +126,19 @@
             <div class="video-module">
                  <h3>Your Camera Feed</h3>
                  <button id="start-camera-btn">Start Camera</button>
+                 <div id="socket-status" class="status-waiting">Connecting to WebSocket...</div>
                  <div class="video-container">
-                    <img id="video-feed">
+                    <video id="webcam-video" autoplay playsinline style="display: none; width: 100%; height: auto; border: 1px solid #ccc;"></video>
+                    <canvas id="webcam-canvas" style="display: none;"></canvas>
                     <p id="video-placeholder-text">Click "Start Camera" above to begin.</p>
                  </div>
+                 <div id="prediction-result-display" class="status-waiting">Prediction: ...</div>
                  <p class="camera-note">Ensure good lighting and clear view of your hand.</p>
             </div>
         </section>
     </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script> 
     <script>
-        const predictionUrl = "{{ url_for('student.get_prediction') }}";
-        const videoFeedUrl = "{{ url_for('student.video_feed') }}";
         const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
     </script>
 <script src="{{ url_for('static', filename='js/StudentDashboard.js') }}" defer></script>
