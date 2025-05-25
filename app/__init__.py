@@ -14,7 +14,7 @@ def create_app(config_class='config.Config'):
 
     # Initialize SocketIO with the Flask app
     # The cors_allowed_origins is already set when socketio was instantiated
-    socketio.init_app(app)
+    socketio.init_app(app, manage_session=False)
 
     app.config.from_object(config_class)
 

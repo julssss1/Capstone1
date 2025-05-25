@@ -76,6 +76,21 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Prediction error from server:', data.error);
         if (predictionResultDisplayElement) predictionResultDisplayElement.textContent = `Prediction Error: ${data.error}`;
     });
+
+    socket.on('connect_error', (err) => {
+      console.error('Socket.IO connection error:', err);
+      if (socketStatusElement) socketStatusElement.textContent = `Socket: Connection Error: ${err.message}`;
+    });
+
+    socket.on('connect_timeout', (timeout) => {
+      console.error('Socket.IO connection timeout:', timeout);
+      if (socketStatusElement) socketStatusElement.textContent = 'Socket: Connection Timeout';
+    });
+
+    socket.on('error', (error) => {
+      console.error('Socket.IO generic error:', error);
+      if (socketStatusElement) socketStatusElement.textContent = 'Socket: Generic Error';
+    });
     // --- End Socket.IO Setup ---
 
     if (startCameraButton) {
