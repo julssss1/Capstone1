@@ -6,13 +6,14 @@ from flask_socketio import SocketIO
 
 from . import sign_logic
 
-# Initialize SocketIO with async_mode for eventlet
-socketio = SocketIO(async_mode='eventlet')
+# Initialize SocketIO with async_mode for eventlet and CORS settings
+socketio = SocketIO(async_mode='eventlet', cors_allowed_origins="*")
 
 def create_app(config_class='config.Config'):
     app = Flask(__name__, instance_relative_config=True)
 
     # Initialize SocketIO with the Flask app
+    # The cors_allowed_origins is already set when socketio was instantiated
     socketio.init_app(app)
 
     app.config.from_object(config_class)
