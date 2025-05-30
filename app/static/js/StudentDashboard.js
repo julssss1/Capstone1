@@ -123,9 +123,9 @@ document.addEventListener('DOMContentLoaded', function() {
         lastStablePrediction = null;
         successStartTime = null;
 
-        // All image filenames are confirmed to be ALL CAPS with .PNG extension
+        // Using lowercase .png for consistency and to avoid case-sensitivity issues.
         // The 'sign' variable comes from button text, assume it's already the correct case (e.g., "A", "B")
-        const filename = sign + '.PNG'; 
+        const filename = sign.toUpperCase() + '.png'; // Ensure sign is uppercase, extension is lowercase
 
         const imageUrl = `${staticBaseUrl}Images/${filename}`;
         console.log(`Setting target image URL to: ${imageUrl}`);

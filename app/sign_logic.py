@@ -11,11 +11,13 @@ import os # Import os module
 # Configuration
 # Construct paths relative to the current file's directory
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
-MODEL_PATH = os.path.join(CURRENT_DIR, '..', 'landmark_model.h5')
+MODEL_PATH = os.path.join(CURRENT_DIR, '..', 'landmark_model.tflite') # Updated to TFLite model
 LANDMARK_FILE = os.path.join(CURRENT_DIR, '..', 'hand_landmarks.pkl')
 
 # Model & Resources
-model = None
+interpreter = None # Changed from model to interpreter for TFLite
+input_details = None
+output_details = None
 CLASS_NAMES = []
 hands = None
 cap = None
@@ -39,7 +41,7 @@ last_valid_prediction_timestamp = None
 
 def initialize_resources():
     """Loads model, class names, initializes MediaPipe, and opens camera."""
-    global model, CLASS_NAMES, hands, cap, is_initialized, stable_prediction_display, stop_camera_feed_event
+    global interpreter, input_details, output_details, CLASS_NAMES, hands, cap, is_initialized, stable_prediction_display, stop_camera_feed_event
 
     with initialization_lock:
         if is_initialized: # Simpler check: if fully initialized (including potentially camera), return
@@ -60,11 +62,16 @@ def initialize_resources():
         stop_camera_feed_event.clear()
         print("Initializing resources for sign logic...")
         try:
-            # Load Model if not already loaded
-            if model is None:
-                print(f"Loading model from: {MODEL_PATH}")
-                model = tf.keras.models.load_model(MODEL_PATH)
-                print("Model loaded successfully.")
+            # Load TFLite Model if not already loaded
+            if interpreter is None:
+                print(f"Loading TFLite model from: {MODEL_PATH}")
+                interpreter = tf.lite.Interpreter(model_path=MODEL_PATH)
+                interpreter.allocate_tensors()
+                input_details = interpreter.get_input_details()
+                output_details = interpreter.get_output_details()
+                print("TFLite model loaded and tensors allocated successfully.")
+                print(f"Input details: {input_details}")
+                print(f"Output details: {output_details}")
 
             # Load Class Names if not already loaded
             if not CLASS_NAMES:
@@ -128,20 +135,20 @@ def initialize_resources():
             stable_prediction_display = "Error: File Missing"
             if 'cap' in locals() and cap and cap.isOpened(): cap.release()
             if 'hands' in locals() and hands: hands.close()
-            model, cap, hands, is_initialized = None, None, None, False
+            interpreter, cap, hands, is_initialized = None, None, None, False # model changed to interpreter
             return False
         except Exception as e:
             print(f"Error during resource initialization: {e}")
             stable_prediction_display = "Error: Init Failed"
             if 'cap' in locals() and cap and cap.isOpened(): cap.release()
             if 'hands' in locals() and hands: hands.close()
-            model, cap, hands, is_initialized = None, None, None, False
+            interpreter, cap, hands, is_initialized = None, None, None, False # model changed to interpreter
             return False
 
 # --- Frame Generation Function
 def generate_frames():
     """Generates camera frames with sign prediction overlays for web streaming."""
-    global stable_prediction_display, last_valid_prediction_timestamp, prediction_buffer, hands, cap, model, CLASS_NAMES, stop_camera_feed_event
+    global stable_prediction_display, last_valid_prediction_timestamp, prediction_buffer, hands, cap, interpreter, input_details, output_details, CLASS_NAMES, stop_camera_feed_event
 
     if os.getenv('NO_CAMERA'):
         print("NO_CAMERA set. Frame generation (camera feed) is disabled.")
@@ -242,10 +249,24 @@ def generate_frames():
                     landmarks_normalized.extend([norm_x, norm_y])
 
                 if len(landmarks_normalized) == 42:
-                    landmark_input = np.array([landmarks_normalized], dtype=np.float32)
-                    prediction = model.predict(landmark_input, verbose=0)
-                    predicted_class_index = np.argmax(prediction)
-                    confidence = np.max(prediction)
+                    # Prepare input for TFLite model
+                    # Ensure the input shape and type match what the TFLite model expects.
+                    # input_details[0]['shape'] usually is [1, num_features] for this kind of model.
+                    # input_details[0]['dtype'] is usually np.float32.
+                    landmark_input = np.array([landmarks_normalized], dtype=input_details[0]['dtype'])
+                    
+                    # Check if input shape matches model's expected input shape excluding batch size
+                    if landmark_input.shape[1:] != tuple(input_details[0]['shape'][1:]):
+                        print(f"Error: Input data shape {landmark_input.shape[1:]} does not match model expected shape {input_details[0]['shape'][1:]}")
+                        current_prediction_text = "Detect: Input Shape Error"
+                        instantaneous_prediction = "Input Shape Error"
+                    else:
+                        interpreter.set_tensor(input_details[0]['index'], landmark_input)
+                        interpreter.invoke()
+                        prediction = interpreter.get_tensor(output_details[0]['index'])
+                        
+                        predicted_class_index = np.argmax(prediction[0]) # Output is usually [[...]]
+                        confidence = np.max(prediction[0])
 
                     global last_processed_frame_confidence
                     if confidence >= MIN_PREDICTION_CONFIDENCE:
@@ -353,7 +374,7 @@ def generate_frames():
 
 def release_resources():
     """Releases camera, MediaPipe hands, and resets initialization state."""
-    global cap, hands, model, is_initialized, stable_prediction_display, stop_camera_feed_event, initialization_lock
+    global cap, hands, interpreter, is_initialized, stable_prediction_display, stop_camera_feed_event, initialization_lock # model changed to interpreter
 
     print("Attempting to release resources...")
     stop_camera_feed_event.set()
@@ -379,8 +400,10 @@ def release_resources():
         else:
             print("MediaPipe Hands were not initialized or already closed.")
         
-        # Optionally reset model and CLASS_NAMES if they should be reloaded from scratch next time
-        # model = None
+        # Optionally reset interpreter and CLASS_NAMES if they should be reloaded from scratch next time
+        # interpreter = None
+        # input_details = None
+        # output_details = None
         # CLASS_NAMES = []
 
         is_initialized = False # Mark as not initialized
@@ -420,7 +443,7 @@ def get_stable_prediction():
 def get_available_signs():
     """Returns the list of class names loaded from the model/pickle file."""
     global CLASS_NAMES, is_initialized # Ensure is_initialized is global here
-    if not is_initialized: # Check if basic resources (model, class names) are loaded
-        print("get_available_signs: resources not fully initialized, attempting to initialize model and class names.")
-        initialize_resources() # This will load model and class names even if camera fails or is disabled
+    if not is_initialized: # Check if basic resources (interpreter, class names) are loaded
+        print("get_available_signs: resources not fully initialized, attempting to initialize interpreter and class names.")
+        initialize_resources() # This will load interpreter and class names even if camera fails or is disabled
     return CLASS_NAMES

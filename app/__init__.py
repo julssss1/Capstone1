@@ -6,11 +6,15 @@ from supabase import create_client, Client
 
 from . import sign_logic
 
-def create_app(config_class='config.Config'):
+def create_app(config_override=None): # Changed parameter name for clarity
     app = Flask(__name__, instance_relative_config=True)
 
-    app.config.from_object(config_class)
+    # Load default config first
+    app.config.from_object('config.Config')
    
+    # Then override with any test-specific config
+    if config_override:
+        app.config.from_mapping(config_override)
 
     url: str = app.config.get("SUPABASE_URL")
     key: str = app.config.get("SUPABASE_SERVICE_KEY") 
@@ -38,7 +42,7 @@ def create_app(config_class='config.Config'):
     with app.app_context():
         sign_logic.initialize_resources()
         
-        if sign_logic.model is None or sign_logic.hands is None:
+        if sign_logic.interpreter is None or sign_logic.hands is None:
              print("*"*60)
              print("WARNING: Sign recognition initialization failed. Some features might not work.")
              print("*"*60)
