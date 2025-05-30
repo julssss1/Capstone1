@@ -43,7 +43,7 @@ def create_app(config_class='config.Config'):
     with app.app_context():
         sign_logic.initialize_resources()
 
-        if sign_logic.model is None or sign_logic.hands is None:
+        if sign_logic.interpreter is None or sign_logic.hands is None:
              print("*"*60)
              print("WARNING: Sign recognition initialization failed. Some features might not work.")
              print("*"*60)

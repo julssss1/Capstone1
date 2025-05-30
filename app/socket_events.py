@@ -64,7 +64,9 @@ def handle_process_frame(data):
         prediction, confidence = sign_logic.get_prediction_for_frame(
             img, 
             sign_logic.hands, 
-            sign_logic.model, 
+            sign_logic.interpreter, 
+            sign_logic.input_details,
+            sign_logic.output_details,
             sign_logic.CLASS_NAMES
         )
         print(f"[Socket Event] Prediction from sign_logic: '{prediction}', Confidence: {confidence}")

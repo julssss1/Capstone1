@@ -1,9 +1,9 @@
 Flask==3.1.0
 supabase==2.15.0
-opencv-python-headless==4.11.0.86
+opencv-python==4.11.0.86
 mediapipe==0.10.21
 numpy==1.26.4
-tensorflow-cpu==2.19.0
+tensorflow
 python-dotenv==1.1.0
 Flask-SocketIO==5.3.6
 eventlet>=0.35.0
