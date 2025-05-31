@@ -650,32 +650,36 @@ body {
         transform: translateX(0); /* Slides into view */
     }
 
-    /* Restore original appearance for menu items when menu is open */
+    /* Adjust brand logo for mobile view */
     .side-menu .brand-logo {
-        padding: 0 25px 20px 25px; /* Original padding */
+        padding: 15px 20px; /* Adjusted padding for a more compact look */
         text-align: center;
         border-bottom: 1px solid var(--border-color);
-        margin-bottom: 20px;
+        margin-bottom: 15px; /* Slightly reduced margin */
+        display: flex; /* Enable flexbox for better control over children */
+        flex-direction: column; /* Stack logo and text vertically */
+        align-items: center; /* Center items horizontally */
     }
     .side-menu .brand-logo img {
-        max-width: 80px;
-        margin-bottom: 10px;
+        max-width: 60px; /* Smaller logo on mobile */
+        margin-bottom: 8px; /* Reduced space below logo */
     }
-    .side-menu .brand-logo h1,
-    .side-menu .brand-logo span,
+
+    /* Maintain display:initial for other elements if they were part of the original combined rule */
     .side-menu .navigation li a span, /* Assuming span wraps nav text */
     .side-menu .user-info {
         display: initial; /* Make text elements visible again */
     }
-     .side-menu .brand-logo h1 { /* Explicitly ensure visibility and style */
-        font-size: 1.6em;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 2px;
+
+     .side-menu .brand-logo h1 { /* This is "Handspoken" */
+        display: none; /* Hide "Handspoken" text on mobile */
+        /* Original font-size, color, etc., are now irrelevant due to display: none */
     }
-    .side-menu .brand-logo span {
-        font-size: 0.9em;
-        color: var(--text-color-light);
+    .side-menu .brand-logo span { /* This is "CAES Teacher Portal" or similar */
+        display: block; /* Ensure it takes its own line if not already, and allows text-align to work if needed */
+        font-size: 1.1em; /* Make "CAES Teacher Portal" text larger */
+        font-weight: 600; /* Make it bolder */
+        color: var(--primary-color); /* Use primary color for emphasis */
     }
      .side-menu .user-info {
         padding: 20px 25px;

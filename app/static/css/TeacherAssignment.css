@@ -162,3 +162,83 @@
 .table-icon-gray {
     color: #6c757d;
 }
+
+/* Responsive adjustments for TeacherAssignment.css */
+@media (max-width: 768px) {
+    .assignment-form-container {
+        padding: 20px;
+    }
+
+    .assignment-form .form-actions {
+        flex-direction: column; /* Stack buttons on smaller screens */
+    }
+
+    .assignment-form .form-actions .btn {
+        width: 100%; /* Make buttons full width */
+        margin-bottom: 10px; /* Add space between stacked buttons */
+    }
+
+    .assignment-form .form-actions .btn:last-child {
+        margin-bottom: 0;
+    }
+
+    .assignments-table {
+        font-size: 0.9em;
+    }
+
+    .assignments-table th, 
+    .assignments-table td {
+        padding: 8px 10px;
+        white-space: normal; /* Allow text wrapping */
+    }
+
+    .assignments-table .action-btn {
+        padding: 5px 10px;
+        font-size: 0.85em;
+    }
+}
+
+@media (max-width: 480px) {
+    .assignment-form-container {
+        padding: 15px;
+    }
+
+    .assignment-form label {
+        font-size: 0.9em;
+    }
+
+    .assignment-form input[type="text"],
+    .assignment-form textarea,
+    .assignment-form select,
+    .assignment-form input[type="date"] {
+        padding: 10px 12px;
+        font-size: 0.95em;
+    }
+
+    .assignments-table {
+        font-size: 0.8em;
+        min-width: 0 !important;
+        table-layout: fixed;
+        width: 100%;
+    }
+
+    .assignments-table th, 
+    .assignments-table td {
+        padding: 6px 8px;
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+
+    .assignments-table .action-btn {
+        padding: 4px 8px;
+        font-size: 0.8em;
+        display: block; /* Make buttons block to take full width of cell if needed */
+        width: 100%;
+        box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        text-align: center;
+    }
+
+    .table-container {
+        padding: 10px;
+    }
+}

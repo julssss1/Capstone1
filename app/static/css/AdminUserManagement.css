@@ -145,4 +145,65 @@
         width: 100%;
         text-align: center;
     }
+
+    .user-table {
+        min-width: 0; /* Allow table to shrink */
+        font-size: 0.9em; /* Slightly smaller font for small screens */
+    }
+
+    .user-table th,
+    .user-table td {
+        padding: 8px 10px; /* Reduce padding */
+        white-space: normal; /* Allow text wrapping */
+    }
+
+    .user-table thead th {
+        white-space: normal; /* Allow header text to wrap */
+    }
+
+    .user-actions .action-btn {
+        margin-bottom: 5px; /* Add some space if buttons wrap */
+        display: inline-block; /* Ensure they don't take full width unless necessary */
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-content {
+        padding: 10px;
+    }
+    .user-table-container {
+        padding: 5px;
+    }
+    .user-table {
+        font-size: 0.8em; /* Even smaller font for very small screens */
+        table-layout: fixed; /* Helps with column width distribution */
+        width: 100%;
+    }
+    .user-table th,
+    .user-table td {
+        padding: 6px 8px; /* Further reduce padding */
+        overflow-wrap: break-word;
+        word-break: break-word;
+    }
+    .user-table td .user-role {
+        font-size: 0.8em; /* Adjust role badge size */
+        padding: 2px 5px;
+    }
+    .user-actions { /* Add display flex to the container of the buttons */
+        display: flex;
+        flex-wrap: wrap; /* Allow buttons to wrap if they don't fit */
+        gap: 5px; /* Add a small gap between buttons */
+    }
+    .user-actions .action-btn {
+        padding: 4px 8px;
+        font-size: 0.8em; /* Slightly smaller font for buttons to help them fit */
+        flex-grow: 1; /* Allow buttons to grow and share space */
+        flex-basis: auto; /* Allow buttons to size based on content initially */
+        min-width: 60px; /* Minimum width to prevent buttons from becoming too small */
+        text-align: center; /* Center text in buttons */
+        margin-right: 0; /* Remove individual right margin, gap handles spacing */
+        margin-bottom: 0; /* Remove individual bottom margin, gap handles spacing */
+        box-sizing: border-box;
+    }
+    /* No need for :nth-child or :last-child specific width/margin adjustments with flexbox and gap */
 }

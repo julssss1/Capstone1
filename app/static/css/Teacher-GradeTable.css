@@ -99,3 +99,88 @@
     font-weight: 600;
     color: var(--primary-color);
 }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .controls-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-section {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-dropdown {
+        width: 100%; /* Full width on smaller screens */
+        min-width: 0; /* Override min-width */
+    }
+
+    .action-btn {
+        width: 100%; /* Full width buttons */
+        text-align: center;
+    }
+
+    .grade-table {
+        min-width: 0; /* Allow table to shrink */
+        font-size: 0.9em; /* Slightly smaller font for small screens */
+    }
+
+    .grade-table th,
+    .grade-table td {
+        padding: 8px 10px; /* Reduce padding */
+        white-space: normal; /* Allow text wrapping */
+    }
+
+    .grade-table thead th {
+        white-space: normal; /* Allow header text to wrap */
+    }
+}
+
+@media (max-width: 480px) {
+    .admin-content {
+        padding: 10px; /* Further reduce padding for the main content area */
+    }
+
+    .grade-table-container {
+        padding: 5px; /* Reduce padding around the table container itself */
+    }
+
+    .grade-table {
+        font-size: 0.75em; /* Make font even smaller for very small screens */
+        min-width: 0 !important; /* Ensure table can shrink fully, overriding any base min-width */
+        table-layout: fixed; /* Distribute column widths more predictably */
+        width: 100%; /* Ensure table uses full available width */
+    }
+
+    .grade-table th,
+    .grade-table td {
+        padding: 4px 5px; /* Significantly reduce cell padding */
+        white-space: normal; /* Allow text to wrap (already set in 768px query) */
+        overflow-wrap: break-word; /* Force long words/strings to break and wrap */
+        word-break: break-word; /* Additional property for word breaking */
+    }
+
+    .grade-table thead th {
+        font-size: 0.9em; /* Adjust header font size relative to the smaller table font */
+    }
+
+    /* Make action buttons within the table smaller */
+    .grade-table .action-btn { 
+        padding: 5px 8px;
+        font-size: 0.9em; /* Relative to the table's font size */
+        line-height: 1.2; /* Adjust line height for smaller button */
+    }
+    
+    /* Adjust filter controls for very small screens */
+    .controls-header {
+        gap: 10px; /* Reduce gap in header controls */
+        margin-bottom: 15px; /* Reduce bottom margin */
+    }
+    .filter-dropdown,
+    .controls-header .action-btn { /* Target action buttons in the header specifically */
+        font-size: 0.9em; /* Slightly smaller font for header controls */
+        padding: 6px 10px; /* Adjust padding for header controls */
+    }
+}
