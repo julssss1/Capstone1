@@ -3,7 +3,7 @@ from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from app.sign_logic import get_available_signs # Only get_available_signs is needed here
 from supabase import Client, PostgrestAPIError
-from datetime import datetime
+from datetime import datetime, timezone
 
 @bp.route('/dashboard')
 @login_required
@@ -72,11 +72,14 @@ def student_dashboard():
                         url = url_for('student.view_submission_details', submission_id=submission_info['submission_id'])
                     
                     due_date_display = None
+                    is_past_due = False
                     if assignment_item.get('due_date'):
                         try:
                             due_dt = datetime.fromisoformat(assignment_item['due_date'])
                             due_date_display = due_dt.strftime("%b %d, %Y")
-                        except ValueError:
+                            if datetime.now(timezone.utc) > due_dt and not submission_info:
+                                is_past_due = True
+                        except (ValueError, TypeError):
                             due_date_display = "Date N/A"
 
                     dashboard_assignments.append({
@@ -85,7 +88,8 @@ def student_dashboard():
                         'due_date': due_date_display,
                         'completed_at': completed_at_display,
                         'status': item_status,
-                        'url': url
+                        'url': url,
+                        'is_past_due': is_past_due
                     })
             
             elif hasattr(assignments_response, 'error') and assignments_response.error:

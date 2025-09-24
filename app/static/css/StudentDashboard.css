@@ -313,6 +313,32 @@ body {
     background: #4caf50; /* Darker green on hover */
 }
 
+/* Styles for past-due assignments */
+.assignment-card.past-due {
+    background-color: #f8d7da; /* Light red background */
+    border-left: 5px solid #dc3545; /* Red accent border */
+}
+
+.assignment-card.past-due .card-icon {
+    color: #dc3545; /* Red icon */
+}
+
+.assignment-card.past-due .card__content {
+    color: #721c24; /* Darker red text */
+}
+
+.assignment-card.past-due .past-due-text {
+    color: #721c24;
+    font-weight: bold;
+}
+
+.assignment-card.past-due .card__arrow {
+    background: #dc3545; /* Red arrow */
+}
+.assignment-card.past-due:hover .card__arrow {
+    background: #c82333; /* Darker red on hover */
+}
+
 .no-assignments-info { /* Style for the "no assignments" message */
     text-align: center;
     color: var(--text-color-light);

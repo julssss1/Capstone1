@@ -58,11 +58,13 @@
              <h3>Assignments Overview</h3>
              {% if assignments and assignments|length > 0 %}
                  {% for assignment in assignments %}
-                 <div class="assignment-card {% if assignment.status == 'Completed' %}completed{% endif %}">
+                 <div class="assignment-card {% if assignment.status == 'Completed' %}completed{% elif assignment.is_past_due %}past-due{% endif %}">
                     <div class="card-icon">
                         <!-- Using Font Awesome icons for status -->
                         {% if assignment.status == 'Completed' %}
                             <i class="fas fa-check-circle"></i>
+                        {% elif assignment.is_past_due %}
+                            <i class="fas fa-exclamation-circle"></i>
                         {% else %}
                             <i class="fas fa-book-open"></i>
                         {% endif %}
@@ -76,6 +78,8 @@
                                 {% else %}
                                     Status: Completed
                                 {% endif %}
+                            {% elif assignment.is_past_due %}
+                                <span class="past-due-text">Past Due: {{ assignment.due_date }}</span>
                             {% elif assignment.due_date %}
                                 Due: {{ assignment.due_date }}
                             {% else %}

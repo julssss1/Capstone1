@@ -52,6 +52,8 @@
         {% endwith %}
 
         {% if assignment %}
+        {% set due_date = assignment.due_date | format_utc_datetime %}
+        {% set is_past_due = now_utc > due_date %}
         <form action="{{ url_for('student.submit_assignment_work', assignment_id=assignment.id) }}" method="POST" enctype="multipart/form-data">
             <section class="assignment-detail-card">
                 <h3>{{ assignment.title }}</h3>
@@ -61,6 +63,9 @@
                 <p><strong>Lesson:</strong> {{ assignment.lessons.title }}</p>
                 {% endif %}
                 <p><strong>Due Date:</strong> {{ assignment.due_date[:10] if assignment.due_date and assignment.due_date|length >=10 else (assignment.due_date if assignment.due_date else 'N/A') }}</p>
+                {% if is_past_due %}
+                    <p class="past-due-warning">This assignment is past the due date. Submissions are no longer accepted.</p>
+                {% endif %}
             </div>
             <div class="instructions">
                 <h4>Instructions:</h4>
@@ -81,13 +86,13 @@
                 </div>
                 <div class="form-group">
                     <label for="submission-notes">Notes (Signs practiced will appear here):</label>
-                    <textarea id="submission-notes" name="submission_notes" placeholder="Recognized signs will appear here..."></textarea>
+                    <textarea id="submission-notes" name="submission_notes" placeholder="Recognized signs will appear here..." {{ 'disabled' if is_past_due }}></textarea>
                 </div>
                 <div class="form-group">
                     <label for="submission-file">Upload File (Optional):</label>
-                    <input type="file" id="submission-file" name="submission_file">
+                    <input type="file" id="submission-file" name="submission_file" {{ 'disabled' if is_past_due }}>
                 </div>
-                <button type="submit" class="submit-button">Submit Assignment</button>
+                <button type="submit" class="submit-button" {{ 'disabled' if is_past_due }}>Submit Assignment</button>
             </section>
 
             <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}

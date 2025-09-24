@@ -201,6 +201,19 @@
     background-color: #3a7bc8; /* Darker shade from start-camera-button hover */
 }
 
+.past-due-warning {
+    color: #dc3545; 
+    font-weight: bold;
+    margin-top: 10px;
+}
+
+.submit-button:disabled {
+    background-color: #6c757d; 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+}
+
+
 /* Ensure StudentAssignment.css specific styles don't conflict or are merged if needed */
 
 /* Responsive adjustments for StudentViewAssignment.html */

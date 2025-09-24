@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let recordedSignAttempts = []; // Array to store {sign, confidence}
     let lastPrediction = "";
     let stableCounter = 0;
-    const STABILITY_THRESHOLD = 30; // Approx 3 seconds if interval is 100ms (30 * 100ms = 3000ms)
+    const STABILITY_THRESHOLD = 25; 
     let predictionIntervalId = null;
 
     const getPredictionUrl = predictionTextElement ? predictionTextElement.dataset.getPredictionUrl : null;
@@ -32,11 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
                 if (sign && sign !== "No prediction" && sign.trim() !== "") {
                     // Display the sign from the server (which might include "Detect: ...")
-                    // For user display, we might want to show just the sign.
-                    // The `predictionTextElement` is used by the regex later, so it needs the full "Detect: X (Y%)"
-                    // This means `get_prediction` should ideally return the raw display text too, or JS reconstructs it.
-                    // For now, let's assume `sign_logic.py` still makes `predictionTextElement.textContent` show the detailed string.
-                    // The `sign` variable from JSON is the clean sign.
+          
                     
                     predictionTextElement.textContent = sign; // This will now be just the sign letter or "Ready..." etc.
                                                         // The detailed "Detect: X (Y%)" is on the video feed itself.

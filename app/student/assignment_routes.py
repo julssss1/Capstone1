@@ -87,16 +87,18 @@ def student_assignment():
 @role_required('Student')
 def view_assignment_student(assignment_id):
     supabase: Client = current_app.supabase
-    assignment_data = None 
+    assignment_data = None
     try:
         assignment_res = supabase.table('assignments').select('*, subjects(name), lessons(title)').eq('id', assignment_id).maybe_single().execute()
-        if not (assignment_res and assignment_res.data): 
+        if not (assignment_res and assignment_res.data):
             flash('Assignment not found.', 'warning'); return redirect(url_for('student.student_assignment'))
         assignment_data = assignment_res.data
     except Exception as e:
         flash(f"Error loading assignment: {e}", 'danger'); print(f"Error in view_assignment_student: {e}")
         return redirect(url_for('student.student_assignment'))
-    return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'))
+    
+    now_utc = datetime.now(timezone.utc)
+    return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'), now_utc=now_utc)
 
 
 @bp.route('/assignment/<int:assignment_id>/submit', methods=['POST'])
@@ -119,6 +121,22 @@ def submit_assignment_work(assignment_id):
         flash('User session invalid.', 'danger'); return redirect(url_for('auth.login'))
     if not supabase:
         flash('Database connection error.', 'danger'); return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+
+    try:
+        assignment_res = supabase.table('assignments').select('due_date').eq('id', current_assignment_id).single().execute()
+        if not (assignment_res and assignment_res.data):
+            flash('Assignment not found.', 'danger')
+            return redirect(url_for('student.student_assignment'))
+        
+        due_date_str = assignment_res.data.get('due_date')
+        if due_date_str:
+            due_date = datetime.fromisoformat(due_date_str)
+            if datetime.now(timezone.utc) > due_date:
+                flash('This assignment is past the due date and can no longer be submitted.', 'danger')
+                return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
+    except Exception as e:
+        flash(f"Could not verify assignment due date: {e}", 'danger')
+        return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
 
     # Ensure upload folder exists (moved from global to here for request context)
     if not os.path.exists(ASSIGNMENT_UPLOAD_FOLDER):
