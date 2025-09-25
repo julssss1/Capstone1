@@ -1,173 +1,225 @@
-document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', async function () {
+    // --- DOM Elements ---
     const predictionTextElement = document.getElementById('prediction_text');
     const submissionNotesTextarea = document.getElementById('submission-notes');
     const stabilityTimerTextElement = document.getElementById('stability_timer_text');
-    const startCameraButton = document.getElementById('start_camera_assignment_btn'); // Updated ID
-    const cameraPlaceholderDiv = document.getElementById('video_feed_placeholder_text'); // This is the <p> tag
-    const videoFeedImg = document.getElementById('video_feed_assignment_img'); // Updated ID
-    const videoFeedContainer = document.querySelector('.video-feed-container'); // Parent of img and placeholder text
+    const startCameraButton = document.getElementById('start_camera_assignment_btn');
+    const videoElement = document.getElementById('webcam');
+    const canvasElement = document.getElementById('output_canvas');
+    const canvasCtx = canvasElement.getContext('2d');
+    const placeholderText = document.getElementById('video_feed_placeholder_text');
 
-    let recordedSignAttempts = []; // Array to store {sign, confidence}
-    let lastPrediction = "";
+    // --- App State ---
+    let handLandmarker = null;
+    let tfModel = null;
+    let classNames = [];
+    let lastVideoTime = -1;
+    let isCameraActive = false;
+
+    // --- Prediction Smoothing Config ---
+    const PREDICTION_BUFFER_SIZE = 10;
+    const SMOOTHING_THRESHOLD = 0.9;
+    const MIN_PREDICTION_CONFIDENCE = 0.90;
+    const STABILITY_THRESHOLD = 25; // Frames to hold for a stable prediction
+    const NON_VALID_SIGN_STATES = ["Unknown", "No hand detected", "...", "Low Confidence"];
+
+    // --- Prediction State ---
+    let prediction_buffer = [];
     let stableCounter = 0;
-    const STABILITY_THRESHOLD = 25; 
-    let predictionIntervalId = null;
+    let lastPrediction = "";
 
-    const getPredictionUrl = predictionTextElement ? predictionTextElement.dataset.getPredictionUrl : null;
-    const videoFeedUrl = videoFeedImg ? videoFeedImg.dataset.videoFeedUrl : null;
+    // --- Paths to Model Files ---
+    const TFLITE_MODEL_PATH = '/static/model/landmark_model.tflite';
+    const CLASS_NAMES_PATH = '/static/model/class_names.json';
+    const MEDIAPIPE_WASM_PATH = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3/wasm";
 
-    function fetchPrediction() {
-        if (!getPredictionUrl) {
-            // console.error("Get prediction URL is not set.");
-            if(predictionTextElement) predictionTextElement.textContent = "Error: Config issue.";
-            return;
-        }
 
-        fetch(getPredictionUrl)
-            .then(response => response.json()) // Expect JSON now
-            .then(data => {
-                // data should be an object like {"sign": "A", "confidence": 0.95}
-                const sign = data.sign;
-                const confidence = data.confidence; // This is the confidence of the last processed frame
-
-                if (sign && sign !== "No prediction" && sign.trim() !== "") {
-                    // Display the sign from the server (which might include "Detect: ...")
-          
-                    
-                    predictionTextElement.textContent = sign; // This will now be just the sign letter or "Ready..." etc.
-                                                        // The detailed "Detect: X (Y%)" is on the video feed itself.
-
-                    if (sign === lastPrediction) {
-                        stableCounter++;
-                        const lowerSignCompare = sign.toLowerCase().trim();
-                        
-                        if (lowerSignCompare !== 'ready' && lowerSignCompare !== 'ready...' && lowerSignCompare !== 'no prediction' && lowerSignCompare !== 'low confidence' && stableCounter > 0 && stableCounter < STABILITY_THRESHOLD) {
-                            stabilityTimerTextElement.textContent = `Holding: ${stableCounter}/${STABILITY_THRESHOLD}`;
-                        } else {
-                            stabilityTimerTextElement.textContent = ""; 
-                        }
-
-                        if (stableCounter === STABILITY_THRESHOLD) {
-                            const lowerSign = sign.toLowerCase().trim();
-                            if (lowerSign !== 'ready' && lowerSign !== 'ready...' && lowerSign !== 'no prediction' && lowerSign !== 'low confidence') {
-                                const currentNotes = submissionNotesTextarea.value;
-                                const separator = currentNotes.length > 0 ? " " : "";
-                                
-                                // Use the sign and confidence directly from the JSON response
-                                submissionNotesTextarea.value += separator + sign; 
-                                recordedSignAttempts.push({ sign: sign, confidence: confidence });
-                                console.log("Recorded attempt:", { sign: sign, confidence: confidence });
-                                
-                                predictionTextElement.style.color = '#28a745';
-                                setTimeout(() => {
-                                    predictionTextElement.style.color = '#007bff';
-                                }, 500);
-                                stabilityTimerTextElement.textContent = "Added to notes!";
-                                setTimeout(() => { stabilityTimerTextElement.textContent = ""; }, 3000);
-                            } else {
-                                stabilityTimerTextElement.textContent = ""; 
-                            }
-                            stableCounter = 0; 
-                        }
-                    } else {
-                        lastPrediction = sign; 
-                        stableCounter = 0;
-                        stabilityTimerTextElement.textContent = ""; 
-                    }
-                } else if (sign === "No prediction" || (sign && sign.trim() === "") || !sign) {
-                    predictionTextElement.textContent = "Waiting for prediction...";
-                    lastPrediction = ""; 
-                    stableCounter = 0;
-                    stabilityTimerTextElement.textContent = ""; 
-                }
-            })
-            .catch(error => {
-                console.error('Error fetching prediction:', error);
-                if(predictionTextElement) predictionTextElement.textContent = "Error fetching prediction.";
-                lastPrediction = "";
-                stableCounter = 0;
-                if(stabilityTimerTextElement) stabilityTimerTextElement.textContent = ""; // Clear timer text
+    // --- Initialization ---
+    const initializeModels = async () => {
+        try {
+            // 1. Initialize MediaPipe Hand Landmarker
+            const vision = await window.vision.FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_PATH);
+            handLandmarker = await window.vision.HandLandmarker.createFromOptions(vision, {
+                baseOptions: {
+                    modelAssetPath: `https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task`,
+                    delegate: "GPU"
+                },
+                runningMode: "VIDEO",
+                numHands: 1
             });
+            console.log("Hand Landmarker model loaded.");
+
+            // 2. Load TensorFlow.js Model
+            tfModel = await tflite.loadTFLiteModel(TFLITE_MODEL_PATH);
+            console.log("TFLite model loaded.");
+            
+            // 3. Load Class Names
+            const response = await fetch(CLASS_NAMES_PATH);
+            classNames = await response.json();
+            console.log("Class names loaded:", classNames);
+
+            predictionTextElement.textContent = "Models loaded. Ready to start camera.";
+            startCameraButton.disabled = false;
+
+        } catch (error) {
+            console.error("Error loading models:", error);
+            predictionTextElement.textContent = "Error loading models. Please refresh.";
+            startCameraButton.disabled = true;
+        }
+    };
+
+    // --- Main Prediction Loop ---
+    const predictWebcam = async () => {
+        if (!isCameraActive) return;
+
+        const video = videoElement;
+        if (video.currentTime !== lastVideoTime) {
+            lastVideoTime = video.currentTime;
+
+            // Set canvas size
+            canvasElement.width = video.videoWidth;
+            canvasElement.height = video.videoHeight;
+
+            const handLandmarkerResult = handLandmarker.detectForVideo(video, performance.now());
+            
+            canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+
+            if (handLandmarkerResult.landmarks.length > 0) {
+                const landmarks = handLandmarkerResult.landmarks[0];
+                
+                // Draw landmarks on canvas
+                for (const landmark of landmarks) {
+                    const x = landmark.x * canvasElement.width;
+                    const y = landmark.y * canvasElement.height;
+                    canvasCtx.beginPath();
+                    canvasCtx.arc(x, y, 5, 0, 2 * Math.PI);
+                    canvasCtx.fillStyle = 'aqua';
+                    canvasCtx.fill();
+                }
+
+                // --- Process landmarks for prediction ---
+                try {
+                    const wrist = landmarks[0];
+                    const origin_x = wrist.x;
+                    const origin_y = wrist.y;
+                    
+                    const mcp_middle = landmarks[9]; // MIDDLE_FINGER_MCP
+                    let scale = Math.sqrt(Math.pow(mcp_middle.x - origin_x, 2) + Math.pow(mcp_middle.y - origin_y, 2));
+                    scale = Math.max(scale, 1e-6);
+
+                    const landmarks_normalized = [];
+                    for (const landmark of landmarks) {
+                        landmarks_normalized.push((landmark.x - origin_x) / scale);
+                        landmarks_normalized.push((landmark.y - origin_y) / scale);
+                    }
+
+                    if (landmarks_normalized.length === 42) {
+                        const inputTensor = tf.tensor2d([landmarks_normalized]);
+                        const prediction = tfModel.predict(inputTensor);
+                        const predictionData = await prediction.data();
+                        
+                        const predicted_class_index = predictionData.indexOf(Math.max(...predictionData));
+                        const confidence = Math.max(...predictionData);
+
+                        let instantaneous_prediction;
+                        if (confidence >= MIN_PREDICTION_CONFIDENCE) {
+                            instantaneous_prediction = classNames[predicted_class_index];
+                        } else {
+                            instantaneous_prediction = "Low Confidence";
+                        }
+                        predictionTextElement.textContent = `Detect: ${instantaneous_prediction} (${(confidence * 100).toFixed(2)}%)`;
+                        processPrediction(instantaneous_prediction);
+
+                    }
+                } catch (error) {
+                    console.error("Error during landmark processing or prediction:", error);
+                    processPrediction("Error");
+                }
+
+            } else {
+                predictionTextElement.textContent = "No hand detected";
+                processPrediction("No hand detected");
+            }
+        }
+
+        // Call this function again to keep predicting when the browser is ready.
+        window.requestAnimationFrame(predictWebcam);
+    };
+
+    // --- Prediction Smoothing and Submission Logic ---
+    function processPrediction(prediction) {
+        if (prediction === lastPrediction) {
+            stableCounter++;
+        } else {
+            lastPrediction = prediction;
+            stableCounter = 0;
+        }
+
+        // Update stability timer text
+        if (stableCounter > 0 && stableCounter < STABILITY_THRESHOLD && !NON_VALID_SIGN_STATES.includes(prediction)) {
+            stabilityTimerTextElement.textContent = `Holding: ${stableCounter}/${STABILITY_THRESHOLD}`;
+        } else {
+            stabilityTimerTextElement.textContent = "";
+        }
+
+        // If prediction is stable, add to notes
+        if (stableCounter === STABILITY_THRESHOLD && !NON_VALID_SIGN_STATES.includes(prediction)) {
+            const currentNotes = submissionNotesTextarea.value;
+            const separator = currentNotes.length > 0 ? " " : "";
+            submissionNotesTextarea.value += separator + prediction;
+            
+            // Visual feedback
+            predictionTextElement.style.color = '#28a745';
+            setTimeout(() => { predictionTextElement.style.color = '#007bff'; }, 500);
+            stabilityTimerTextElement.textContent = "Added to notes!";
+            setTimeout(() => { stabilityTimerTextElement.textContent = ""; }, 2000);
+            
+            stableCounter = 0; // Reset after adding
+        }
     }
 
-    function startSignPractice() {
-        if (!videoFeedUrl) {
-            console.error("Video feed URL is not set.");
-            if(cameraPlaceholderDiv) cameraPlaceholderDiv.textContent = "Error: Camera feed URL not configured.";
-            return;
+
+    // --- Event Listeners ---
+    startCameraButton.addEventListener('click', async () => {
+        if (isCameraActive) {
+            // Stop the camera
+            isCameraActive = false;
+            let stream = videoElement.srcObject;
+            let tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            videoElement.srcObject = null;
+            
+            videoElement.style.display = 'none';
+            canvasElement.style.display = 'none';
+            placeholderText.style.display = 'block';
+            startCameraButton.textContent = "Start Camera & Practice";
+            predictionTextElement.textContent = "Camera off. Press Start to begin.";
+
+        } else {
+            // Start the camera
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoElement.srcObject = stream;
+                videoElement.style.display = 'block';
+                canvasElement.style.display = 'block';
+                placeholderText.style.display = 'none';
+                isCameraActive = true;
+                startCameraButton.textContent = "Stop Camera";
+                startCameraButton.disabled = true; // Disable while it's starting
+
+                videoElement.onloadedmetadata = () => {
+                    startCameraButton.disabled = false;
+                    predictWebcam(); // Start the prediction loop
+                };
+
+            } catch (error) {
+                console.error("Error accessing webcam:", error);
+                predictionTextElement.textContent = "Could not access webcam. Please check permissions.";
+            }
         }
-
-        if (videoFeedImg && cameraPlaceholderDiv && videoFeedContainer) {
-            videoFeedImg.src = videoFeedUrl;
-            videoFeedImg.style.display = 'block'; 
-            cameraPlaceholderDiv.style.display = 'none'; // Hide the placeholder text
-            // The button is outside cameraPlaceholderDiv now, so no need to hide cameraPlaceholderDiv itself
-        }
-
-        if (predictionTextElement && submissionNotesTextarea && stabilityTimerTextElement && !predictionIntervalId) {
-            predictionIntervalId = setInterval(fetchPrediction, 100); 
-        }
-        if (startCameraButton) {
-            startCameraButton.disabled = true; // Disable button after starting
-            startCameraButton.textContent = "Camera Active";
-        }
-    }
-
-    if (startCameraButton) {
-        startCameraButton.addEventListener('click', startSignPractice);
-    }
-    
-    // Add hidden input to form for submitting recordedSignAttempts
-    const form = document.querySelector('form[action*="/submit"]'); // Find the submission form
-    if (form) {
-        const hiddenInput = document.createElement('input');
-        hiddenInput.type = 'hidden';
-        hiddenInput.name = 'sign_attempts_json';
-        form.appendChild(hiddenInput);
-
-        form.addEventListener('submit', function() {
-            hiddenInput.value = JSON.stringify(recordedSignAttempts);
-        });
-    }
-
-
-    // Ensure all elements are present before adding event listener or starting interval
-    if (startCameraButton && videoFeedImg && predictionTextElement && submissionNotesTextarea && stabilityTimerTextElement) {
-        // Event listener already added above
-    } else {
-        console.error("One or more critical elements for sign practice are missing from the DOM on StudentViewAssignment page.");
-    }
-
-    window.addEventListener('pagehide', function() {
-        if (predictionIntervalId) {
-            clearInterval(predictionIntervalId);
-            predictionIntervalId = null;
-            console.log("Cleared prediction interval on page hide (StudentViewAssignment).");
-        }
-        if (videoFeedImg && videoFeedImg.src !== "") {
-            videoFeedImg.src = ""; // Attempt to stop the stream
-            console.log("Cleared video feed source on page hide (StudentViewAssignment).");
-        }
-        // Optionally, could send a beacon/fetch to a server endpoint to explicitly release camera
-        // For example: navigator.sendBeacon('/release_camera_signal');
-        // But for now, relying on stream termination and server-side finally block.
     });
 
-    if (submissionNotesTextarea) {
-        submissionNotesTextarea.addEventListener('keydown', function(event) {
-            // Allow backspace, delete, arrow keys, home, end, select all (Ctrl+A)
-            if (event.key === 'Backspace' || 
-                event.key === 'Delete' || 
-                event.key.startsWith('Arrow') || // ArrowLeft, ArrowRight, ArrowUp, ArrowDown
-                event.key === 'Home' || 
-                event.key === 'End' ||
-                (event.ctrlKey && event.key.toLowerCase() === 'a')) {
-                return; // Allow default action
-            }
-            // Prevent typing other characters
-            if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
-                event.preventDefault();
-            }
-        });
-    }
+    // --- Final Setup ---
+    startCameraButton.disabled = true; // Disable until models are loaded
+    initializeModels();
 });

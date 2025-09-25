@@ -98,6 +98,73 @@
     background-color: #357ac8;
 }
 
+/* Search Form Styles */
+.search-form {
+    display: flex;
+    gap: 8px;
+}
+
+.search-form input[type="search"] {
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.95em;
+    width: 250px; /* Adjust as needed */
+}
+
+.search-form button {
+    padding: 8px 16px;
+    background-color: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.search-form button:hover {
+    background-color: #5a6268;
+}
+
+/* Pagination Styles */
+.pagination {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.pagination ul {
+    list-style: none;
+    padding: 0;
+    display: inline-flex;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 5px var(--shadow-color);
+}
+
+.pagination li a {
+    display: block;
+    padding: 10px 15px;
+    background: var(--bg-light);
+    color: var(--text-color);
+    text-decoration: none;
+    border-right: 1px solid var(--border-color);
+    transition: background-color 0.3s ease;
+}
+
+.pagination li:last-child a {
+    border-right: none;
+}
+
+.pagination li a:hover {
+    background-color: var(--bg-hover);
+}
+
+.pagination li.active a {
+    background-color: var(--primary-color);
+    color: white;
+    cursor: default;
+}
+
 
 @media (max-width: 600px) {
     .subject-card {

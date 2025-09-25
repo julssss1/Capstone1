@@ -1,17 +1,12 @@
-from flask import Response
-from . import bp  # Use . to import bp from the current package (student)
-from app.utils import login_required, role_required
-from app.sign_logic import generate_frames, get_stable_prediction
+"""
+This module is currently not in use.
+The routes for video streaming (/video_feed) and getting predictions (/get_prediction)
+have been removed because the sign recognition logic is now handled entirely
+on the client-side using JavaScript.
 
-@bp.route('/video_feed')
-@login_required
-@role_required('Student')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
+This file is kept as a placeholder in case any future routes related to
+student sign recognition are needed.
+"""
+from . import bp
 
-@bp.route('/get_prediction')
-@login_required
-@role_required('Student')
-def get_prediction():
-    prediction_data = get_stable_prediction() 
-    return Response(prediction_data, mimetype='application/json')
+# No routes are defined here anymore.

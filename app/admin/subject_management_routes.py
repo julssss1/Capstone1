@@ -1,4 +1,5 @@
 from flask import render_template, request, session, redirect, url_for, flash, current_app
+import math
 from . import bp
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
@@ -32,19 +33,45 @@ def admin_subject_management():
     print(f"Accessing Admin Subject Management BP for user: {session.get('user_name')}")
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
+    
+    # Pagination and Search parameters
+    search_query = request.args.get('search', '').strip()
+    page = request.args.get('page', 1, type=int)
+    per_page = 10  # Number of items per page
+
     subjects = []
+    total_subjects = 0
+    total_pages = 1
 
     if not supabase:
         flash('Supabase client not initialized. Cannot load subjects.', 'danger')
     else:
         try:
-            subjects_response = supabase.table('subjects') \
-                                        .select('id, name, description, profiles(id, first_name, last_name)') \
-                                        .order('name') \
-                                        .execute()
-            subjects_raw = subjects_response.data or []
+            # Base query
+            query = supabase.table('subjects').select(
+                'id, name, description, profiles(id, first_name, last_name)', 
+                count='exact' # Request total count
+            )
 
-            subjects = []
+            # Apply search filter if a query is provided
+            if search_query:
+                # Search in subject name OR teacher's first/last name
+                # Note: Supabase Python client doesn't directly support cross-table search in a single 'or'
+                # A more robust solution might involve a database function (RPC).
+                # For now, we'll filter by subject name as a primary method.
+                query = query.ilike('name', f'%{search_query}%')
+
+            # Calculate offset for pagination
+            offset = (page - 1) * per_page
+            
+            # Apply ordering and pagination
+            subjects_response = query.order('name').range(offset, offset + per_page - 1).execute()
+            
+            subjects_raw = subjects_response.data or []
+            total_subjects = subjects_response.count or 0
+            total_pages = math.ceil(total_subjects / per_page)
+
+            # Process subjects to add teacher_name
             for subject in subjects_raw:
                 teacher_profile = subject.get('profiles')
                 if teacher_profile:
@@ -64,8 +91,12 @@ def admin_subject_management():
     return render_template(
         'Admin-Subject.html',
         subjects=subjects,
-        user_name=user_name
-        )
+        user_name=user_name,
+        search_query=search_query,
+        current_page=page,
+        total_pages=total_pages,
+        per_page=per_page
+    )
 
 @bp.route('/subjects/view/<int:subject_id>')
 @login_required

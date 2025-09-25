@@ -52,7 +52,10 @@
         </header>
 
         <div class="controls-header">
-           
+            <form method="GET" action="{{ url_for('admin.admin_subject_management') }}" class="search-form">
+                <input type="search" name="search" placeholder="Search subjects..." value="{{ search_query or '' }}">
+                <button type="submit">Search</button>
+            </form>
             <a href="{{ url_for('admin.add_subject') }}" class="add-subject-btn">Add New Subject</a>
         </div>
 
@@ -73,9 +76,31 @@
                 </div>
             </div>
             {% else %}
-            <p>No subjects found.</p>
+            <p>No subjects found for the current search criteria.</p>
             {% endfor %}
         </section>
+
+        {% if total_pages > 1 %}
+        <nav class="pagination">
+            <ul>
+                {% if current_page > 1 %}
+                <li><a href="{{ url_for('admin.admin_subject_management', page=current_page-1, search=search_query) }}">« Previous</a></li>
+                {% endif %}
+
+                {% for page_num in range(1, total_pages + 1) %}
+                    {% if page_num == current_page %}
+                    <li class="active"><a href="#">{{ page_num }}</a></li>
+                    {% else %}
+                    <li><a href="{{ url_for('admin.admin_subject_management', page=page_num, search=search_query) }}">{{ page_num }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if current_page < total_pages %}
+                <li><a href="{{ url_for('admin.admin_subject_management', page=current_page+1, search=search_query) }}">Next »</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
     </main>
 
     <script src="{{ url_for('static', filename='js/admin_common.js') }}"></script>

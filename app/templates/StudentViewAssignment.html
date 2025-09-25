@@ -98,8 +98,9 @@
             <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}
                 <h3>Your Camera Feed</h3>
                  <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
-                <div class="video-feed-container">
-                    <img id="video_feed_assignment_img" data-video-feed-url="{{ url_for('student.video_feed') }}" alt="Video Feed" style="display: none;">
+                <div class="video-feed-container" style="position: relative;">
+                    <video id="webcam" autoplay playsinline style="display: none; width: 100%; transform: scaleX(-1);"></video>
+                    <canvas id="output_canvas" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1);"></canvas>
                     <p id="video_feed_placeholder_text">Click "Start Camera & Practice" to begin.</p>
                 </div>
                 <p class="camera-note-text">Ensure good lighting and clear view of your hand.</p>
@@ -110,6 +111,11 @@
         <p>Assignment details could not be loaded.</p>
         {% endif %}
     </main>
+
+    <!-- Add TensorFlow.js and MediaPipe Vision Task libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision/vision_bundle.js" crossorigin="anonymous"></script>
+
     <script src="{{ url_for('static', filename='js/student_view_assignment.js') }}"></script>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
