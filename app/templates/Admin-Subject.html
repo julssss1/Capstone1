@@ -53,7 +53,7 @@
 
         <div class="controls-header">
            
-            <a href="" class="add-subject-btn">Add New Subject</a>
+            <a href="{{ url_for('admin.add_subject') }}" class="add-subject-btn">Add New Subject</a>
         </div>
 
         <section class="subject-list">
@@ -65,9 +65,9 @@
                 </div>
                 <div class="subject-actions">
                   
-                    <a href="" class="action-btn view">View/Manage</a>
-                    <a href="" class="action-btn edit">Edit</a>
-                    <form method="POST" action="" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to delete subject '{{ subject.name }}'? This cannot be undone.">
+                    <a href="{{ url_for('admin.view_manage_subject', subject_id=subject.id) }}" class="action-btn view">View/Manage</a>
+                    <a href="{{ url_for('admin.edit_subject', subject_id=subject.id) }}" class="action-btn edit">Edit</a>
+                    <form method="POST" action="{{ url_for('admin.delete_subject', subject_id=subject.id) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to delete subject '{{ subject.name }}'? This cannot be undone.">
                         <button type="submit" class="action-btn delete">Delete</button>
                     </form>
                 </div>

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - {{ action }} Subject - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminUserManagement.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentSettings.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminUserAddEdit.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Admin Portal</span>
+        </div>
+        <nav class="navigation">
+             <ul>
+                <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.admin_user_management') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
+                <li class="active"><a href="{{ url_for('admin.admin_subject_management') }}"><i class="fas fa-book-open"></i> Subject Management</a></li>
+                <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Admin</strong></p>
+             <p>Welcome, {{ user_name | default('Admin') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <h2>{{ action }} Subject</h2>
+            <p>{{ 'Create a new subject and assign a teacher.' if action == 'Add' else 'Update the subject details.' }}</p>
+        </header>
+
+        <section class="settings-container">
+            <h2>Subject Details</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form id="subjectDetailsForm"
+                  method="POST"
+                  action="{{ url_for('admin.edit_subject', subject_id=subject.id) if action == 'Edit' else url_for('admin.add_subject') }}"
+                  class="settings-form admin-edit-form">
+
+                <div class="form-group">
+                    <label for="name">Subject Name:</label>
+                    <input type="text" id="name" name="name"
+                           value="{{ subject.name if subject else '' }}"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">Description:</label>
+                    <textarea id="description" name="description" rows="4">{{ subject.description if subject else '' }}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="teacher_id">Assign Teacher:</label>
+                    <select id="teacher_id" name="teacher_id" required>
+                        <option value="">-- Select a Teacher --</option>
+                        {% for teacher in teachers %}
+                            <option value="{{ teacher.id }}" {% if subject and subject.teacher_id == teacher.id %}selected{% endif %}>
+                                {{ teacher.display_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-actions-footer">
+                    <button type="submit" class="btn save-btn">{{ 'Save Changes' if action == 'Edit' else 'Add Subject' }}</button>
+                    <a href="{{ url_for('admin.admin_subject_management') }}" class="btn cancel-btn">Cancel</a>
+                </div>
+            </form>
+        </section>
+    </main>
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+</body>
+</html>

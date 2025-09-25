@@ -67,6 +67,68 @@ def admin_subject_management():
         user_name=user_name
         )
 
+@bp.route('/subjects/view/<int:subject_id>')
+@login_required
+@role_required('Admin')
+def view_manage_subject(subject_id):
+    """Displays a single subject and its associated lessons."""
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Admin')
+    subject = None
+    lessons = []
+
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return redirect(url_for('admin.admin_subject_management'))
+
+    try:
+        # Fetch subject details including the teacher's name
+        subject_response = supabase.table('subjects') \
+                                   .select('id, name, description, profiles(id, first_name, last_name)') \
+                                   .eq('id', subject_id) \
+                                   .maybe_single() \
+                                   .execute()
+        subject = subject_response.data
+
+        if subject:
+            teacher_profile = subject.get('profiles')
+            if teacher_profile:
+                subject['teacher_name'] = f"{teacher_profile.get('first_name', '')} {teacher_profile.get('last_name', '')}".strip()
+            else:
+                subject['teacher_name'] = "Not Assigned"
+
+            # Fetch lessons for this subject
+            lessons_response = supabase.table('lessons') \
+                                       .select('id, title, description, profiles(id, first_name, last_name)') \
+                                       .eq('subject_id', subject_id) \
+                                       .order('title') \
+                                       .execute()
+            lessons_raw = lessons_response.data or []
+            
+            for lesson in lessons_raw:
+                creator_profile = lesson.get('profiles')
+                if creator_profile:
+                    lesson['created_by_name'] = f"{creator_profile.get('first_name', '')} {creator_profile.get('last_name', '')}".strip()
+                else:
+                    lesson['created_by_name'] = "N/A"
+                lessons.append(lesson)
+
+    except Exception as e:
+        flash('An error occurred while fetching subject details.', 'danger')
+        print(f"Error fetching subject/lessons for view/manage: {e}")
+        return redirect(url_for('admin.admin_subject_management'))
+
+    if not subject:
+        flash(f"Subject with ID {subject_id} not found.", 'warning')
+        return redirect(url_for('admin.admin_subject_management'))
+
+    return render_template(
+        'AdminSubjectViewManage.html',
+        subject=subject,
+        lessons=lessons,
+        user_name=user_name
+    )
+
 @bp.route('/subject/add', methods=['GET', 'POST'])
 @login_required
 @role_required('Admin')
