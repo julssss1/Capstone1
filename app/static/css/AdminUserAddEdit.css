@@ -254,3 +254,22 @@
     display: block;
     margin-top: 4px;
 }
+
+/* Validation Styles */
+.form-group .error-message {
+    color: #dc3545; /* A standard error color (red) */
+    font-size: 0.875em;
+    margin-top: 5px;
+    display: block; /* Ensure it takes its own line */
+}
+
+.form-group input.is-invalid,
+.form-group select.is-invalid {
+    border-color: #dc3545;
+}
+
+.form-group input.is-invalid:focus,
+.form-group select.is-invalid:focus {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}

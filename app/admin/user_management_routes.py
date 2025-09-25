@@ -1,4 +1,5 @@
 from flask import render_template, request, session, redirect, url_for, flash, current_app
+import re
 from . import bp
 from app.utils import login_required, role_required
 from supabase import create_client, Client, PostgrestAPIError
@@ -151,17 +152,44 @@ def add_user():
 
         first_name = request.form.get('first_name', '').strip()
         last_name = request.form.get('last_name', '').strip()
+        middle_name = request.form.get('middle_name', '').strip()
         role = request.form.get('role')
+        
+        # --- Server-side Validation ---
+        errors = {}
+        name_regex = r"^[a-zA-Z\s'-]+$"
+        name_error_msg = "Names can only contain letters, spaces, hyphens (-), and apostrophes (')."
 
-        if not all([email, password, first_name, last_name, role]):
-            flash('Email, Password, First Name, Last Name, and Role are required.', 'warning')
-            profile_form_data = request.form.to_dict()
-            return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
+        if not first_name:
+            errors['first_name'] = 'First name is required.'
+        elif not re.match(name_regex, first_name):
+            errors['first_name'] = name_error_msg
+        
+        if not last_name:
+            errors['last_name'] = 'Last name is required.'
+        elif not re.match(name_regex, last_name):
+            errors['last_name'] = name_error_msg
 
-        if role not in ['Student', 'Teacher', 'Admin']:
-            flash('Invalid role selected.', 'danger')
+        if middle_name and not re.match(name_regex, middle_name):
+            errors['middle_name'] = name_error_msg
+        if not email:
+            errors['email'] = 'Email is required.'
+        elif not re.match(r'^[^\s@]+@[^\s@]+\.[^\s@]+$', email):
+            errors['email'] = 'Please enter a valid email address.'
+        if not password:
+            errors['password'] = 'Password is required.'
+        elif len(password) < 8:
+            errors['password'] = 'Password must be at least 8 characters long.'
+        if not role:
+            errors['role'] = 'Please select a role.'
+        elif role not in ['Student', 'Teacher', 'Admin']:
+            errors['role'] = 'Invalid role selected.'
+
+        if errors:
+            for field, msg in errors.items():
+                flash(f"{msg}", 'danger') # Flash each error
             profile_form_data = request.form.to_dict()
-            return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add")
+            return render_template('AdminUserAddEdit.html', profile=profile_form_data, user_name=user_name, action="Add", errors=errors)
 
         new_user_id = None
         display_name = f"{first_name} {last_name}"
@@ -379,13 +407,38 @@ def edit_user(user_id):
 
         display_name = f"{new_first_name} {new_last_name}"
 
-        if not new_first_name or not new_last_name or not new_role:
-            flash('First Name, Last Name, and Role are required.', 'warning')
-            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
+        # --- Server-side Validation ---
+        errors = {}
+        name_regex = r"^[a-zA-Z\s'-]+$"
+        name_error_msg = "Names can only contain letters, spaces, hyphens (-), and apostrophes (')."
 
-        if new_role not in ['Student', 'Teacher', 'Admin']:
-            flash('Invalid role selected.', 'danger')
-            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id)
+        if not new_first_name:
+            errors['first_name'] = 'First name is required.'
+        elif not re.match(name_regex, new_first_name):
+            errors['first_name'] = name_error_msg
+
+        if not new_last_name:
+            errors['last_name'] = 'Last name is required.'
+        elif not re.match(name_regex, new_last_name):
+            errors['last_name'] = name_error_msg
+            
+        if new_middle_name and not re.match(name_regex, new_middle_name):
+            errors['middle_name'] = name_error_msg
+        if not new_role:
+            errors['role'] = 'Please select a role.'
+        elif new_role not in ['Student', 'Teacher', 'Admin']:
+            errors['role'] = 'Invalid role selected.'
+        
+        # Validate new password only if it's provided
+        if new_password and len(new_password) < 8:
+            errors['new_password'] = 'Password must be at least 8 characters long.'
+
+        if errors:
+            for field, msg in errors.items():
+                flash(f"{msg}", 'danger')
+            # Repopulate form data with attempted changes
+            profile_data.update(request.form.to_dict())
+            return render_template('AdminUserAddEdit.html', profile=profile_data, user_name=user_name, action="Edit", current_user_id=current_user_id, errors=errors)
 
         try:
             update_data = {
