@@ -46,7 +46,7 @@
         <section class="content-panel">
             <div class="panel-header">
                 <h3>Lessons</h3>
-                <a href="#" class="btn add-new-btn">Add New Lesson</a>
+                <a href="{{ url_for('admin.add_lesson', subject_id=subject.id) }}" class="btn add-new-btn">Add New Lesson</a>
             </div>
             <div class="lesson-list">
                 {% if lessons %}
@@ -56,8 +56,10 @@
                         <p>{{ lesson.description | truncate(150) }}</p>
                         <p class="created-by">Created by: {{ lesson.created_by_name | default('N/A') }}</p>
                         <div class="card-actions">
-                            <a href="#" class="btn-action edit-btn"><i class="fas fa-edit"></i> Edit</a>
-                            <a href="#" class="btn-action delete-btn"><i class="fas fa-trash"></i> Delete</a>
+                            <a href="{{ url_for('admin.edit_lesson', lesson_id=lesson.id) }}" class="btn-action edit-btn"><i class="fas fa-edit"></i> Edit</a>
+                            <form method="POST" action="{{ url_for('admin.delete_lesson', lesson_id=lesson.id) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to delete the lesson '{{ lesson.title }}'? This cannot be undone.">
+                                <button type="submit" class="btn-action delete-btn"><i class="fas fa-trash"></i> Delete</button>
+                            </form>
                         </div>
                     </div>
                     {% endfor %}
@@ -68,6 +70,7 @@
             <a href="{{ url_for('admin.admin_subject_management') }}" class="btn cancel-btn" style="margin-top: 20px;">Back to Subjects</a>
         </section>
     </main>
+    <script src="{{ url_for('static', filename='js/admin_common.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

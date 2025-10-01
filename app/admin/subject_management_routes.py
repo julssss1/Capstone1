@@ -129,6 +129,181 @@ def view_manage_subject(subject_id):
         user_name=user_name
     )
 
+@bp.route('/subject/<int:subject_id>/lesson/add', methods=['GET', 'POST'])
+@login_required
+@role_required('Admin')
+def add_lesson(subject_id):
+    """Handles adding a new lesson to a specific subject."""
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Admin')
+    user_id = session.get('user_id')
+
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return redirect(url_for('admin.view_manage_subject', subject_id=subject_id))
+
+    # Fetch subject to ensure it exists and to display its name
+    try:
+        subject_response = supabase.table('subjects').select('id, name').eq('id', subject_id).maybe_single().execute()
+        subject = subject_response.data
+        if not subject:
+            flash(f"Subject with ID {subject_id} not found.", 'warning')
+            return redirect(url_for('admin.admin_subject_management'))
+    except Exception as e:
+        flash('Error fetching subject details.', 'danger')
+        print(f"Error fetching subject {subject_id} for adding lesson: {e}")
+        return redirect(url_for('admin.admin_subject_management'))
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        content = request.form.get('content', '').strip()
+
+        if not title or not content:
+            flash('Lesson Title and Content are required.', 'warning')
+            return render_template('AdminLessonAddEdit.html', subject=subject, lesson=request.form, user_name=user_name, action="Add")
+
+        try:
+            insert_response = supabase.table('lessons').insert({
+                'title': title,
+                'description': description,
+                'content': content,
+                'subject_id': subject_id,
+                'created_by': user_id
+            }).execute()
+
+            if insert_response.data:
+                flash(f"Lesson '{title}' added successfully to {subject['name']}!", "success")
+                return redirect(url_for('admin.view_manage_subject', subject_id=subject_id))
+            else:
+                flash("Failed to add lesson. Please try again.", "danger")
+                print(f"Failed Supabase lesson insert response: {insert_response}")
+
+        except PostgrestAPIError as e:
+            flash(f'Database error adding lesson: {e.message}', 'danger')
+            print(f"Supabase DB Error (Add Lesson): {e}")
+        except Exception as e:
+            flash('An unexpected error occurred adding the lesson.', 'danger')
+            print(f"Unexpected Error (Add Lesson): {e}")
+
+        return render_template('AdminLessonAddEdit.html', subject=subject, lesson=request.form, user_name=user_name, action="Add")
+
+    # For GET request
+    return render_template('AdminLessonAddEdit.html', subject=subject, lesson={}, user_name=user_name, action="Add")
+
+@bp.route('/lesson/edit/<int:lesson_id>', methods=['GET', 'POST'])
+@login_required
+@role_required('Admin')
+def edit_lesson(lesson_id):
+    """Handles editing an existing lesson."""
+    supabase: Client = current_app.supabase
+    user_name = session.get('user_name', 'Admin')
+    
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return redirect(url_for('admin.admin_subject_management'))
+
+    try:
+        # Fetch the lesson and its subject for context
+        lesson_response = supabase.table('lessons').select('*, subjects(id, name)').eq('id', lesson_id).maybe_single().execute()
+        lesson = lesson_response.data
+        if not lesson:
+            flash(f"Lesson with ID {lesson_id} not found.", 'warning')
+            return redirect(url_for('admin.admin_subject_management'))
+        
+        subject = lesson.get('subjects')
+        if not subject:
+            flash(f"Could not determine subject for lesson ID {lesson_id}.", 'danger')
+            return redirect(url_for('admin.admin_subject_management'))
+
+    except Exception as e:
+        flash('Error fetching lesson details.', 'danger')
+        print(f"Error fetching lesson {lesson_id} for edit: {e}")
+        return redirect(url_for('admin.admin_subject_management'))
+
+    if request.method == 'POST':
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
+        content = request.form.get('content', '').strip()
+
+        if not title or not content:
+            flash('Lesson Title and Content are required.', 'warning')
+            return render_template('AdminLessonAddEdit.html', subject=subject, lesson=lesson, user_name=user_name, action="Edit")
+
+        try:
+            update_data = {
+                'title': title,
+                'description': description,
+                'content': content
+            }
+            update_response = supabase.table('lessons').update(update_data).eq('id', lesson_id).execute()
+
+            if update_response.data:
+                flash(f"Lesson '{title}' updated successfully!", "success")
+                return redirect(url_for('admin.view_manage_subject', subject_id=subject['id']))
+            else:
+                flash("Failed to update lesson. It might no longer exist.", "danger")
+                print(f"Failed Supabase lesson update response: {update_response}")
+
+        except PostgrestAPIError as e:
+            flash(f'Database error updating lesson: {e.message}', 'danger')
+            print(f"Supabase DB Error (Edit Lesson {lesson_id}): {e}")
+        except Exception as e:
+            flash('An unexpected error occurred updating the lesson.', 'danger')
+            print(f"Unexpected Error (Edit Lesson {lesson_id}): {e}")
+        
+        # On failure, re-render the form with the submitted data
+        lesson.update(request.form)
+        return render_template('AdminLessonAddEdit.html', subject=subject, lesson=lesson, user_name=user_name, action="Edit")
+
+    # For GET request
+    return render_template('AdminLessonAddEdit.html', subject=subject, lesson=lesson, user_name=user_name, action="Edit")
+
+@bp.route('/lesson/delete/<int:lesson_id>', methods=['POST'])
+@login_required
+@role_required('Admin')
+def delete_lesson(lesson_id):
+    """Handles deleting a lesson."""
+    supabase: Client = current_app.supabase
+    
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return redirect(request.referrer or url_for('admin.admin_subject_management'))
+
+    # We need the subject_id to redirect back correctly.
+    # It's not passed directly, so we must fetch it from the lesson being deleted.
+    subject_id = None
+    try:
+        lesson_response = supabase.table('lessons').select('subject_id').eq('id', lesson_id).maybe_single().execute()
+        if lesson_response.data:
+            subject_id = lesson_response.data['subject_id']
+    except Exception as e:
+        print(f"Pre-delete fetch for subject_id failed for lesson {lesson_id}: {e}")
+        # Continue without subject_id, redirect will be less specific
+
+    try:
+        delete_response = supabase.table('lessons').delete().eq('id', lesson_id).execute()
+
+        if delete_response.data:
+            flash(f"Lesson ID {lesson_id} deleted successfully.", "success")
+        else:
+            flash(f"Failed to delete lesson ID {lesson_id}. It might have already been deleted.", "warning")
+            print(f"Failed Supabase lesson delete response: {delete_response}")
+
+    except PostgrestAPIError as e:
+        if 'violates foreign key constraint' in e.message:
+             flash(f'Cannot delete lesson ID {lesson_id} because it has associated data (e.g., assignments). Please remove them first.', 'danger')
+        else:
+             flash(f'Database error deleting lesson: {e.message}', 'danger')
+        print(f"Supabase DB Error (Delete Lesson {lesson_id}): {e}")
+    except Exception as e:
+        flash('An unexpected error occurred while deleting the lesson.', 'danger')
+        print(f"Unexpected Error (Delete Lesson {lesson_id}): {e}")
+
+    if subject_id:
+        return redirect(url_for('admin.view_manage_subject', subject_id=subject_id))
+    return redirect(url_for('admin.admin_subject_management'))
+
 @bp.route('/subject/add', methods=['GET', 'POST'])
 @login_required
 @role_required('Admin')
