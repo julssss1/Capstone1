@@ -62,7 +62,7 @@
             {% endif %}
         {% endwith %}
 
-        {# Lesson Content Area - Updated to use lesson_data and lesson_data.content #}
+        {# Lesson Content Area - Updated to support both images and videos #}
         <section class="lesson-content-area">
             {# Check if lesson_data exists and its content is a list #}
             {% if lesson_data and lesson_data.content and lesson_data.content is iterable and lesson_data.content is not string %}
@@ -74,14 +74,28 @@
                     {# Loop through items within the lesson_data.content JSON #}
                     {% for item in lesson_data.content %}
                     <div class="lesson-item-card">
-                        {# Assuming each item in content has 'image_filename', 'name', 'description' #}
-                        {# Corrected path: Images are directly in app/static/Images/ #}
-                        {% set image_path = 'Images/' + item.image_filename if item.image_filename else '' %}
-                        {% if image_path %}
-                            <img src="{{ url_for('static', filename=image_path) }}" alt="{{ item.name | default('Lesson Item') }}">
-                        {% else %}
-                            <div class="image-placeholder">No Image</div>
+                        {# Display image if available #}
+                        {% if item.image_url %}
+                            <img src="{{ item.image_url }}" alt="{{ item.name | default('Lesson Item') }}">
+                        {% elif item.image_filename %}
+                            <img src="{{ url_for('static', filename='Images/' + item.image_filename) }}" alt="{{ item.name | default('Lesson Item') }}">
+                        {% elif item.media_url and not item.video_url %}
+                            <img src="{{ item.media_url }}" alt="{{ item.name | default('Lesson Item') }}">
                         {% endif %}
+                        
+                        {# Display video if available #}
+                        {% if item.video_url %}
+                            <video controls>
+                                <source src="{{ item.video_url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                        {% endif %}
+                        
+                        {# Show placeholder if no media at all #}
+                        {% if not item.image_url and not item.image_filename and not item.media_url and not item.video_url %}
+                            <div class="image-placeholder">No Media</div>
+                        {% endif %}
+                        
                         <div class="item-info">
                             <h3>{{ item.name | default('Unnamed Item') }}</h3>
                             {% if item.description %}

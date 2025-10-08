@@ -1,7 +1,11 @@
-from flask import render_template, request, session, redirect, url_for, flash, current_app
+from flask import render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from . import bp
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
+from werkzeug.utils import secure_filename
+import os
+import uuid
+import json
 
 def _get_teachers(supabase: Client):
     """Helper function to fetch teachers for dropdowns."""
@@ -157,10 +161,17 @@ def add_lesson(subject_id):
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        content = request.form.get('content', '').strip()
+        content_json = request.form.get('content_json', '').strip()
 
-        if not title or not content:
-            flash('Lesson Title and Content are required.', 'warning')
+        if not title:
+            flash('Lesson Title is required.', 'warning')
+            return render_template('AdminLessonAddEdit.html', subject=subject, lesson=request.form, user_name=user_name, action="Add")
+
+        # Parse content JSON
+        try:
+            content = json.loads(content_json) if content_json else []
+        except json.JSONDecodeError:
+            flash('Invalid content format.', 'danger')
             return render_template('AdminLessonAddEdit.html', subject=subject, lesson=request.form, user_name=user_name, action="Add")
 
         try:
@@ -224,10 +235,17 @@ def edit_lesson(lesson_id):
     if request.method == 'POST':
         title = request.form.get('title', '').strip()
         description = request.form.get('description', '').strip()
-        content = request.form.get('content', '').strip()
+        content_json = request.form.get('content_json', '').strip()
 
-        if not title or not content:
-            flash('Lesson Title and Content are required.', 'warning')
+        if not title:
+            flash('Lesson Title is required.', 'warning')
+            return render_template('AdminLessonAddEdit.html', subject=subject, lesson=lesson, user_name=user_name, action="Edit")
+
+        # Parse content JSON
+        try:
+            content = json.loads(content_json) if content_json else []
+        except json.JSONDecodeError:
+            flash('Invalid content format.', 'danger')
             return render_template('AdminLessonAddEdit.html', subject=subject, lesson=lesson, user_name=user_name, action="Edit")
 
         try:
@@ -303,6 +321,71 @@ def delete_lesson(lesson_id):
     if subject_id:
         return redirect(url_for('admin.view_manage_subject', subject_id=subject_id))
     return redirect(url_for('admin.admin_subject_management'))
+
+@bp.route('/lesson/upload-media', methods=['POST'])
+@login_required
+@role_required('Admin')
+def upload_lesson_media():
+    """Handles uploading images and videos to Supabase Storage."""
+    supabase: Client = current_app.supabase
+    
+    if not supabase:
+        return jsonify({'success': False, 'error': 'Supabase client not initialized.'}), 500
+
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file provided.'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected.'}), 400
+
+    # Validate file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'mp4', 'webm', 'mov'}
+    file_ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else ''
+    
+    if file_ext not in allowed_extensions:
+        return jsonify({'success': False, 'error': 'Invalid file type. Allowed: images (png, jpg, jpeg, gif) and videos (mp4, webm, mov).'}), 400
+
+    try:
+        # Generate unique filename
+        unique_filename = f"{uuid.uuid4()}_{secure_filename(file.filename)}"
+        file_path = f"lessons/{unique_filename}"
+        
+        # Read file content
+        file_content = file.read()
+        
+        # Determine content type
+        content_type_map = {
+            'png': 'image/png',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'gif': 'image/gif',
+            'mp4': 'video/mp4',
+            'webm': 'video/webm',
+            'mov': 'video/quicktime'
+        }
+        content_type = content_type_map.get(file_ext, 'application/octet-stream')
+        
+        # Upload to Supabase Storage
+        storage_response = supabase.storage.from_('lesson-media').upload(
+            file_path,
+            file_content,
+            {'content-type': content_type}
+        )
+        
+        # Get public URL
+        public_url = supabase.storage.from_('lesson-media').get_public_url(file_path)
+        
+        return jsonify({
+            'success': True,
+            'url': public_url,
+            'filename': unique_filename,
+            'type': 'image' if file_ext in {'png', 'jpg', 'jpeg', 'gif'} else 'video'
+        })
+        
+    except Exception as e:
+        print(f"Error uploading file: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @bp.route('/subject/add', methods=['GET', 'POST'])
 @login_required
