@@ -55,37 +55,39 @@ function addLessonItem(existingData = null) {
             </div>
         </div>
         
-        <div class="form-group">
-            <label>Upload Image</label>
-            <div class="file-input-wrapper">
-                <label for="image-${itemId}" class="file-input-label">
-                    <i class="fas fa-image"></i> Choose Image
-                </label>
-                <input type="file" id="image-${itemId}" class="item-image-file" accept="image/*" onchange="handleImageUpload(this, '${itemId}')">
-                <span class="image-file-name" style="margin-left: 10px; font-size: 14px;">No file chosen</span>
+        <div class="media-uploads-row">
+            <div class="form-group media-upload-section">
+                <label>Upload Image</label>
+                <div class="file-input-wrapper">
+                    <label for="image-${itemId}" class="file-input-label">
+                        <i class="fas fa-image"></i> Choose Image
+                    </label>
+                    <input type="file" id="image-${itemId}" class="item-image-file" accept="image/*" onchange="handleImageUpload(this, '${itemId}')">
+                    <span class="image-file-name" style="margin-left: 10px; font-size: 14px;">No file chosen</span>
+                </div>
+                <div class="image-upload-status" style="display: none;">Uploading...</div>
+                <div class="image-upload-error" style="display: none;"></div>
+                <input type="hidden" class="item-image-url" value="${mediaUrl || imageFilename || existingData?.image_url || ''}">
+                <div class="image-preview">
+                    ${(mediaUrl && !videoUrl) || imageFilename || existingData?.image_url ? `<img src="${existingData?.image_url || mediaUrl || '/static/Images/' + imageFilename}" alt="Preview">` : ''}
+                </div>
             </div>
-            <div class="image-upload-status" style="display: none;">Uploading...</div>
-            <div class="image-upload-error" style="display: none;"></div>
-            <input type="hidden" class="item-image-url" value="${mediaUrl || imageFilename || existingData?.image_url || ''}">
-            <div class="image-preview">
-                ${(mediaUrl && !videoUrl) || imageFilename || existingData?.image_url ? `<img src="${existingData?.image_url || mediaUrl || '/static/Images/' + imageFilename}" alt="Preview">` : ''}
-            </div>
-        </div>
-        
-        <div class="form-group">
-            <label>Upload Video (Optional)</label>
-            <div class="file-input-wrapper">
-                <label for="video-${itemId}" class="file-input-label">
-                    <i class="fas fa-video"></i> Choose Video
-                </label>
-                <input type="file" id="video-${itemId}" class="item-video-file" accept="video/*" onchange="handleVideoUpload(this, '${itemId}')">
-                <span class="video-file-name" style="margin-left: 10px; font-size: 14px;">No file chosen</span>
-            </div>
-            <div class="video-upload-status" style="display: none;">Uploading...</div>
-            <div class="video-upload-error" style="display: none;"></div>
-            <input type="hidden" class="item-video-url" value="${videoUrl || existingData?.video_url || ''}">
-            <div class="video-preview">
-                ${videoUrl || existingData?.video_url ? `<video controls src="${videoUrl || existingData?.video_url}"></video>` : ''}
+            
+            <div class="form-group media-upload-section">
+                <label>Upload Video (Optional)</label>
+                <div class="file-input-wrapper">
+                    <label for="video-${itemId}" class="file-input-label">
+                        <i class="fas fa-video"></i> Choose Video
+                    </label>
+                    <input type="file" id="video-${itemId}" class="item-video-file" accept="video/*" onchange="handleVideoUpload(this, '${itemId}')">
+                    <span class="video-file-name" style="margin-left: 10px; font-size: 14px;">No file chosen</span>
+                </div>
+                <div class="video-upload-status" style="display: none;">Uploading...</div>
+                <div class="video-upload-error" style="display: none;"></div>
+                <input type="hidden" class="item-video-url" value="${videoUrl || existingData?.video_url || ''}">
+                <div class="video-preview">
+                    ${videoUrl || existingData?.video_url ? `<video controls src="${videoUrl || existingData?.video_url}"></video>` : ''}
+                </div>
             </div>
         </div>
     `;

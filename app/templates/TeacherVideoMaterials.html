@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ lesson_data.title | default('Lesson View') }} - Handspoken CAES</title>
+    <title>Online Video Materials - Handspoken</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentLessonView.css') }}"> {# Can reuse student's or create teacher's own #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentVideoMaterials.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 </head>
@@ -14,6 +13,7 @@
     <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
         <i class="fas fa-bars"></i>
     </button>
+
     <aside class="side-menu">
         <div class="brand-logo">
            <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
@@ -38,12 +38,12 @@
 
     <main class="main-content">
         <header class="page-header">
-            <h2>{{ subject_name | default('Lesson Content') }}: {{ lesson_data.title | default('Lesson') }}</h2>
-            {# Back button to the manage content page for the subject #}
+            <div>
+                <h2><i class="fa-solid fa-video"></i> {{ lesson_title | default('Online Video Materials') }}</h2>
+                <p>{{ subject_name }}</p>
+            </div>
             {% if subject_id %}
-            <a href="{{ url_for('teacher.manage_subject_content', subject_id=subject_id) }}" class="back-button">&larr; Back to {{ subject_name }} Content</a>
-            {% else %}
-            <a href="{{ url_for('teacher.teacher_lessons') }}" class="back-button">&larr; Back to My Subjects</a>
+            <a href="{{ url_for('teacher.manage_subject_content', subject_id=subject_id) }}" class="back-button">&larr; Back to Lessons</a>
             {% endif %}
         </header>
 
@@ -55,43 +55,43 @@
             {% endif %}
         {% endwith %}
 
-        <section class="lesson-content-area">
-            {% if lesson_data and lesson_data.content and lesson_data.content is iterable and lesson_data.content is not string %}
-                {% if lesson_data.description %}<p class="lesson-description">{{ lesson_data.description }}</p>{% endif %}
+        <section class="video-materials-section">
+            {% if video_materials %}
+                <div class="video-count">
+                    <p><i class="fas fa-play-circle"></i> {{ video_materials|length }} video{{ 's' if video_materials|length != 1 else '' }} available</p>
+                </div>
 
-                <div class="lesson-items-grid">
-                    {% for item in lesson_data.content %}
-                    {# Only show items that have images (skip video-only items) #}
-                    {% if item.image_url or (item.media_url and not item.video_url) %}
-                    <div class="content-item">
-                        <h4>{{ item.name }}</h4>
-                        {% if item.description %}
-                        <p class="item-description">{{ item.description }}</p>
-                        {% endif %}
-                        
-                        {# Display image if available #}
-                        {% if item.image_url %}
-                        <div class="media-container">
-                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="content-image">
+                <div class="videos-grid">
+                    {% for video in video_materials %}
+                    <div class="video-card">
+                        <div class="video-player-wrapper">
+                            <video controls preload="metadata">
+                                <source src="{{ video.video_url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            {% if video.image_url %}
+                            <div class="video-thumbnail" style="background-image: url('{{ video.image_url }}');"></div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                        
-                        {# Fallback for old media_url field (only if no video) #}
-                        {% if item.media_url and not item.image_url and not item.video_url %}
-                        <div class="media-container">
-                            <img src="{{ item.media_url }}" alt="{{ item.name }}" class="content-image">
+                        <div class="video-info">
+                            <h3>{{ video.item_name }}</h3>
+                            {% if video.description %}
+                            <p class="video-description">{{ video.description }}</p>
+                            {% endif %}
                         </div>
-                        {% endif %}
                     </div>
-                    {% endif %}
                     {% endfor %}
                 </div>
             {% else %}
-                <p>No lesson content available or it's not formatted correctly.</p>
-                {# Optionally, add an edit button here for teachers #}
+                <div class="empty-state">
+                    <i class="fas fa-video-slash"></i>
+                    <h3>No Video Materials Available</h3>
+                    <p>There are currently no video materials uploaded for this lesson.</p>
+                </div>
             {% endif %}
         </section>
     </main>
+
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>

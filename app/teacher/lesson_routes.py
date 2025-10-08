@@ -185,3 +185,56 @@ def view_lesson_content_teacher(lesson_id):
         subject_id=subject_id_for_back_link,
         user_name=user_name
     )
+
+@bp.route('/lesson/<int:lesson_id>/videos')
+@login_required
+@role_required('Teacher')
+def lesson_video_materials_teacher(lesson_id):
+    """Display video materials for a specific lesson (teacher view)"""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    video_materials = []
+    lesson_title = "Lesson Videos"
+    subject_name = ""
+    subject_id = None
+    
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    if not supabase:
+        flash('Database connection not available.', 'danger')
+        return render_template('TeacherVideoMaterials.html', user_name=user_name, video_materials=video_materials, lesson_title=lesson_title, subject_name=subject_name, subject_id=subject_id)
+    
+    try:
+        # Fetch the specific lesson with its subject, checking teacher ownership
+        lesson_res = supabase.table('lessons').select('id, title, description, content, subject_id, subjects!inner(id, name, teacher_id)').eq('id', lesson_id).eq('subjects.teacher_id', teacher_id).maybe_single().execute()
+        
+        if not (lesson_res and lesson_res.data):
+            flash('Lesson not found or you do not have permission to view it.', 'warning')
+            return redirect(url_for('teacher.teacher_lessons'))
+        
+        lesson = lesson_res.data
+        lesson_title = lesson.get('title', 'Untitled Lesson')
+        subject_data = lesson.get('subjects')
+        if subject_data:
+            subject_name = subject_data.get('name', 'Unknown Subject')
+            subject_id = lesson.get('subject_id')
+        
+        if lesson.get('content') and isinstance(lesson['content'], list):
+            # Extract only items that have video_url
+            for item in lesson['content']:
+                if item.get('video_url'):
+                    video_materials.append({
+                        'item_name': item.get('name', 'Unnamed Video'),
+                        'description': item.get('description', ''),
+                        'video_url': item['video_url'],
+                        'image_url': item.get('image_url') or item.get('media_url')  # Optional thumbnail
+                    })
+        
+    except Exception as e:
+        flash(f"Error loading video materials: {e}", 'danger')
+        print(f"Error in lesson_video_materials_teacher route: {e}")
+    
+    return render_template('TeacherVideoMaterials.html', user_name=user_name, video_materials=video_materials, lesson_title=lesson_title, subject_name=subject_name, subject_id=subject_id)

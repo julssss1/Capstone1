@@ -62,10 +62,10 @@
                         {# Teacher view might not need progress, or a different kind of status #}
                     </div>
                     <div class="lesson-details">
-                        <a href="{{ url_for('teacher.view_lesson_content_teacher', lesson_id=lesson.id) }}" class="lesson-link"> {# Assuming a teacher-specific view route #}
+                        <a href="{{ url_for('teacher.view_lesson_content_teacher', lesson_id=lesson.id) }}" class="lesson-link">
                             <i class="fas fa-book-open"></i> Lesson Overview {{ loop.index }}
                         </a>
-                        <a href="#" class="lesson-link disabled">
+                        <a href="{{ url_for('teacher.lesson_video_materials_teacher', lesson_id=lesson.id) }}" class="lesson-link">
                             <i class="fas fa-video"></i> Online Video Material {{ loop.index }}
                         </a>
                         {# Display all linked assignments for this lesson #}
