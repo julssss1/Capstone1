@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Video Materials - Handspoken</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentVideoMaterials.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Student Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('student.student_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li class="active"><a href="{{ url_for('student.student_progress') }}"><i class="fa-solid fa-book"></i> My Progress</a></li>
+                <li><a href="{{ url_for('student.student_assignment') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li><a href="{{ url_for('student.student_account_profile') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                <li><a href="#"><i class="fa-solid fa-headset"></i> Help & Support</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Student</strong></p>
+             <p>Welcome, {{ user_name | default('Student') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="page-header">
+            <div>
+                <h2><i class="fa-solid fa-video"></i> {{ lesson_title | default('Online Video Materials') }}</h2>
+                <p>{{ subject_name }}</p>
+            </div>
+            {% if subject_id %}
+            <a href="{{ url_for('student.view_subject_lessons', subject_id=subject_id) }}" class="back-button">&larr; Back to Lessons</a>
+            {% endif %}
+        </header>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <section class="video-materials-section">
+            {% if video_materials %}
+                <div class="video-count">
+                    <p><i class="fas fa-play-circle"></i> {{ video_materials|length }} video{{ 's' if video_materials|length != 1 else '' }} available</p>
+                </div>
+
+                <div class="videos-grid">
+                    {% for video in video_materials %}
+                    <div class="video-card">
+                        <div class="video-player-wrapper">
+                            <video controls preload="metadata">
+                                <source src="{{ video.video_url }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            {% if video.image_url %}
+                            <div class="video-thumbnail" style="background-image: url('{{ video.image_url }}');"></div>
+                            {% endif %}
+                        </div>
+                        <div class="video-info">
+                            <h3>{{ video.item_name }}</h3>
+                            <div class="video-meta">
+                                <span class="subject-badge">
+                                    <i class="fas fa-book"></i> {{ video.subject_name }}
+                                </span>
+                                <span class="lesson-title">
+                                    <i class="fas fa-graduation-cap"></i> {{ video.lesson_title }}
+                                </span>
+                            </div>
+                            {% if video.description %}
+                            <p class="video-description">{{ video.description }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-video-slash"></i>
+                    <h3>No Video Materials Available</h3>
+                    <p>There are currently no video materials uploaded. Check back later or contact your teacher.</p>
+                </div>
+            {% endif %}
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+</body>
+</html>

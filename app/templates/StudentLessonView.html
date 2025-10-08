@@ -73,36 +73,29 @@
                 <div class="lesson-items-grid">
                     {# Loop through items within the lesson_data.content JSON #}
                     {% for item in lesson_data.content %}
-                    <div class="lesson-item-card">
+                    {# Only show items that have images (skip video-only items) #}
+                    {% if item.image_url or (item.media_url and not item.video_url) %}
+                    <div class="content-item">
+                        <h4>{{ item.name }}</h4>
+                        {% if item.description %}
+                        <p class="item-description">{{ item.description }}</p>
+                        {% endif %}
+                        
                         {# Display image if available #}
                         {% if item.image_url %}
-                            <img src="{{ item.image_url }}" alt="{{ item.name | default('Lesson Item') }}">
-                        {% elif item.image_filename %}
-                            <img src="{{ url_for('static', filename='Images/' + item.image_filename) }}" alt="{{ item.name | default('Lesson Item') }}">
-                        {% elif item.media_url and not item.video_url %}
-                            <img src="{{ item.media_url }}" alt="{{ item.name | default('Lesson Item') }}">
-                        {% endif %}
-                        
-                        {# Display video if available #}
-                        {% if item.video_url %}
-                            <video controls>
-                                <source src="{{ item.video_url }}" type="video/mp4">
-                                Your browser does not support the video tag.
-                            </video>
-                        {% endif %}
-                        
-                        {# Show placeholder if no media at all #}
-                        {% if not item.image_url and not item.image_filename and not item.media_url and not item.video_url %}
-                            <div class="image-placeholder">No Media</div>
-                        {% endif %}
-                        
-                        <div class="item-info">
-                            <h3>{{ item.name | default('Unnamed Item') }}</h3>
-                            {% if item.description %}
-                                <p>{{ item.description }}</p>
-                            {% endif %}
+                        <div class="media-container">
+                            <img src="{{ item.image_url }}" alt="{{ item.name }}" class="content-image">
                         </div>
+                        {% endif %}
+                        
+                        {# Fallback for old media_url field (only if no video) #}
+                        {% if item.media_url and not item.image_url and not item.video_url %}
+                        <div class="media-container">
+                            <img src="{{ item.media_url }}" alt="{{ item.name }}" class="content-image">
+                        </div>
+                        {% endif %}
                     </div>
+                    {% endif %}
                     {% endfor %}
                 </div>
             {% else %}

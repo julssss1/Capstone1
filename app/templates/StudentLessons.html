@@ -80,7 +80,7 @@
                             <i class="fas fa-book-open"></i> Lesson Overview {{ loop.index }}
                         </a>
                         {# Placeholder links for Video and Assignment - Update URLs if these exist #}
-                        <a href="#" class="lesson-link disabled"> {# Add 'disabled' class if not implemented #}
+                        <a href="{{ url_for('student.lesson_video_materials', lesson_id=lesson.id) }}" class="lesson-link">
                             <i class="fas fa-video"></i> Online Video Material {{ loop.index }}
                         </a>
                         {# Display linked assignments for this lesson #}
