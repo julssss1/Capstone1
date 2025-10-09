@@ -80,16 +80,6 @@
             </div>
             {% endif %}
 
-            {# File display logic - assuming file_path is not in submissions table for now
-            {% if submission.file_path %} ... {% else %} ... {% endif %}
-            #}
-            <div class="submitted-content-section">
-                <h4>Submitted File:</h4>
-                <div class="submitted-files">
-                     <p><em>File display logic to be implemented if file_path is stored.</em></p>
-                </div>
-            </div>
-
             <hr class="feedback-separator">
 
             <form method="POST" action="{{ url_for('teacher.update_submission_feedback', submission_id=submission.id) }}" class="feedback-form">

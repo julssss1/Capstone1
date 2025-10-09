@@ -76,7 +76,7 @@
         <div class="practice-and-camera-section"> {# New parent flex container for side-by-side modules #}
             <section class="assignment-detail-card practice-submission-module"> {# Module 1: Practice & Submission #}
                 <h3>Practice & Submit</h3>
-                <p>Use the camera to practice. Stable signs appear in notes. Upload a file if needed.</p>
+                <p>Use the camera to practice. Stable signs appear in notes.</p>
                 <div class="prediction-area">
                     <h4>Current Prediction</h4>
                     <div id="prediction_text" data-get-prediction-url="{{ url_for('student.get_prediction') }}">
@@ -87,10 +87,6 @@
                 <div class="form-group">
                     <label for="submission-notes">Notes (Signs practiced will appear here):</label>
                     <textarea id="submission-notes" name="submission_notes" placeholder="Recognized signs will appear here..." {{ 'disabled' if is_past_due }}></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="submission-file">Upload File (Optional):</label>
-                    <input type="file" id="submission-file" name="submission_file" {{ 'disabled' if is_past_due }}>
                 </div>
                 <button type="submit" class="submit-button" {{ 'disabled' if is_past_due }}>Submit Assignment</button>
             </section>

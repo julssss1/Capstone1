@@ -225,21 +225,37 @@ def update_profile():
 @role_required('Student')
 def change_password():
     new_password = request.form.get('new_password')
+    confirm_password = request.form.get('confirm_password')
     supabase: Client = current_app.supabase
     access_token = session.get('access_token') 
 
+    # Validate new password
     if not new_password or len(new_password) < 6:
         flash('New password must be at least 6 characters long.', 'danger')
         return redirect(url_for('student.student_edit_account_settings'))
+    
+    # Validate password confirmation
+    if not confirm_password:
+        flash('Please confirm your new password.', 'danger')
+        return redirect(url_for('student.student_edit_account_settings'))
+    
+    # Check if passwords match
+    if new_password != confirm_password:
+        flash('Passwords do not match. Please try again.', 'danger')
+        return redirect(url_for('student.student_edit_account_settings'))
+    
+    # Validate session
     if not access_token or not supabase: 
         flash('Session or connection error. Please re-login.', 'danger')
         return redirect(url_for('auth.login'))
 
     try:
+        # Update password using Supabase Auth API
+        # No need for old password - Supabase handles this with the access token
         supabase.auth.update_user({"password": new_password}) 
         flash('Password updated successfully!', 'success')
     except Exception as e:
-        flash(f'Error updating password: {e}', 'danger')
+        flash(f'Error updating password: {str(e)}', 'danger')
         print(f"Password update error: {e}")
 
     return redirect(url_for('student.student_edit_account_settings'))

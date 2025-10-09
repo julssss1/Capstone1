@@ -90,16 +90,18 @@
              </div>
 
             <div class="settings-section password-section">
-                <form action="{{ url_for('student.change_password') }}" method="post" class="settings-form">
+                <form id="passwordChangeForm" action="{{ url_for('student.change_password') }}" method="post" class="settings-form">
                      <label class="password-section-label">Change password:</label>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="current_password">Old Password:</label>
-                            <input type="password" id="current_password" name="current_password" placeholder="Enter current password" required>
+                            <label for="new_password">New Password:</label>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (min. 6 characters)" required minlength="6">
+                            <small class="password-hint">Password must be at least 6 characters long</small>
                         </div>
                         <div class="form-group">
-                            <label for="new_password">New Password:</label>
-                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password" required>
+                            <label for="confirm_password">Confirm New Password:</label>
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required minlength="6">
+                            <small class="password-hint" id="password-match-message"></small>
                         </div>
                     </div>
                     <div class="form-actions">

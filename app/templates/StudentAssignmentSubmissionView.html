@@ -90,25 +90,6 @@
             </div>
             {% endif %}
 
-            {% if submission.file_path %}
-            <div class="submitted-content-section">
-                <h4>Your Submitted File:</h4>
-                <div class="submitted-files">
-                    <ul>
-                        {# Use submission.file_url which is constructed in the route #}
-                        <li><a href="{{ submission.file_url | default('#') }}" target="_blank"><i class="fas fa-file-alt"></i> {{ submission.file_path.split('/')[-1] }}</a></li>
-                    </ul>
-                </div>
-            </div>
-            {% else %}
-            <div class="submitted-content-section">
-                <h4>Your Submitted File:</h4>
-                <div class="submitted-files">
-                     <p><em>No file was submitted for this assignment.</em></p>
-                </div>
-            </div>
-            {% endif %}
-
             {% if submission.feedback %}
             <div class="submitted-content-section teacher-feedback-section">
                 <h4>Teacher's Feedback:</h4>
