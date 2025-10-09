@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         const defaultOption = document.createElement('option');
         defaultOption.value = '';
-        defaultOption.textContent = 'Select Lesson (Optional)';
+        defaultOption.textContent = 'Select Lesson';
         lessonSelect.appendChild(defaultOption);
 
         if (lessons && lessons.length > 0) {

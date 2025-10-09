@@ -198,3 +198,60 @@ def teacher_assignment_list():
         assignments_with_counts=assignments_with_counts,
         user_name=user_name
     )
+
+@bp.route('/assignment/update-due-date/<int:assignment_id>', methods=['POST'])
+@login_required
+@role_required('Teacher')
+def update_assignment_due_date(assignment_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    if not teacher_id:
+        return {'success': False, 'message': 'User session invalid.'}, 401
+    
+    if not supabase:
+        return {'success': False, 'message': 'Database connection error.'}, 500
+    
+    new_due_date = request.json.get('due_date')
+    
+    if not new_due_date:
+        return {'success': False, 'message': 'Due date is required.'}, 400
+    
+    try:
+        # First, verify the teacher owns this assignment through their subjects
+        assignment_response = supabase.table('assignments') \
+                                     .select('id, subject_id') \
+                                     .eq('id', assignment_id) \
+                                     .maybe_single() \
+                                     .execute()
+        
+        if not assignment_response.data:
+            return {'success': False, 'message': 'Assignment not found.'}, 404
+        
+        # Verify teacher owns the subject
+        subject_response = supabase.table('subjects') \
+                                   .select('id') \
+                                   .eq('id', assignment_response.data['subject_id']) \
+                                   .eq('teacher_id', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not subject_response.data:
+            return {'success': False, 'message': 'Unauthorized to update this assignment.'}, 403
+        
+        # Update the due date
+        update_response = supabase.table('assignments') \
+                                 .update({'due_date': new_due_date}) \
+                                 .eq('id', assignment_id) \
+                                 .execute()
+        
+        if update_response.data:
+            return {'success': True, 'message': 'Due date updated successfully.', 'new_due_date': new_due_date}, 200
+        else:
+            return {'success': False, 'message': 'Failed to update due date.'}, 500
+            
+    except PostgrestAPIError as e:
+        return {'success': False, 'message': f'Database error: {e.message}'}, 500
+    except Exception as e:
+        print(f"Error updating due date for assignment {assignment_id}: {e}")
+        return {'success': False, 'message': 'An unexpected error occurred.'}, 500

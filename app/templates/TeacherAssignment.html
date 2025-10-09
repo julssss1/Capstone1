@@ -77,11 +77,11 @@
                 </div>
 
                 <div class="form-group" id="lesson-group" {% if not lessons_for_subject %}style="display:none;"{% endif %}>
-                    <label for="assignment-lesson">Lesson (Optional)</label>
+                    <label for="assignment-lesson">Lesson</label>
                     <select id="assignment-lesson" name="lesson_id"
                             data-lessons='{{ (lessons_for_subject if lessons_for_subject is not none else [])|tojson|safe }}'
                             data-pre-selected-lesson-id='{{ pre_selected_lesson_id|tojson|safe }}'>
-                        <option value="" selected>Select Lesson (Optional)</option>
+                        <option value="" selected>Select Lesson</option>
                         {% if lessons_for_subject %}
                             {% for lesson in lessons_for_subject %}
                                 <option value="{{ lesson.id }}" {% if lesson.id == pre_selected_lesson_id %}selected{% endif %}>{{ lesson.title }}</option>
@@ -93,11 +93,6 @@
                  <div class="form-group">
                     <label for="assignment-due-date">Due Date</label>
                     <input type="date" id="assignment-due-date" name="due_date" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="assignment-file">Attach File (Optional)</label>
-                    <input type="file" id="assignment-file" name="assignment_file">
                 </div>
 
                 <div class="form-actions">

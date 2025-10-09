@@ -242,3 +242,64 @@
         padding: 10px;
     }
 }
+
+/* Due Date Editing Styles */
+.due-date-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.due-date-display {
+    min-width: 100px;
+}
+
+.due-date-input {
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.edit-due-date-btn,
+.save-due-date-btn,
+.cancel-due-date-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    font-size: 14px;
+}
+
+.edit-due-date-btn {
+    color: #007bff;
+}
+
+.edit-due-date-btn:hover {
+    background-color: #e7f3ff;
+}
+
+.save-due-date-btn {
+    color: #28a745;
+}
+
+.save-due-date-btn:hover {
+    background-color: #e8f5e9;
+}
+
+.cancel-due-date-btn {
+    color: #dc3545;
+}
+
+.cancel-due-date-btn:hover {
+    background-color: #fde8ea;
+}
+
+.edit-due-date-btn:disabled,
+.save-due-date-btn:disabled,
+.cancel-due-date-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

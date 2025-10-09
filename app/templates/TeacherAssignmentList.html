@@ -75,7 +75,15 @@
                         <td>{{ item.subject_name | default('N/A') }}</td>
                         <td>{{ item.lesson_name | default('N/A') }}</td>
                         <td>{{ item.submission_count }}</td>
-                        <td>{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else (item.assignment.due_date if item.assignment.due_date else 'N/A') }}</td>
+                        <td>
+                            <div class="due-date-cell" data-assignment-id="{{ item.assignment.id }}">
+                                <span class="due-date-display">{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else (item.assignment.due_date if item.assignment.due_date else 'N/A') }}</span>
+                                <input type="date" class="due-date-input" value="{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else '' }}" style="display: none;">
+                                <button class="edit-due-date-btn" title="Edit Due Date"><i class="fas fa-edit"></i></button>
+                                <button class="save-due-date-btn" style="display: none;" title="Save"><i class="fas fa-save"></i></button>
+                                <button class="cancel-due-date-btn" style="display: none;" title="Cancel"><i class="fas fa-times"></i></button>
+                            </div>
+                        </td>
                         <td>
                             {# Updated link to point to the new route for viewing submissions for a specific assignment #}
                             <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=item.assignment.id) }}" class="action-btn">View Submissions</a>
@@ -92,5 +100,6 @@
         </section>
     </main>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/teacher_assignment_list.js') }}"></script>
 </body>
 </html>
