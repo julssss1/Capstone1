@@ -119,6 +119,52 @@ def login():
     # GET request
     return render_template('loginpage.html')
 
+@bp.route('/forgot-password', methods=['POST'])
+def forgot_password():
+    """Handle forgot password requests"""
+    from flask import jsonify, request
+    
+    supabase: Client = current_app.supabase
+    
+    if not supabase:
+        return jsonify({'error': 'Service unavailable'}), 503
+    
+    data = request.get_json()
+    email = data.get('email', '').strip().lower()
+    
+    if not email:
+        return jsonify({'error': 'Email is required'}), 400
+    
+    try:
+        # Verify if user exists using the RPC function
+        user_check = supabase.rpc('get_user_by_email', {'email_param': email}).execute()
+        
+        if not user_check.data or len(user_check.data) == 0:
+            return jsonify({'error': 'No account found with this email address. Please check your email and try again.'}), 404
+        
+        # Create password reset request
+        request_data = {
+            'email': email,
+            'user_id': user_check.data[0]['id'],
+            'status': 'pending'
+        }
+        
+        reset_request = supabase.table('password_reset_requests').insert(request_data).execute()
+        
+        if reset_request.data:
+            return jsonify({
+                'message': 'Password reset request submitted successfully. An admin will review your request shortly.'
+            }), 200
+        else:
+            return jsonify({'error': 'Failed to create reset request'}), 500
+            
+    except PostgrestAPIError as e:
+        print(f"Database error creating reset request: {e}")
+        return jsonify({'error': 'Database error occurred'}), 500
+    except Exception as e:
+        print(f"Unexpected error creating reset request: {e}")
+        return jsonify({'error': 'An unexpected error occurred'}), 500
+
 @bp.route('/logout')
 # @login_required # Removed decorator
 def logout():

@@ -158,6 +158,15 @@
                     <button type="submit" class="btn delete-btn">Delete User</button>
                 </form>
                 {% endif %}
+                
+                {# Show Complete Reset button if there's a pending reset request #}
+                {% if session.get('pending_reset_request_id') %}
+                <a href="{{ url_for('admin.complete_password_reset', request_id=session.get('pending_reset_request_id')) }}" 
+                   class="btn complete-reset-btn">
+                    <i class="fas fa-check-circle"></i> Complete Password Reset
+                </a>
+                {% endif %}
+                
                 <a href="{{ url_for('admin.admin_user_management') }}" class="btn cancel-btn">Cancel</a>
             </div>
         </section>

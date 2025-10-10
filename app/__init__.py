@@ -58,12 +58,12 @@ def create_app(config_override=None): # Changed parameter name for clarity
              print("*"*60)
 
 
-    from .auth import routes as auth_routes
+    from .auth import bp as auth_bp
     from .student import bp as student_bp
     from .teacher import bp as teacher_bp  # Changed from 'routes as teacher_routes'
     from .admin import bp as admin_bp # Changed from 'routes as admin_routes'
 
-    app.register_blueprint(auth_routes.bp)
+    app.register_blueprint(auth_bp, url_prefix='/auth')
     app.register_blueprint(student_bp, url_prefix='/student')
     app.register_blueprint(teacher_bp, url_prefix='/teacher') # Changed from 'teacher_routes.bp'
     app.register_blueprint(admin_bp, url_prefix='/admin') # Changed from admin_routes.bp

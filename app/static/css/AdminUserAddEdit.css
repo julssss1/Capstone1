@@ -273,3 +273,20 @@
     border-color: #dc3545;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
+
+/* Complete Reset Button Styling */
+.form-actions-footer .btn.complete-reset-btn {
+    background-color: #28a745; /* Green for complete action */
+    color: white;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.form-actions-footer .btn.complete-reset-btn:hover {
+    background-color: #218838;
+}
+
+.form-actions-footer .btn.complete-reset-btn i {
+    font-size: 0.9em;
+}

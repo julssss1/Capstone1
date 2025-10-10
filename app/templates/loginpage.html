@@ -45,9 +45,28 @@
                 <button type="submit" class="login-btn">Login</button>
 
                 <div class="form-links">
-                    <a href="#">Forgot Password?</a>
+                    <a href="#" id="forgot-password-link">Forgot Password?</a>
                 </div>
             </form>
+        </div>
+
+        <!-- Forgot Password Modal -->
+        <div id="forgot-password-modal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Reset Password Request</h2>
+                <p>Enter your email address to request a password reset. An admin will review your request.</p>
+                
+                <div id="forgot-password-message"></div>
+                
+                <form id="forgot-password-form">
+                    <div class="input-group">
+                        <label for="reset-email">Email Address</label>
+                        <input type="email" id="reset-email" name="reset-email" required>
+                    </div>
+                    <button type="submit" class="login-btn">Submit Request</button>
+                </form>
+            </div>
         </div>
 
     </div>
