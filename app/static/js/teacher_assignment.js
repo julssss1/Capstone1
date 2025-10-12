@@ -2,7 +2,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const subjectSelect = document.getElementById('assignment-subject');
     const lessonGroup = document.getElementById('lesson-group');
     const lessonSelect = document.getElementById('assignment-lesson');
+    const dueDateInput = document.getElementById('assignment-due-date');
     const createAssignmentUrl = subjectSelect ? subjectSelect.dataset.createAssignmentUrl : null; // Get URL from data attribute
+
+    // Set minimum date to today to prevent selecting past dates
+    if (dueDateInput) {
+        const today = new Date().toISOString().split('T')[0];
+        dueDateInput.setAttribute('min', today);
+    }
 
     // Data passed via data attributes on the lessonSelect element
     let lessonsForCurrentlySelectedSubject = [];

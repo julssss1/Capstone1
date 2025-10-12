@@ -2,6 +2,7 @@ from flask import render_template, session, flash, current_app, redirect, url_fo
 from . import bp
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
+from datetime import datetime, timezone, timedelta
 
 @bp.route('/dashboard')
 @login_required
@@ -43,6 +44,45 @@ def admin_dashboard():
                                               .order('requested_at', desc=True) \
                                               .execute()
             password_reset_requests = reset_requests_response.data or []
+            
+            # Format timestamps to PHT (Philippine Time, UTC+8)
+            for request in password_reset_requests:
+                if request.get('requested_at'):
+                    try:
+                        requested_dt_str = request['requested_at']
+                        # Ensure timezone-aware
+                        if not ('+' in requested_dt_str or requested_dt_str.endswith('Z')):
+                            requested_dt_str += '+00:00'
+                        elif requested_dt_str.endswith('Z'):
+                            requested_dt_str = requested_dt_str[:-1] + '+00:00'
+                        
+                        # Truncate microseconds to 6 digits
+                        if '.' in requested_dt_str:
+                            main_part, fractional_part = requested_dt_str.split('.', 1)
+                            if '+' in fractional_part:
+                                ms_part, tz_part = fractional_part.split('+', 1)
+                                requested_dt_str = f"{main_part}.{ms_part[:6]}+{tz_part}"
+                            elif '-' in fractional_part:
+                                dash_idx = fractional_part.rfind('-')
+                                if dash_idx > 0 and fractional_part.count(':') > 0:
+                                    ms_part = fractional_part[:dash_idx]
+                                    tz_part = fractional_part[dash_idx:]
+                                    requested_dt_str = f"{main_part}.{ms_part[:6]}{tz_part}"
+                                else:
+                                    requested_dt_str = f"{main_part}.{fractional_part[:6]}"
+                            else:
+                                requested_dt_str = f"{main_part}.{fractional_part[:6]}"
+                        
+                        requested_dt_utc = datetime.fromisoformat(requested_dt_str)
+                        
+                        # Convert to PHT (UTC+8)
+                        pht_tz = timezone(timedelta(hours=8))
+                        requested_dt_pht = requested_dt_utc.astimezone(pht_tz)
+                        request['requested_at'] = requested_dt_pht.strftime("%b %d, %Y, %I:%M %p")
+                    except (ValueError, Exception) as e:
+                        print(f"Error formatting requested_at '{request['requested_at']}': {e}")
+                        # Keep original if formatting fails
+                        pass
 
         except PostgrestAPIError as e:
             flash(f'Database error loading dashboard counts: {e.message}', 'danger')

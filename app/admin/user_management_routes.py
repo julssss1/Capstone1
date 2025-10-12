@@ -10,6 +10,11 @@ from gotrue.errors import AuthApiError
 @role_required('Admin')
 def admin_user_management():
     print(f"Accessing Admin User Management BP for user: {session.get('user_name')}")
+    
+    # Clear pending reset request if coming from cancel button
+    if request.args.get('clear_reset') == '1':
+        session.pop('pending_reset_request_id', None)
+    
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
     search_query = request.args.get('search_query', '').strip()
@@ -333,6 +338,8 @@ def add_user():
 @role_required('Admin')
 def edit_user(user_id):
     """Handles editing user role and name (requires template)."""
+    # Clear pending reset request when leaving the page via cancel or after saving
+    # This is handled in the template's cancel button and after successful save
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
     current_user_id = session.get('user_id') # Get current admin's ID
@@ -476,7 +483,8 @@ def edit_user(user_id):
 
             if update_response.data: # Check if profile update was successful
                 flash(f"User '{display_name}' profile updated successfully!{password_updated_msg}", "success")
-                return redirect(url_for('admin.admin_user_management'))
+                # Stay on the same page by redirecting to edit_user with the same user_id
+                return redirect(url_for('admin.edit_user', user_id=user_id))
             # If only password update failed but profile was ok, it would have flashed above.
             # If profile update failed, it flashed above.
 

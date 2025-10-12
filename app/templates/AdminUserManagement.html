@@ -75,7 +75,6 @@
                         <th>Name</th>
                         <th>Email</th>
                         <th>Role</th>
-                        <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -86,7 +85,6 @@
                         <td>{{ user.display_name | default('N/A') }}</td>
                         <td>{{ user.email | default('N/A') }}</td> {# Added default filter #}
                         <td><span class="user-role {{ user.role.lower() }}">{{ user.role }}</span></td>
-                        <td>{{ user.status | default('N/A') }}</td> {# Added default filter #}
                         <td class="user-actions">
                             <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="action-btn edit">Edit</a>
                             {# Use display_name in confirmation message #}
@@ -97,7 +95,7 @@
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="5" style="text-align: center; padding: 20px;">No users found matching criteria.</td>
+                        <td colspan="4" style="text-align: center; padding: 20px;">No users found matching criteria.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

@@ -1,6 +1,9 @@
 // Teacher Assignment List - Due Date Editing Functionality
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Set minimum date to today for all date inputs
+    const today = new Date().toISOString().split('T')[0];
+    
     // Get all due date cells
     const dueDateCells = document.querySelectorAll('.due-date-cell');
     
@@ -17,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Edit button click
         editBtn.addEventListener('click', function() {
             originalValue = dateInput.value; // Store original value
+            dateInput.setAttribute('min', today); // Set minimum date to today
             displaySpan.style.display = 'none';
             dateInput.style.display = 'inline-block';
             editBtn.style.display = 'none';

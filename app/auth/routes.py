@@ -4,6 +4,7 @@ from app.utils import login_required
 from app.sign_logic import release_resources as release_camera_resources 
 from supabase import Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
+from flask import jsonify, request
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -122,7 +123,6 @@ def login():
 @bp.route('/forgot-password', methods=['POST'])
 def forgot_password():
     """Handle forgot password requests"""
-    from flask import jsonify, request
     
     supabase: Client = current_app.supabase
     

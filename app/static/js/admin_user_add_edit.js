@@ -31,6 +31,29 @@ document.addEventListener('DOMContentLoaded', function () {
         inputElement.classList.remove('is-invalid');
     };
 
+    // Real-time password matching feedback
+    const newPassword = document.getElementById('new_password');
+    const confirmPassword = document.getElementById('confirm_password');
+    const passwordMatchMessage = document.getElementById('password-match-message');
+
+    if (newPassword && confirmPassword && passwordMatchMessage) {
+        const checkPasswordMatch = () => {
+            if (confirmPassword.value === '') {
+                passwordMatchMessage.textContent = '';
+                passwordMatchMessage.style.color = '';
+            } else if (newPassword.value === confirmPassword.value) {
+                passwordMatchMessage.textContent = '✓ Passwords match';
+                passwordMatchMessage.style.color = 'green';
+            } else {
+                passwordMatchMessage.textContent = '✗ Passwords do not match';
+                passwordMatchMessage.style.color = 'red';
+            }
+        };
+
+        newPassword.addEventListener('input', checkPasswordMatch);
+        confirmPassword.addEventListener('input', checkPasswordMatch);
+    }
+
     // Real-time validation as user types
     form.addEventListener('input', function(e) {
         const input = e.target;
@@ -49,6 +72,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const role = document.getElementById('role');
         const password = document.getElementById('password'); // For 'Add' mode
         const newPassword = document.getElementById('new_password'); // For 'Edit' mode
+        const confirmPassword = document.getElementById('confirm_password'); // For 'Edit' mode
 
         // --- Clear all previous errors ---
         form.querySelectorAll('input, select').forEach(input => clearError(input));
@@ -111,6 +135,18 @@ document.addEventListener('DOMContentLoaded', function () {
         if (newPassword && newPassword.value && newPassword.value.length < 8) {
             showError(newPassword, 'Password must be at least 8 characters long.');
             isValid = false;
+        }
+
+        // 7. Confirm Password Validation ('Edit' mode)
+        // Only validate if new password has a value
+        if (newPassword && confirmPassword && newPassword.value) {
+            if (!confirmPassword.value) {
+                showError(confirmPassword, 'Please confirm your new password.');
+                isValid = false;
+            } else if (newPassword.value !== confirmPassword.value) {
+                showError(confirmPassword, 'Passwords do not match.');
+                isValid = false;
+            }
         }
 
         // --- Prevent form submission if invalid ---

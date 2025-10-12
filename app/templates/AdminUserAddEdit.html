@@ -129,12 +129,18 @@
 
                 {# Row for Password section - only in Edit mode (Profile Picture removed) #}
                 {% if action == 'Edit' and profile %}
-                <div class="form-row settings-row"> {# This row might now only contain password, or be removed if password section is full width by default #}
-                    <div class="settings-section password-section form-group">
+                <div class="form-row settings-row">
+                    <div class="settings-section password-section">
                         <label class="password-section-label">Change Password (Optional):</label>
-                        <div class="form-group"> {# Nested form-group for the input itself #}
-                            <label for="new_password" class="sr-only">New Password:</label>
-                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (leave blank to keep current)">
+                        <div class="form-group">
+                            <label for="new_password">New Password:</label>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (leave blank to keep current)" minlength="8">
+                            <small class="password-hint">Password must be at least 8 characters long</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm New Password:</label>
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" minlength="8">
+                            <small class="password-hint" id="password-match-message"></small>
                         </div>
                     </div>
                 </div>
@@ -167,7 +173,11 @@
                 </a>
                 {% endif %}
                 
+                {% if session.get('pending_reset_request_id') %}
+                <a href="{{ url_for('admin.admin_user_management') }}?clear_reset=1" class="btn cancel-btn">Cancel</a>
+                {% else %}
                 <a href="{{ url_for('admin.admin_user_management') }}" class="btn cancel-btn">Cancel</a>
+                {% endif %}
             </div>
         </section>
     </main>

@@ -2,20 +2,8 @@ from flask import render_template, session, url_for, request, flash, redirect, c
 from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
-from werkzeug.utils import secure_filename
-import os
 import json
 from datetime import datetime, timezone, timedelta
-
-# Define ASSIGNMENT_UPLOAD_FOLDER at the module level if it's specific to these routes
-ASSIGNMENT_UPLOAD_FOLDER = 'app/static/uploads/assignments'
-if not os.path.exists(ASSIGNMENT_UPLOAD_FOLDER):
-    try:
-        os.makedirs(ASSIGNMENT_UPLOAD_FOLDER)
-    except OSError as e:
-        # This will only run at import time. Consider moving to a config or app setup.
-        print(f"Warning: Could not create assignment upload folder at import: {e}")
-
 
 @bp.route('/assignment')
 @login_required
@@ -81,7 +69,6 @@ def student_assignment():
             
     return render_template('StudentAssignment.html', user_name=user_name, assignments=assignments_with_status)
 
-
 @bp.route('/assignment/<int:assignment_id>/view')
 @login_required
 @role_required('Student')
@@ -100,7 +87,6 @@ def view_assignment_student(assignment_id):
     now_utc = datetime.now(timezone.utc)
     return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'), now_utc=now_utc)
 
-
 @bp.route('/assignment/<int:assignment_id>/submit', methods=['POST'])
 @login_required
 @role_required('Student')
@@ -108,10 +94,8 @@ def submit_assignment_work(assignment_id):
     supabase: Client = current_app.supabase
     student_id = session.get('user_id')
     form_notes = request.form.get('submission_notes')
-    file = request.files.get('submission_file')
     sign_attempts_json = request.form.get('sign_attempts_json')
     
-    # file_path_to_store = None # This was for DB storage, not used with current schema
     recorded_sign_attempts = []
     average_confidence = 0.0
     calculated_grade = 0.0
@@ -137,27 +121,6 @@ def submit_assignment_work(assignment_id):
     except Exception as e:
         flash(f"Could not verify assignment due date: {e}", 'danger')
         return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
-
-    # Ensure upload folder exists (moved from global to here for request context)
-    if not os.path.exists(ASSIGNMENT_UPLOAD_FOLDER):
-        try: os.makedirs(ASSIGNMENT_UPLOAD_FOLDER)
-        except OSError as e: flash(f'Upload directory error: {e}', 'danger'); return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
-
-    if file and file.filename:
-        if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif', 'pdf', 'doc', 'docx', 'txt', 'mp4', 'mov', 'avi'}:
-            filename = secure_filename(file.filename)
-            timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S%f')
-            unique_filename = f"{student_id}_{current_assignment_id}_{timestamp}_{filename}"
-            file_path_on_disk = os.path.join(ASSIGNMENT_UPLOAD_FOLDER, unique_filename)
-            try:
-                file.save(file_path_on_disk)
-                print(f"File saved to: {file_path_on_disk}") 
-            except Exception as e:
-                flash(f'Error saving file: {e}', 'danger')
-                return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
-        else:
-            flash('Invalid file type.', 'danger')
-            return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
 
     if sign_attempts_json:
         try:
@@ -197,7 +160,6 @@ def submit_assignment_work(assignment_id):
             'grade': calculated_grade,
             'average_confidence': average_confidence,
             'status': 'Auto-Graded'
-            # 'file_path': file_path_to_store, # Omitted as 'submissions' table doesn't have this column
         }
 
         if is_update:
@@ -273,7 +235,6 @@ def submit_assignment_work(assignment_id):
         print(f"Unexpected Error (Submit Assignment): {e}")
     
     return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
-
 
 @bp.route('/submission/<int:submission_id>')
 @login_required
