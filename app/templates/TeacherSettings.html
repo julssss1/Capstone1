@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Settings - Handspoken CAES</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentSettings.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="{{ url_for('static', filename='js/student_settings.js') }}" defer></script>
+</head>
+<body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Teacher Portal</span>
+        </div>
+        <nav class="navigation">
+            <ul>
+                <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
+                <li><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
+                <li><a href="{{ url_for('teacher.teacher_assignment_list') }}"><i class="fas fa-tasks"></i> Assignments</a></li>
+                <li class="active"><a href="{{ url_for('teacher.teacher_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Teacher</strong></p>
+             <p>Welcome, {{ user_name | default('Teacher') }}</p>
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="student-info-header">
+            <div class="profile-picture-container">
+                <img src="{{ avatar_url }}" alt="Profile Picture" class="profile-picture">
+            </div>
+            <div class="student-details">
+                {% set mn_initial = " " + profile_middle_name[0] + "." if profile_middle_name else "" %}
+                <p><strong>Full Name:</strong> {{ profile_first_name }}{{ mn_initial }} {{ profile_last_name }}</p>
+                <p><strong>Role:</strong> Teacher</p>
+            </div>
+            <div class="student-contact">
+                 <p><strong>Email:</strong> {{ user_email }}</p>
+            </div>
+        </header>
+
+        <section class="settings-container">
+             <h2>Account Settings</h2>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+             <div class="settings-section profile-picture-section">
+                 <form id="profilePictureForm" action="{{ url_for('teacher.teacher_update_profile') }}" method="post" enctype="multipart/form-data" class="settings-form">
+                     <label>Change profile picture:</label>
+                     <input type="file" id="profile_picture_upload" name="profile_picture" accept="image/*" style="display: none;" required>
+                     <button type="button" id="choosePictureBtn" class="btn upload-btn">Choose Picture</button>
+                     <button type="button" id="uploadPictureBtn" class="btn save-btn">Upload Picture</button>
+                 </form>
+             </div>
+
+            <div class="settings-section password-section">
+                <form id="passwordChangeForm" action="{{ url_for('teacher.teacher_change_password') }}" method="post" class="settings-form">
+                     <label class="password-section-label">Change password:</label>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="new_password">New Password:</label>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (min. 6 characters)" required minlength="6">
+                            <small class="password-hint">Password must be at least 6 characters long</small>
+                        </div>
+                        <div class="form-group">
+                            <label for="confirm_password">Confirm New Password:</label>
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required minlength="6">
+                            <small class="password-hint" id="password-match-message"></small>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                         <button type="submit" class="btn save-btn">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+</body>
+</html>
