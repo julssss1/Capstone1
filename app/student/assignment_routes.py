@@ -22,8 +22,24 @@ def student_assignment():
         return render_template('StudentAssignment.html', user_name=user_name, assignments=assignments_with_status)
 
     try:
+        # Get enrolled subjects (subject-based enrollment)
+        enrollments_response = supabase.table('enrollments') \
+            .select('subject_id') \
+            .eq('student_id', student_id) \
+            .eq('status', 'active') \
+            .execute()
+        
+        if not (enrollments_response and enrollments_response.data):
+            flash("You are not enrolled in any subjects yet. Please contact your administrator.", "info")
+            return render_template('StudentAssignment.html', user_name=user_name, assignments=[])
+        
+        # Get subject IDs from enrollments
+        subject_ids = [e['subject_id'] for e in enrollments_response.data]
+        
+        # Get assignments only from those subjects
         assignments_response = supabase.table('assignments') \
                                    .select('*, subjects(name), lessons(title)') \
+                                   .in_('subject_id', subject_ids) \
                                    .order('due_date', desc=False) \
                                    .execute()
         

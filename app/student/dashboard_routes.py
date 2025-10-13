@@ -20,10 +20,29 @@ def student_dashboard():
 
     if student_id and supabase:
         try:
-            # Fetch, for example, the 5 most recent assignments or those due soonest
-            # For now, let's fetch a few assignments, ordered by due date
+            # Get enrolled subjects for this student (subject-based enrollment)
+            enrollments_response = supabase.table('enrollments') \
+                .select('subject_id') \
+                .eq('student_id', student_id) \
+                .eq('status', 'active') \
+                .execute()
+            
+            if not (enrollments_response and enrollments_response.data):
+                # Student not enrolled in any subjects - no assignments to show
+                return render_template(
+                    'StudentDashboard.html',
+                    available_signs=available_signs,
+                    user_name=user_name,
+                    assignments=[]
+                )
+            
+            # Get subject IDs from enrollments
+            subject_ids = [e['subject_id'] for e in enrollments_response.data]
+            
+            # Fetch assignments only from enrolled teachers' subjects
             assignments_response = supabase.table('assignments') \
                                        .select('id, title, due_date, lessons(title)') \
+                                       .in_('subject_id', subject_ids) \
                                        .order('due_date', desc=True) \
                                        .limit(10) \
                                        .execute()

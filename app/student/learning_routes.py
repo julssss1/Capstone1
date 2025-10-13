@@ -8,21 +8,43 @@ from supabase import Client, PostgrestAPIError
 @role_required('Student')
 def student_progress():
     user_name = session.get('user_name', 'Student')
+    student_id = session.get('user_id')
     supabase: Client = current_app.supabase
     all_subjects = []
+    
+    if not student_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+    
     if not supabase:
         flash('Database connection not available.', 'danger')
         return render_template('StudentProgress.html', title='My Progress', user_name=user_name, all_subjects=all_subjects) 
     
     try:
-        print("Attempting to fetch all subjects for progress page...")
-        subjects_response = supabase.table('subjects').select('id, name, description').order('name').execute()
+        print(f"Fetching subjects for student {student_id} based on enrollments...")
         
-        if subjects_response and subjects_response.data:
-            all_subjects = subjects_response.data
-        elif hasattr(subjects_response, 'error') and subjects_response.error:
-            flash(f"Error fetching subjects for progress: {subjects_response.error.message}", "warning")
-            print(f"Error fetching subjects for progress page: {subjects_response.error}")
+        # Get subjects this student is enrolled in (subject-based enrollment)
+        enrollments_response = supabase.table('enrollments') \
+            .select('subject_id, subjects(id, name, description, teacher_id)') \
+            .eq('student_id', student_id) \
+            .eq('status', 'active') \
+            .execute()
+        
+        if enrollments_response and enrollments_response.data:
+            # Extract subjects from enrollments
+            for enrollment in enrollments_response.data:
+                subject_data = enrollment.get('subjects')
+                if subject_data:
+                    all_subjects.append(subject_data)
+            
+            if all_subjects:
+                print(f"Found {len(all_subjects)} enrolled subjects for student")
+            else:
+                print("No subjects found in enrollments")
+        else:
+            # No enrollments found - student is not enrolled in any subjects
+            print(f"No active enrollments found for student {student_id}")
+            flash("You are not enrolled in any subjects yet. Please contact your administrator.", "info")
             
     except Exception as e:
         flash(f"Error loading subjects: {e}", "warning")

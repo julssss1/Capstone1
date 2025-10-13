@@ -29,6 +29,28 @@ def _get_teachers(supabase: Client):
         print(f"Error fetching teachers: {e}")
         return []
 
+def _get_students(supabase: Client):
+    """Helper function to fetch students for enrollment."""
+    try:
+        students_response = supabase.table('profiles') \
+                                    .select('id, first_name, last_name, middle_name') \
+                                    .eq('role', 'Student') \
+                                    .order('last_name') \
+                                    .order('first_name') \
+                                    .execute()
+        students_raw = students_response.data or []
+        students = []
+        for student in students_raw:
+            display_name = f"{student.get('last_name', '')}, {student.get('first_name', '')}".strip()
+            students.append({
+                'id': student['id'],
+                'display_name': display_name if display_name else f"Student ID {student['id']}"
+            })
+        return students
+    except Exception as e:
+        print(f"Error fetching students: {e}")
+        return []
+
 @bp.route('/subjects')
 @login_required
 @role_required('Admin')
@@ -394,27 +416,31 @@ def add_subject():
     """Handles adding a new subject."""
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
+    admin_id = session.get('user_id')
 
     if not supabase:
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_subject_management'))
 
     teachers = _get_teachers(supabase)
+    students = _get_students(supabase)
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         teacher_id = request.form.get('teacher_id')
+        student_ids = request.form.getlist('student_ids[]')
 
         if not name or not teacher_id:
             flash('Subject Name and Assigned Teacher are required.', 'warning')
-            return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
+            return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=request.form, user_name=user_name, action="Add")
 
         if not any(t['id'] == teacher_id for t in teachers):
              flash('Invalid Teacher selected.', 'danger')
-             return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
+             return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=request.form, user_name=user_name, action="Add")
 
         try:
+            # Insert subject
             insert_response = supabase.table('subjects').insert({
                 'name': name,
                 'description': description,
@@ -422,7 +448,37 @@ def add_subject():
             }).execute()
 
             if insert_response.data:
-                flash(f"Subject '{name}' added successfully!", "success")
+                subject_id = insert_response.data[0]['id']
+                # Create enrollments for selected students (subject-based)
+                if student_ids:
+                    enrollment_success = 0
+                    for student_id in student_ids:
+                        try:
+                            # Check if enrollment already exists
+                            existing = supabase.table('enrollments') \
+                                .select('id') \
+                                .eq('student_id', student_id) \
+                                .eq('subject_id', subject_id) \
+                                .maybe_single() \
+                                .execute()
+                            
+                            if not (existing and existing.data):
+                                # Create enrollment
+                                supabase.table('enrollments').insert({
+                                    'student_id': student_id,
+                                    'teacher_id': teacher_id,
+                                    'subject_id': subject_id,
+                                    'created_by': admin_id,
+                                    'status': 'active'
+                                }).execute()
+                                enrollment_success += 1
+                        except Exception as e:
+                            print(f"Error enrolling student {student_id}: {e}")
+                    
+                    flash(f"Subject '{name}' added successfully! Enrolled {enrollment_success} student(s).", "success")
+                else:
+                    flash(f"Subject '{name}' added successfully!", "success")
+                    
                 return redirect(url_for('admin.admin_subject_management'))
             else:
                 flash("Failed to add subject. Please try again.", "danger")
@@ -438,9 +494,9 @@ def add_subject():
             flash('An unexpected error occurred adding the subject.', 'danger')
             print(f"Unexpected Error (Add Subject): {e}")
 
-        return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=request.form, user_name=user_name, action="Add")
+        return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=request.form, user_name=user_name, action="Add")
 
-    return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject={}, user_name=user_name, action="Add")
+    return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject={}, user_name=user_name, action="Add")
 
 @bp.route('/subject/edit/<int:subject_id>', methods=['GET', 'POST'])
 @login_required
@@ -449,6 +505,7 @@ def edit_subject(subject_id):
     """Handles editing an existing subject."""
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
+    admin_id = session.get('user_id')
     subject_data = None
 
     if not supabase:
@@ -456,6 +513,8 @@ def edit_subject(subject_id):
         return redirect(url_for('admin.admin_subject_management'))
 
     teachers = _get_teachers(supabase)
+    students = _get_students(supabase)
+    enrolled_student_ids = []
 
     try:
         subject_response = supabase.table('subjects') \
@@ -464,6 +523,18 @@ def edit_subject(subject_id):
                                    .maybe_single() \
                                    .execute()
         subject_data = subject_response.data
+        
+        # Get currently enrolled students for this specific subject
+        if subject_data:
+            enrollments_response = supabase.table('enrollments') \
+                .select('student_id') \
+                .eq('subject_id', subject_id) \
+                .eq('status', 'active') \
+                .execute()
+            
+            if enrollments_response and enrollments_response.data:
+                enrolled_student_ids = [e['student_id'] for e in enrollments_response.data]
+                
     except Exception as e:
         flash('Error fetching subject details.', 'danger')
         print(f"Error fetching subject {subject_id} for edit: {e}")
@@ -477,14 +548,15 @@ def edit_subject(subject_id):
         name = request.form.get('name', '').strip()
         description = request.form.get('description', '').strip()
         teacher_id = request.form.get('teacher_id')
+        student_ids = request.form.getlist('student_ids[]')
 
         if not name or not teacher_id:
             flash('Subject Name and Assigned Teacher are required.', 'warning')
-            return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
+            return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=subject_data, enrolled_student_ids=enrolled_student_ids, user_name=user_name, action="Edit")
 
         if not any(t['id'] == teacher_id for t in teachers):
              flash('Invalid Teacher selected.', 'danger')
-             return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
+             return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=subject_data, enrolled_student_ids=enrolled_student_ids, user_name=user_name, action="Edit")
 
         try:
             update_response = supabase.table('subjects').update({
@@ -494,6 +566,45 @@ def edit_subject(subject_id):
             }).eq('id', subject_id).execute()
 
             if update_response.data:
+                # Handle enrollment updates for this specific subject
+                # Get current enrollments for this subject
+                current_enrollments = supabase.table('enrollments') \
+                    .select('student_id') \
+                    .eq('subject_id', subject_id) \
+                    .eq('status', 'active') \
+                    .execute()
+                
+                current_student_ids = set([e['student_id'] for e in current_enrollments.data]) if current_enrollments.data else set()
+                new_student_ids = set(student_ids)
+                
+                # Calculate differences
+                students_to_add = new_student_ids - current_student_ids
+                students_to_remove = current_student_ids - new_student_ids
+                
+                # Add new enrollments
+                for student_id in students_to_add:
+                    try:
+                        supabase.table('enrollments').insert({
+                            'student_id': student_id,
+                            'teacher_id': teacher_id,
+                            'subject_id': subject_id,
+                            'created_by': admin_id,
+                            'status': 'active'
+                        }).execute()
+                    except Exception as e:
+                        print(f"Error adding enrollment for student {student_id}: {e}")
+                
+                # Remove enrollments
+                for student_id in students_to_remove:
+                    try:
+                        supabase.table('enrollments') \
+                            .delete() \
+                            .eq('student_id', student_id) \
+                            .eq('subject_id', subject_id) \
+                            .execute()
+                    except Exception as e:
+                        print(f"Error removing enrollment for student {student_id}: {e}")
+                
                 flash(f"Subject '{name}' updated successfully!", "success")
                 return redirect(url_for('admin.admin_subject_management'))
             else:
@@ -510,9 +621,9 @@ def edit_subject(subject_id):
             flash('An unexpected error occurred updating the subject.', 'danger')
             print(f"Unexpected Error (Edit Subject {subject_id}): {e}")
 
-        return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
+        return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=subject_data, enrolled_student_ids=enrolled_student_ids, user_name=user_name, action="Edit")
 
-    return render_template('AdminSubjectAddEdit.html', teachers=teachers, subject=subject_data, user_name=user_name, action="Edit")
+    return render_template('AdminSubjectAddEdit.html', teachers=teachers, students=students, subject=subject_data, enrolled_student_ids=enrolled_student_ids, user_name=user_name, action="Edit")
 
 @bp.route('/subject/delete/<int:subject_id>', methods=['POST'])
 @login_required

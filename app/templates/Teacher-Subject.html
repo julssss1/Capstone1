@@ -57,7 +57,7 @@
             <div class="lesson-card">
                 <div class="card-header">
                     <h3>{{ lesson.name }}</h3>
-                    <span>{{ lesson.student_count }} Students</span>
+                    <span>{{ lesson.enrolled_student_count | default(0) }} Enrolled Student{{ 's' if lesson.enrolled_student_count != 1 else '' }}</span>
                 </div>
                 <div class="card-actions">
                      <a href="{{ url_for('teacher.manage_subject_content', subject_id=lesson.id) }}" class="action-btn manage">Manage Content</a>

@@ -29,7 +29,24 @@ def teacher_lessons():
                                        .eq('teacher_id', teacher_id) \
                                        .order('name') \
                                        .execute()
-            lessons = lessons_response.data or []
+            lessons_raw = lessons_response.data or []
+            
+            # Get enrolled student count for each subject (subject-specific)
+            for subject in lessons_raw:
+                try:
+                    # Count enrolled students for this specific subject
+                    enrollment_count_response = supabase.table('enrollments') \
+                        .select('id', count='exact') \
+                        .eq('subject_id', subject['id']) \
+                        .eq('status', 'active') \
+                        .execute()
+                    
+                    subject['enrolled_student_count'] = enrollment_count_response.count or 0
+                except Exception as e:
+                    print(f"Error getting enrollment count for subject {subject['id']}: {e}")
+                    subject['enrolled_student_count'] = 0
+            
+            lessons = lessons_raw
 
         except PostgrestAPIError as e:
             flash(f'Database error loading lessons: {e.message}', 'danger')
