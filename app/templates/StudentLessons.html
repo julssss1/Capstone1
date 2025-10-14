@@ -61,45 +61,58 @@
         <section class="lessons-container">
             {% if lessons %}
                 {% for lesson in lessons %}
-                <div class="lesson-item-card">
+                <div class="lesson-item-card" data-lesson-id="{{ lesson.id }}">
                     <div class="lesson-header">
-                        {# Assuming lesson object has 'id' and 'title' #}
                         <h3>LESSON {{ loop.index }}: {{ lesson.title | default('Unnamed Lesson') }}</h3>
                         <div class="lesson-progress">
                             <span>Progress:</span>
-                            {# Placeholder progress bar - Replace with actual data later if available #}
                             <div class="progress-bar-container">
-                                <div class="progress-bar" style="width: 0%;"></div> {# Default to 0% #}
+                                <div class="progress-bar" style="width: {{ lesson.progress_percentage | default(0) }}%;"></div>
                             </div>
-                            <span>0 out of X Done</span> {# Placeholder text #}
+                            <span class="progress-text">{{ lesson.progress_percentage | default(0) }}% Complete ({{ lesson.completed_items | default(0) }}/{{ lesson.total_items | default(0) }})</span>
                         </div>
                     </div>
                     <div class="lesson-details">
-                        {# Link to the new view_lesson_content route, passing the lesson ID #}
-                        <a href="{{ url_for('student.view_lesson_content', lesson_id=lesson.id) }}" class="lesson-link">
-                            <i class="fas fa-book-open"></i> Lesson Overview {{ loop.index }}
+                        {# Check if overview was viewed (content_index -1 means overview) #}
+                        {% set overview_viewed = lesson.viewed_items | selectattr('index', 'equalto', -1) | selectattr('type', 'equalto', 'page_view') | list | length > 0 %}
+                        
+                        <a href="{{ url_for('student.view_lesson_content', lesson_id=lesson.id) }}" 
+                           class="lesson-link {% if overview_viewed %}viewed{% endif %}"
+                           onclick="recordProgress({{ lesson.id }}, -1, 'page_view')">
+                            <i class="fas fa-book-open"></i> Lesson Overview
+                            {% if overview_viewed %}<i class="fas fa-check-circle completed-icon"></i>{% endif %}
                         </a>
-                        {# Placeholder links for Video and Assignment - Update URLs if these exist #}
-                        <a href="{{ url_for('student.lesson_video_materials', lesson_id=lesson.id) }}" class="lesson-link">
-                            <i class="fas fa-video"></i> Online Video Material {{ loop.index }}
-                        </a>
+                        
+                        {# Check if there are any video materials and show a single link to videos page #}
+                        {% if lesson.content and lesson.content|length > 0 %}
+                            {% set has_videos = lesson.content | selectattr('video_url') | list | length > 0 %}
+                            {% if has_videos %}
+                                {% set video_viewed = lesson.viewed_items | selectattr('index', 'equalto', 0) | selectattr('type', 'equalto', 'page_view') | list | length > 0 %}
+                                <a href="{{ url_for('student.lesson_video_materials', lesson_id=lesson.id) }}" 
+                                   class="lesson-link {% if video_viewed %}viewed{% endif %}"
+                                   onclick="recordProgress({{ lesson.id }}, 0, 'page_view')">
+                                    <i class="fas fa-video"></i> Video Materials
+                                    {% if video_viewed %}<i class="fas fa-check-circle completed-icon"></i>{% endif %}
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                        
                         {# Display linked assignments for this lesson #}
                         {% if lesson.assignments and lesson.assignments|length > 0 %}
-                            {% for assignment_item in lesson.assignments %} {# Renamed to avoid conflict with outer loop var if any #}
+                            {% for assignment_item in lesson.assignments %}
                                 {% if assignment_item.student_submission_id %}
-                                    <a href="{{ url_for('student.view_submission_details', submission_id=assignment_item.student_submission_id) }}" class="lesson-link submitted">
-                                        <i class="fas fa-check-circle"></i> {{ assignment_item.title | default('View Submission') }} (View Submission)
+                                    <a href="{{ url_for('student.view_submission_details', submission_id=assignment_item.student_submission_id) }}" 
+                                       class="lesson-link viewed">
+                                        <i class="fas fa-check-circle"></i> {{ assignment_item.title | default('View Submission') }}
+                                        <i class="fas fa-check-circle completed-icon"></i>
                                     </a>
                                 {% else %}
-                                    <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" class="lesson-link">
+                                    <a href="{{ url_for('student.view_assignment_student', assignment_id=assignment_item.id) }}" 
+                                       class="lesson-link">
                                         <i class="fas fa-pencil-alt"></i> {{ assignment_item.title | default('Start Assignment') }}
                                     </a>
                                 {% endif %}
                             {% endfor %}
-                        {% else %}
-                            <p class="no-assignments-text">
-                                <i class="fas fa-info-circle"></i> No assignments for this lesson.
-                            </p>
                         {% endif %}
                     </div>
                 </div>
@@ -111,5 +124,6 @@
 
     </main> {# End main-content #}
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/student_lessons.js') }}" defer></script>
 </body>
 </html>

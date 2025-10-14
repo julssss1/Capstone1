@@ -167,3 +167,56 @@
 .add-activity-link:hover {
     text-decoration: underline;
 }
+
+/* Progress Tracking Styles */
+.lesson-link.viewed {
+    color: #27ae60;
+    font-weight: 500;
+}
+
+.lesson-link.viewed:hover {
+    color: #229954;
+}
+
+.completed-icon {
+    margin-left: auto;
+    color: #27ae60;
+    font-size: 0.9em;
+}
+
+.lesson-link.submitted {
+    color: #27ae60;
+    font-weight: 500;
+    background-color: #e8f8f5;
+    padding: 8px 12px;
+    border-radius: 4px;
+}
+
+.lesson-link.submitted:hover {
+    background-color: #d5f4e6;
+}
+
+.progress-text {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+/* Enhanced progress bar colors based on completion */
+.progress-bar[style*="width: 100%"] {
+    background-color: #27ae60 !important;
+}
+
+.progress-bar[style*="width: 0%"] {
+    background-color: #e74c3c !important;
+}
+
+.no-assignments-text {
+    color: #95a5a6;
+    font-style: italic;
+    padding: 8px 0;
+    margin: 0;
+}
+
+.no-assignments-text i {
+    margin-right: 5px;
+}

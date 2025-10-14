@@ -76,9 +76,9 @@
                      <div class="subject-progress-section">
                          <span>Progress:</span>
                          <div class="progress-container">
-                             <div class="progress-bar" style="width: 0%;"></div> {# Default to 0% #}
+                             <div class="progress-bar" style="width: {{ subject.overall_progress | default(0) }}%;"></div>
                          </div>
-                         <span>0%</span> {# Placeholder percentage #}
+                         <span>{{ subject.overall_progress | default(0) }}% ({{ subject.completed_lessons | default(0) }}/{{ subject.total_lessons | default(0) }} lessons)</span>
                      </div>
                      <div class="card-actions">
                         {# Link the button to the new lesson view route, passing the subject ID #}

@@ -225,6 +225,23 @@ def submit_assignment_work(assignment_id):
                     else:
                         print(f"Saved {len(attempts_to_insert)} sign attempts for submission {submission_id}")
             
+            # Record assignment completion in lesson progress
+            try:
+                assignment_lesson_res = supabase.table('assignments').select('lesson_id').eq('id', current_assignment_id).maybe_single().execute()
+                if assignment_lesson_res and assignment_lesson_res.data and assignment_lesson_res.data.get('lesson_id'):
+                    lesson_id = assignment_lesson_res.data['lesson_id']
+                    # Record progress for assignment completion
+                    supabase.table('lesson_progress').insert({
+                        'student_id': student_id,
+                        'lesson_id': lesson_id,
+                        'content_item_index': None,  # Assignments don't have a specific content index
+                        'progress_type': 'assignment_complete'
+                    }).execute()
+                    print(f"Recorded assignment completion progress for lesson {lesson_id}")
+            except Exception as prog_err:
+                print(f"Error recording assignment progress: {prog_err}")
+                # Don't fail the submission if progress recording fails
+            
             if calculated_grade >= 100.0: 
                 badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score').maybe_single().execute()
                 if badge_res and badge_res.data and not (hasattr(badge_res, 'error') and badge_res.error):
