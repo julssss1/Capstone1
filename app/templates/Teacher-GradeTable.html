@@ -65,7 +65,11 @@
                     </select>
                      <button type="submit" class="action-btn">Load Grades</button>
                  </div>
-                 <button type="button" class="action-btn" onclick="alert('Export not implemented yet.')">Export Grades (CSV)</button>
+                 {% if selected_subject_id %}
+                 <a href="{{ url_for('teacher.view_student_progress', subject_id=selected_subject_id) }}" class="action-btn">
+                     <i class="fas fa-chart-line"></i> Student Lesson Progress
+                 </a>
+                 {% endif %}
             </div>
         </form>
 

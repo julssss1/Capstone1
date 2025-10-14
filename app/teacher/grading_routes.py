@@ -300,3 +300,74 @@ def view_assignment_submissions(assignment_id):
         assignment_id=assignment_id,
         user_name=user_name
     )
+
+@bp.route('/subject/<int:subject_id>/student-progress')
+@login_required
+@role_required('Teacher')
+def view_student_progress(subject_id):
+    """View all students' progress for a specific subject"""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    students_progress = []
+    subject_name = "Student Progress"
+    
+    if not teacher_id:
+        return redirect(url_for('auth.login'))
+    
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('teacher.teacher_gradebook'))
+    
+    try:
+        # Verify teacher owns this subject
+        subject_res = supabase.table('subjects').select('name').eq('id', subject_id).eq('teacher_id', teacher_id).maybe_single().execute()
+        
+        if not (subject_res and subject_res.data):
+            flash('Subject not found or you do not have permission to view it.', 'warning')
+            return redirect(url_for('teacher.teacher_gradebook'))
+        
+        subject_name = subject_res.data['name']
+        
+        # Get all students enrolled in this subject
+        # Use the specific foreign key relationship for student_id
+        enrollments_res = supabase.table('enrollments') \
+            .select('student_id, profiles!enrollments_student_id_fkey(first_name, last_name, id)') \
+            .eq('subject_id', subject_id) \
+            .eq('status', 'active') \
+            .execute()
+        
+        if enrollments_res and enrollments_res.data:
+            for enrollment in enrollments_res.data:
+                student = enrollment.get('profiles')
+                if student:
+                    student_id = student['id']
+                    student_name = f"{student.get('first_name', '')} {student.get('last_name', '')}".strip()
+                    
+                    # Calculate progress using the same function as students see
+                    from app.student.learning_routes import _calculate_subject_progress
+                    progress_data = _calculate_subject_progress(student_id, subject_id, supabase)
+                    
+                    students_progress.append({
+                        'student_id': student_id,
+                        'student_name': student_name or 'Unknown',
+                        'overall_progress': progress_data['percentage'],
+                        'completed_lessons': progress_data['completed_lessons'],
+                        'total_lessons': progress_data['total_lessons']
+                    })
+            
+            # Sort by student name
+            students_progress.sort(key=lambda x: x['student_name'])
+        
+    except Exception as e:
+        flash(f'Error loading student progress: {e}', 'danger')
+        print(f"Error in view_student_progress: {e}")
+        return redirect(url_for('teacher.teacher_gradebook'))
+    
+    return render_template(
+        'TeacherStudentProgress.html',
+        students_progress=students_progress,
+        subject_name=subject_name,
+        subject_id=subject_id,
+        user_name=user_name
+    )
