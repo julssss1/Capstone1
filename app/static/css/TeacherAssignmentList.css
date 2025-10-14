@@ -1,0 +1,166 @@
+/* TeacherAssignmentList.css - Mobile Responsive Styles */
+
+/* Mobile responsive styles for assignment list table */
+@media screen and (max-width: 768px) {
+    /* Hide table and show card-based layout on mobile */
+    .table-container {
+        overflow-x: visible;
+    }
+    
+    .assignments-table {
+        display: block;
+        width: 100%;
+    }
+    
+    .assignments-table thead {
+        display: none;
+    }
+    
+    .assignments-table tbody {
+        display: block;
+    }
+    
+    .assignments-table tr {
+        display: block;
+        margin-bottom: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 15px;
+        background: white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .assignments-table td {
+        display: block;
+        text-align: left;
+        padding: 10px 0;
+        border: none;
+        position: relative;
+        padding-left: 50%;
+    }
+    
+    .assignments-table td:before {
+        content: attr(data-label);
+        position: absolute;
+        left: 0;
+        width: 45%;
+        padding-right: 10px;
+        font-weight: 600;
+        color: #333;
+    }
+    
+    /* Add data labels for mobile */
+    .assignments-table td:nth-child(1):before {
+        content: "Name:";
+    }
+    
+    .assignments-table td:nth-child(2):before {
+        content: "Subject:";
+    }
+    
+    .assignments-table td:nth-child(3):before {
+        content: "Lesson:";
+    }
+    
+    .assignments-table td:nth-child(4):before {
+        content: "Submissions:";
+    }
+    
+    .assignments-table td:nth-child(5):before {
+        content: "Due Date:";
+    }
+    
+    .assignments-table td:nth-child(6):before {
+        content: "Actions:";
+    }
+    
+    /* Adjust action buttons for mobile */
+    .assignments-table td:last-child {
+        padding-left: 0;
+        padding-top: 15px;
+        border-top: 1px solid #eee;
+        margin-top: 10px;
+    }
+    
+    .assignments-table td:last-child:before {
+        display: none;
+    }
+    
+    .action-btn {
+        width: 100%;
+        text-align: center;
+        display: block;
+        padding: 12px;
+    }
+    
+    /* Due date cell adjustments */
+    .due-date-cell {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+        align-items: center;
+    }
+    
+    .due-date-display,
+    .due-date-input {
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .edit-due-date-btn,
+    .save-due-date-btn,
+    .cancel-due-date-btn {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+    
+    /* Page header adjustments */
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+    
+    .page-header p {
+        font-size: 0.9rem;
+    }
+    
+    /* No assignments message */
+    .no-assignments {
+        padding: 20px;
+        text-align: center;
+    }
+    
+    .no-assignments p {
+        font-size: 0.95rem;
+    }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+    .assignments-table tr {
+        padding: 12px;
+    }
+    
+    .assignments-table td {
+        font-size: 0.9rem;
+        padding: 8px 0;
+        padding-left: 45%;
+    }
+    
+    .assignments-table td:before {
+        font-size: 0.85rem;
+        width: 40%;
+    }
+    
+    .page-header h2 {
+        font-size: 1.3rem;
+    }
+    
+    .table-header-icon {
+        font-size: 1rem;
+    }
+    
+    .action-btn {
+        font-size: 0.9rem;
+        padding: 10px;
+    }
+}

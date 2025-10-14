@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/Teacher-GradeTable.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentProgress.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherStudentProgress.css') }}">
 </head>
 <body>
     <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
@@ -39,7 +40,7 @@
     </aside>
 
     <main class="main-content">
-        <header class="page-header" style="display: flex; justify-content: space-between; align-items: flex-start;">
+        <header class="page-header teacher-progress-header">
             <div>
                 <h2>Student Lesson Progress: {{ subject_name }}</h2>
                 <p>Track student progress across all lessons in this subject.</p>

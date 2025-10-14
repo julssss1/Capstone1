@@ -1,0 +1,83 @@
+/* TeacherStudentProgress.css - Mobile Responsive Styles */
+
+/* Desktop styles for header layout */
+.teacher-progress-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 768px) {
+    .teacher-progress-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 15px;
+    }
+    
+    .teacher-progress-header h2 {
+        font-size: 1.5rem !important;
+        margin-bottom: 8px;
+    }
+    
+    .teacher-progress-header p {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+    
+    .teacher-progress-header .action-btn.back-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        margin-top: 0;
+    }
+    
+    .lesson-list.available-subjects-student {
+        padding: 10px;
+    }
+    
+    .lesson-card {
+        margin-bottom: 15px;
+    }
+    
+    .card-header h3 {
+        font-size: 1.1rem !important;
+    }
+    
+    .subject-progress-section {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .subject-progress-section span {
+        font-size: 0.9rem;
+    }
+    
+    .progress-container {
+        width: 100% !important;
+        margin: 5px 0;
+    }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+    .teacher-progress-header h2 {
+        font-size: 1.3rem !important;
+    }
+    
+    .card-header h3 {
+        font-size: 1rem !important;
+    }
+    
+    .subject-progress-section span {
+        font-size: 0.85rem;
+    }
+    
+    .teacher-progress-header .action-btn.back-btn {
+        font-size: 0.9rem;
+        padding: 10px 16px;
+    }
+}
