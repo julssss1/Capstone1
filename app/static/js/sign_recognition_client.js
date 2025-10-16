@@ -20,6 +20,11 @@ class SignRecognitionClient {
         this.lastValidTimestamp = null;
         this.stableHoldDuration = 1500; // ms
         this.onPredictionUpdate = null; // Callback for prediction updates
+        
+        // Request throttling for free Render hosting
+        this.lastPredictionTime = 0;
+        this.predictionThrottleMs = 200; // Only predict every 200ms (5 times per second)
+        this.pendingPrediction = false;
     }
 
     /**
@@ -52,19 +57,9 @@ class SignRecognitionClient {
      * Load class names from JSON file
      */
     async loadClassNames() {
-        try {
-            const response = await fetch('/static/models/class_names.json');
-            if (!response.ok) {
-                throw new Error(`Failed to load class names: ${response.statusText}`);
-            }
-            this.classNames = await response.json();
-            console.log(`Loaded ${this.classNames.length} class names:`, this.classNames);
-        } catch (error) {
-            console.error("Error loading class names:", error);
-            // Fallback: use alphabet
-            this.classNames = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
-            console.log("Using fallback alphabet class names");
-        }
+        // Use alphabet as class names (server-side API handles actual class names)
+        this.classNames = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+        console.log("Using alphabet class names (server-side API handles predictions)");
     }
 
     /**
@@ -245,10 +240,32 @@ class SignRecognitionClient {
     }
 
     /**
-     * Make prediction using server-side API
-     * This approach works reliably on all hosting platforms including Render
+     * Make prediction using server-side API with throttling
+     * Limits requests to reduce server load on free Render hosting
      */
     async predict(landmarkData) {
+        const currentTime = Date.now();
+        
+        // Throttle: Only make prediction if enough time has passed
+        if (currentTime - this.lastPredictionTime < this.predictionThrottleMs) {
+            // Return last prediction if throttled
+            return {
+                sign: this.lastPrediction || "Processing...",
+                confidence: this.lastConfidence || 0.0
+            };
+        }
+        
+        // Prevent concurrent requests
+        if (this.pendingPrediction) {
+            return {
+                sign: this.lastPrediction || "Processing...",
+                confidence: this.lastConfidence || 0.0
+            };
+        }
+        
+        this.pendingPrediction = true;
+        this.lastPredictionTime = currentTime;
+        
         try {
             // Send landmarks to server for prediction
             const response = await fetch('/student/api/predict_landmarks', {
@@ -267,6 +284,10 @@ class SignRecognitionClient {
 
             const result = await response.json();
             
+            // Cache result
+            this.lastPrediction = result.sign;
+            this.lastConfidence = result.confidence;
+            
             if (result.confidence >= this.minConfidence) {
                 return {
                     sign: result.sign,
@@ -284,6 +305,8 @@ class SignRecognitionClient {
                 sign: "Prediction Error",
                 confidence: 0.0
             };
+        } finally {
+            this.pendingPrediction = false;
         }
     }
 
