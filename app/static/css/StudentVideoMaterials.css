@@ -126,10 +126,7 @@
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.3s ease;
-}
-
-.video-card:hover .video-thumbnail {
-    opacity: 0.1;
+    display: none; /* Hide thumbnail overlay completely */
 }
 
 /* Video Info */
@@ -143,40 +140,6 @@
     margin: 0 0 12px 0;
     font-weight: 600;
     line-height: 1.4;
-}
-
-.video-meta {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 12px;
-}
-
-.subject-badge,
-.lesson-title {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    padding: 6px 12px;
-    border-radius: 6px;
-    width: fit-content;
-}
-
-.subject-badge {
-    background: #3498db;
-    color: white;
-    font-weight: 500;
-}
-
-.lesson-title {
-    background: #e9ecef;
-    color: #495057;
-}
-
-.subject-badge i,
-.lesson-title i {
-    font-size: 12px;
 }
 
 .video-description {
