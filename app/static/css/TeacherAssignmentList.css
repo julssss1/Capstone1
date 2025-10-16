@@ -1,7 +1,38 @@
 /* TeacherAssignmentList.css - Mobile Responsive Styles */
 
+/* Action buttons group styling */
+.action-buttons-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.action-btn.delete-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+.action-btn.delete-btn:hover {
+    background-color: #c82333;
+    transform: translateY(-2px);
+}
+
+.action-btn.delete-btn:disabled {
+    background-color: #6c757d;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* Mobile responsive styles for assignment list table */
 @media screen and (max-width: 768px) {
+    .action-buttons-group {
+        flex-direction: column;
+        gap: 8px;
+        width: 100%;
+    }
     /* Hide table and show card-based layout on mobile */
     .table-container {
         overflow-x: visible;

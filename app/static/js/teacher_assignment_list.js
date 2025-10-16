@@ -1,4 +1,4 @@
-// Teacher Assignment List - Due Date Editing Functionality
+// Teacher Assignment List - Due Date Editing & Delete Functionality
 
 document.addEventListener('DOMContentLoaded', function() {
     // Set minimum date to today for all date inputs
@@ -6,6 +6,62 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Get all due date cells
     const dueDateCells = document.querySelectorAll('.due-date-cell');
+    
+    // Handle delete buttons
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const assignmentId = this.dataset.assignmentId;
+            const assignmentTitle = this.dataset.assignmentTitle;
+            
+            // Show confirmation dialog
+            if (confirm(`Are you sure you want to delete the assignment "${assignmentTitle}"?\n\nThis will also delete all student submissions for this assignment. This action cannot be undone.`)) {
+                // Disable button during delete
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                
+                // Send delete request to server
+                fetch(`/teacher/assignment/delete/${assignmentId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the row from the table
+                        const row = button.closest('tr');
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            row.remove();
+                            
+                            // Check if table is now empty
+                            const tbody = document.querySelector('.assignments-table tbody');
+                            if (tbody && tbody.querySelectorAll('tr').length === 0) {
+                                // Reload page to show "no assignments" message
+                                location.reload();
+                            }
+                        }, 300);
+                        
+                        showMessage('Assignment deleted successfully!', 'success');
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to delete assignment.'));
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting assignment:', error);
+                    alert('An error occurred while deleting the assignment. Please try again.');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                });
+            }
+        });
+    });
     
     dueDateCells.forEach(cell => {
         const assignmentId = cell.dataset.assignmentId;

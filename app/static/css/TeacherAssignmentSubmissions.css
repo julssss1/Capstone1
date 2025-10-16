@@ -1,0 +1,70 @@
+/* TeacherAssignmentSubmissions.css - Mobile Responsive Styles */
+
+/* Desktop header layout */
+.teacher-submissions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+/* Mobile responsive styles */
+@media screen and (max-width: 768px) {
+    .teacher-submissions-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 15px;
+    }
+    
+    .teacher-submissions-header h2 {
+        font-size: 1.4rem !important;
+        margin-bottom: 8px;
+    }
+    
+    .teacher-submissions-header p {
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+    }
+    
+    .teacher-submissions-header .action-btn.back-btn {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        display: flex;
+        align-items: center;
+        padding: 12px 20px;
+        margin-top: 0;
+    }
+    
+    /* Table responsive adjustments */
+    .grade-table-container {
+        overflow-x: auto;
+    }
+    
+    .grade-table {
+        min-width: 600px;
+    }
+    
+    .grade-table th,
+    .grade-table td {
+        font-size: 0.9rem;
+        padding: 10px 8px;
+    }
+}
+
+/* Extra small mobile devices */
+@media screen and (max-width: 480px) {
+    .teacher-submissions-header h2 {
+        font-size: 1.2rem !important;
+    }
+    
+    .teacher-submissions-header .action-btn.back-btn {
+        font-size: 0.9rem;
+        padding: 10px 16px;
+    }
+    
+    .grade-table th,
+    .grade-table td {
+        font-size: 0.85rem;
+        padding: 8px 6px;
+    }
+}

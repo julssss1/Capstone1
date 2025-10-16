@@ -255,3 +255,56 @@ def update_assignment_due_date(assignment_id):
     except Exception as e:
         print(f"Error updating due date for assignment {assignment_id}: {e}")
         return {'success': False, 'message': 'An unexpected error occurred.'}, 500
+
+@bp.route('/assignment/delete/<int:assignment_id>', methods=['POST'])
+@login_required
+@role_required('Teacher')
+def delete_assignment(assignment_id):
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    if not teacher_id:
+        return {'success': False, 'message': 'User session invalid.'}, 401
+    
+    if not supabase:
+        return {'success': False, 'message': 'Database connection error.'}, 500
+    
+    try:
+        # First, verify the teacher owns this assignment through their subjects
+        assignment_response = supabase.table('assignments') \
+                                     .select('id, subject_id, title') \
+                                     .eq('id', assignment_id) \
+                                     .maybe_single() \
+                                     .execute()
+        
+        if not assignment_response.data:
+            return {'success': False, 'message': 'Assignment not found.'}, 404
+        
+        # Verify teacher owns the subject
+        subject_response = supabase.table('subjects') \
+                                   .select('id') \
+                                   .eq('id', assignment_response.data['subject_id']) \
+                                   .eq('teacher_id', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not subject_response.data:
+            return {'success': False, 'message': 'Unauthorized to delete this assignment.'}, 403
+        
+        # Delete the assignment (submissions will be cascade deleted if FK is set with ON DELETE CASCADE)
+        delete_response = supabase.table('assignments') \
+                                 .delete() \
+                                 .eq('id', assignment_id) \
+                                 .execute()
+        
+        if delete_response.data or delete_response.count == 0:  # Success if data returned or count is 0
+            flash(f'Assignment "{assignment_response.data["title"]}" deleted successfully!', 'success')
+            return {'success': True, 'message': 'Assignment deleted successfully.'}, 200
+        else:
+            return {'success': False, 'message': 'Failed to delete assignment.'}, 500
+            
+    except PostgrestAPIError as e:
+        return {'success': False, 'message': f'Database error: {e.message}'}, 500
+    except Exception as e:
+        print(f"Error deleting assignment {assignment_id}: {e}")
+        return {'success': False, 'message': 'An unexpected error occurred.'}, 500

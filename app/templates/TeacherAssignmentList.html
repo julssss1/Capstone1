@@ -86,8 +86,13 @@
                             </div>
                         </td>
                         <td>
-                            {# Updated link to point to the new route for viewing submissions for a specific assignment #}
-                            <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=item.assignment.id) }}" class="action-btn">View Submissions</a>
+                            <div class="action-buttons-group">
+                                {# Updated link to point to the new route for viewing submissions for a specific assignment #}
+                                <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=item.assignment.id) }}" class="action-btn">View Submissions</a>
+                                <button class="action-btn delete-btn" data-assignment-id="{{ item.assignment.id }}" data-assignment-title="{{ item.assignment.title }}" title="Delete Assignment">
+                                    <i class="fas fa-trash"></i> Delete
+                                </button>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
