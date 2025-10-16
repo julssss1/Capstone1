@@ -23,7 +23,7 @@ class SignRecognitionClient {
         
         // Request throttling for free Render hosting
         this.lastPredictionTime = 0;
-        this.predictionThrottleMs = 200; // Only predict every 200ms (5 times per second)
+        this.predictionThrottleMs = 600; // Only predict every 200ms (5 times per second)
         this.pendingPrediction = false;
     }
 
