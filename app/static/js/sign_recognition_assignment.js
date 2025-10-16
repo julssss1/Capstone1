@@ -423,9 +423,6 @@ class SignRecognitionAssignment {
      * Draw prediction text on canvas
      */
     drawPredictionText(sign, confidence) {
-        // Draw dark background
-        this.canvasCtx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        this.canvasCtx.fillRect(0, 0, this.canvasElement.width, 90);
         
         // Draw "Detect:" text
         const detectText = `Detect: ${sign} ${confidence > 0 ? `(${(confidence * 100).toFixed(1)}%)` : ''}`;

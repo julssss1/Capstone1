@@ -1,6 +1,7 @@
 from flask import render_template, session, flash, current_app, redirect, url_for, request
 from . import bp
 from app.utils import login_required, role_required
+from app.email_utils import send_password_reset_notification
 from supabase import Client, PostgrestAPIError
 from werkzeug.utils import secure_filename
 from datetime import datetime, timezone, timedelta
@@ -154,7 +155,7 @@ def handle_password_reset(request_id):
 @login_required
 @role_required('Admin')
 def complete_password_reset(request_id):
-    """Mark password reset request as completed"""
+    """Mark password reset request as completed and send email notification"""
     supabase: Client = current_app.supabase
     
     if not supabase:
@@ -162,6 +163,50 @@ def complete_password_reset(request_id):
         return redirect(url_for('admin.admin_dashboard'))
     
     try:
+        # Get the reset request details
+        reset_request = supabase.table('password_reset_requests') \
+                                .select('*') \
+                                .eq('id', request_id) \
+                                .single() \
+                                .execute()
+        
+        if not reset_request.data:
+            flash('Password reset request not found.', 'danger')
+            return redirect(url_for('admin.admin_dashboard'))
+        
+        user_email = reset_request.data['email']
+        
+        # Get user details from profiles table
+        user_query = supabase.rpc('get_user_by_email', {'email_param': user_email}).execute()
+        
+        if user_query.data and len(user_query.data) > 0:
+            user_id = user_query.data[0]['id']
+            
+            # Get user profile for name
+            profile_response = supabase.table('profiles').select('first_name, last_name').eq('id', user_id).single().execute()
+            
+            if profile_response.data:
+                first_name = profile_response.data.get('first_name', '')
+                last_name = profile_response.data.get('last_name', '')
+                user_name = f"{first_name} {last_name}".strip() if first_name or last_name else 'User'
+            else:
+                user_name = 'User'
+            
+            # The default password set by admin
+            new_password = 'studentcaes123'
+            
+            # Send email notification
+            try:
+                email_sent = send_password_reset_notification(user_email, user_name, new_password)
+                if email_sent:
+                    print(f"Password reset notification sent to {user_email}")
+                else:
+                    print(f"Email not configured. Password reset completed but no email sent.")
+            except Exception as email_error:
+                print(f"Error sending password reset email: {email_error}")
+                # Continue even if email fails
+        
+        # Mark as completed
         supabase.table('password_reset_requests') \
                 .update({'status': 'completed'}) \
                 .eq('id', request_id) \
@@ -170,7 +215,7 @@ def complete_password_reset(request_id):
         # Clear the pending reset request from session
         session.pop('pending_reset_request_id', None)
         
-        flash('Password reset request marked as completed.', 'success')
+        flash('Password reset request marked as completed. Email notification sent to user.', 'success')
     except Exception as e:
         print(f"Error completing password reset request: {e}")
         flash('An error occurred while completing the request.', 'danger')

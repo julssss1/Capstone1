@@ -5,6 +5,7 @@ from supabase import create_client, Client
 from datetime import datetime, timezone
 
 from . import sign_logic
+from .email_utils import mail
 
 def format_utc_datetime(value):
     if not value:
@@ -44,6 +45,10 @@ def create_app(config_override=None): # Changed parameter name for clarity
             print(f"ERROR: Failed to initialize Supabase client: {e}")
             print("*"*60)
             app.supabase = None
+
+    # Initialize Flask-Mail
+    mail.init_app(app)
+    print("Flask-Mail initialized successfully.")
 
     print(f"App created. Static folder: {app.static_folder}, Template folder: {app.template_folder}")
     print(f"Attempting to load model from: {app.config.get('MODEL_PATH')}")
