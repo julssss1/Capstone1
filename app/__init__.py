@@ -52,9 +52,9 @@ def create_app(config_override=None): # Changed parameter name for clarity
     with app.app_context():
         sign_logic.initialize_resources()
 
-        if sign_logic.interpreter is None or sign_logic.hands is None:
+        if sign_logic.interpreter is None:
              print("*"*60)
-             print("WARNING: Sign recognition initialization failed. Some features might not work.")
+             print("WARNING: Sign recognition model initialization failed. Some features might not work.")
              print("*"*60)
 
 

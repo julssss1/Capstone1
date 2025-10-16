@@ -1,7 +1,6 @@
 from flask import render_template, redirect, url_for, flash, request, session, current_app
 from . import bp
 from app.utils import login_required
-from app.sign_logic import release_resources as release_camera_resources 
 from supabase import Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
 from flask import jsonify, request
@@ -169,16 +168,7 @@ def forgot_password():
 # @login_required # Removed decorator
 def logout():
     # Get user name for flash message before clearing session
-    user_name = session.get('user_name', 'User') 
-
-    # Release camera and related resources first
-    try:
-        print("Calling release_camera_resources from logout...")
-        release_camera_resources()
-        print("Camera resources signaled for release.")
-    except Exception as e:
-        print(f"Error calling release_camera_resources during logout: {e}")
-        flash('Could not properly stop camera feed, but proceeding with logout.', 'warning')
+    user_name = session.get('user_name', 'User')
 
     supabase: Client = current_app.supabase
 

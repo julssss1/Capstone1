@@ -83,7 +83,7 @@
                 <p>Use the camera to practice. Stable signs appear in notes.</p>
                 <div class="prediction-area">
                     <h4>Current Prediction</h4>
-                    <div id="prediction_text" data-get-prediction-url="{{ url_for('student.get_prediction') }}">
+            <div id="prediction_text" data-get-prediction-url="{{ url_for('student.predict_landmarks') }}">
                         Waiting for prediction...
                     </div>
                     <div id="stability_timer_text"></div>

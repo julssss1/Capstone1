@@ -23,9 +23,9 @@ class SignRecognitionAssignment {
         this.signCooldownMs = 1500; // 1.5 seconds cooldown after adding a sign
         this.isInCooldown = false;
         
-        // Request throttling (600ms = ~1.7 predictions per second for smooth performance)
+        // Request throttling
         this.lastPredictionTime = 0;
-        this.predictionThrottleMs = 600;
+        this.predictionThrottleMs = 200;
         this.pendingPrediction = false;
         
         // UI elements
