@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     const startCameraButton = document.getElementById('start-camera-btn');
-    const videoFeedElement = document.getElementById('video-feed');
+    const videoElement = document.getElementById('camera-video');
+    const canvasElement = document.getElementById('camera-canvas');
     const videoPlaceholderText = document.getElementById('video-placeholder-text');
     const feedbackElement = document.getElementById('feedback');
     const detectedSignDisplay = document.getElementById('detected-sign-display');
@@ -13,16 +14,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipSignLetter = document.getElementById('tip-sign-letter');
     const tipText = document.getElementById('tip-text');
 
-    let predictionInterval = null;
+    let recognitionClient = null;
     let currentPracticeSign = null;
     let lastStablePrediction = null;
     let successStartTime = null;
     const SUCCESS_HOLD_TIME = 1500; // ms
-
-    // These are expected to be set by inline script in the HTML template
-    // const predictionUrl = "{{ url_for('student.get_prediction') }}";
-    // const videoFeedUrl = "{{ url_for('student.video_feed') }}";
-    // const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
+    let predictionCheckInterval = null;
 
     const signTips = {
         'A': "Make a fist, thumb alongside index finger.", 'B': "Flat hand, fingers together, thumb across palm.",
@@ -42,9 +39,18 @@ document.addEventListener('DOMContentLoaded', function() {
         'I Love You': "Extend thumb, index, pinky.",
     };
 
+    // Initialize the recognition client
+    recognitionClient = new SignRecognitionClient();
+    
+    // Set up prediction update callback
+    recognitionClient.onPredictionUpdate = (prediction) => {
+        updateDetectedSign(prediction);
+    };
+
     if (startCameraButton) {
         startCameraButton.addEventListener('click', startCameraOnClick);
     }
+
     if (signButtonsContainer) {
         signButtonsContainer.addEventListener('click', function(event) {
             if (event.target.classList.contains('sign-btn')) {
@@ -57,79 +63,113 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     window.addEventListener('pagehide', function() {
-        stopPredictionPolling(); 
-        if (videoFeedElement && videoFeedElement.src !== "") {
-            videoFeedElement.src = ""; 
-            console.log("Cleared video feed source on page hide (StudentDashboard).");
-            if (videoPlaceholderText) videoPlaceholderText.style.display = 'block';
-            if (startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
-            videoFeedElement.style.display = 'none';
-        }
+        stopCamera();
     });
 
-    function startCameraOnClick() {
-        console.log("Start Camera button clicked on Dashboard.");
-        if (!videoFeedElement || !videoFeedUrl) {
-            console.error("Video feed element or URL not found/configured!");
+    async function startCameraOnClick() {
+        console.log("Start Camera button clicked on Dashboard (Client-Side).");
+        
+        if (!videoElement || !canvasElement) {
+            console.error("Video or canvas element not found!");
             if (videoPlaceholderText) videoPlaceholderText.textContent = "Camera configuration error.";
             return;
         }
 
-        if (startCameraButton) startCameraButton.classList.add('hidden');
-        if (videoPlaceholderText) videoPlaceholderText.style.display = 'none'; // Hide placeholder
-        
-        videoFeedElement.style.display = 'block';
-        videoFeedElement.src = videoFeedUrl + "?t=" + new Date().getTime(); // Start the stream
-        console.log("Video feed source set to:", videoFeedElement.src);
+        try {
+            // Disable button and show loading state
+            if (startCameraButton) {
+                startCameraButton.disabled = true;
+                startCameraButton.textContent = "Initializing...";
+            }
 
-        videoFeedElement.onerror = handleStreamError;
-        videoFeedElement.onload = handleStreamLoad;
+            // Initialize the recognition system
+            await recognitionClient.initialize();
+            
+            // Hide placeholder
+            if (videoPlaceholderText) videoPlaceholderText.style.display = 'none';
+            
+            // Start camera
+            await recognitionClient.startCamera('camera-video', 'camera-canvas');
+            
+            // Update UI
+            if (startCameraButton) {
+                startCameraButton.textContent = "Stop Camera";
+                startCameraButton.disabled = false;
+                startCameraButton.removeEventListener('click', startCameraOnClick);
+                startCameraButton.addEventListener('click', stopCamera);
+            }
+
+            if (debugInfo) debugInfo.style.display = 'block';
+            
+            // Start checking predictions
+            startPredictionChecking();
+            
+            console.log("Camera started successfully (Client-Side).");
+        } catch (error) {
+            console.error("Error starting camera:", error);
+            handleCameraError(error);
+        }
     }
 
-    function handleStreamError() {
-        console.error("Error loading video feed stream from backend. Check Flask server and endpoint URL:", videoFeedUrl);
-        if(instructionText) instructionText.textContent = "Error loading video stream from server.";
-        if(feedbackElement) {
-            feedbackElement.textContent = 'Stream Error';
+    function stopCamera() {
+        console.log("Stopping camera (Client-Side)...");
+        
+        if (recognitionClient) {
+            recognitionClient.stop();
+        }
+
+        stopPredictionChecking();
+
+        if (startCameraButton) {
+            startCameraButton.textContent = "Start Camera";
+            startCameraButton.disabled = false;
+            startCameraButton.removeEventListener('click', stopCamera);
+            startCameraButton.addEventListener('click', startCameraOnClick);
+        }
+
+        if (videoPlaceholderText) {
+            videoPlaceholderText.textContent = "Click 'Start Camera' to begin.";
+            videoPlaceholderText.style.display = 'block';
+        }
+
+        if (debugInfo) debugInfo.style.display = 'none';
+    }
+
+    function handleCameraError(error) {
+        console.error("Camera error:", error);
+        
+        if (instructionText) instructionText.textContent = "Error starting camera.";
+        if (feedbackElement) {
+            feedbackElement.textContent = 'Camera Error';
             feedbackElement.className = 'status-incorrect';
         }
         if (videoPlaceholderText) {
-            videoPlaceholderText.textContent = "Could not load video stream. Check server logs.";
+            videoPlaceholderText.textContent = "Could not access camera. Please grant camera permissions.";
             videoPlaceholderText.style.display = 'block';
         }
-        if(videoFeedElement) {
-            videoFeedElement.style.display = 'none';
-            videoFeedElement.src = ""; // Clear src on error
+        if (startCameraButton) {
+            startCameraButton.textContent = "Start Camera";
+            startCameraButton.disabled = false;
         }
-        if(startCameraButton) startCameraButton.classList.remove('hidden'); // Show start button again
-        stopPredictionPolling();
-    }
-
-    function handleStreamLoad() {
-        console.log("Backend video feed stream connection established on Dashboard.");
-        startPredictionPolling();
-        if (debugInfo) debugInfo.style.display = 'block';
     }
 
     function startPractice(sign) {
         console.log(`Starting practice for sign: ${sign}`);
         currentPracticeSign = sign;
 
-        if(instructionText) instructionText.textContent = `Now, try to sign "${sign}"`;
-        if(feedbackElement) {
+        if (instructionText) instructionText.textContent = `Now, try to sign "${sign}"`;
+        if (feedbackElement) {
             feedbackElement.textContent = 'Waiting for your sign...';
             feedbackElement.className = 'status-waiting';
         }
         lastStablePrediction = null;
         successStartTime = null;
 
-        // Using lowercase .png for consistency and to avoid case-sensitivity issues.
-        // The 'sign' variable comes from button text, assume it's already the correct case (e.g., "A", "B")
-        const filename = sign.toUpperCase() + '.png'; // Ensure sign is uppercase, extension is lowercase
-
+        const filename = sign.toUpperCase() + '.png';
         const imageUrl = `${staticBaseUrl}Images/${filename}`;
         console.log(`Setting target image URL to: ${imageUrl}`);
-        if(targetImage) {
+        
+        if (targetImage) {
             targetImage.src = imageUrl;
             targetImage.alt = `Sign language gesture for ${sign}`;
             targetImage.style.display = 'block';
@@ -141,73 +181,44 @@ document.addEventListener('DOMContentLoaded', function() {
             tipText.textContent = signTips[sign];
             signTipsArea.style.display = 'block';
         } else {
-            if(signTipsArea) signTipsArea.style.display = 'none';
+            if (signTipsArea) signTipsArea.style.display = 'none';
         }
 
-        if (videoFeedElement && videoFeedElement.style.display === 'block' && !predictionInterval) {
-            startPredictionPolling();
-        } else if (videoFeedElement && videoFeedElement.style.display !== 'block') {
-             if(instructionText) instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
-             if(feedbackElement) {
+        if (!recognitionClient || !recognitionClient.isRunning) {
+            if (instructionText) instructionText.textContent = `Click 'Start Camera' first, then try signing "${sign}"`;
+            if (feedbackElement) {
                 feedbackElement.textContent = 'Camera not active';
                 feedbackElement.className = 'status-waiting';
-             }
+            }
         }
     }
 
-    function startPredictionPolling() {
-        if (predictionInterval) { clearInterval(predictionInterval); }
-        // Ensure predictionUrl is defined (should be from inline script in HTML)
-        if (typeof predictionUrl !== 'undefined') {
-            predictionInterval = setInterval(fetchPrediction, 500); // Poll every 500ms
-            console.log("Prediction polling started.");
-        } else {
-            console.error("predictionUrl is not defined. Cannot start polling.");
+    function startPredictionChecking() {
+        if (predictionCheckInterval) clearInterval(predictionCheckInterval);
+        predictionCheckInterval = setInterval(checkPrediction, 100); // Check every 100ms
+        console.log("Prediction checking started.");
+    }
+
+    function stopPredictionChecking() {
+        if (predictionCheckInterval) {
+            clearInterval(predictionCheckInterval);
+            predictionCheckInterval = null;
+            console.log("Prediction checking stopped.");
         }
     }
 
-    function stopPredictionPolling() {
-         if (predictionInterval) {
-            clearInterval(predictionInterval);
-            predictionInterval = null;
-            console.log("Prediction polling stopped.");
-        }
+    function checkPrediction() {
+        if (!currentPracticeSign || !recognitionClient) return;
+
+        const prediction = recognitionClient.getStablePrediction();
+        updateFeedback(prediction);
     }
 
-    async function fetchPrediction() {
-    if (!currentPracticeSign || !videoFeedElement || videoFeedElement.style.display !== 'block') {
-        return;
-    }
-
-    try {
-        if (typeof predictionUrl === 'undefined') {
-            console.error("predictionUrl is not defined in fetchPrediction.");
-            return;
-        }
-        const response = await fetch(predictionUrl + "?t=" + new Date().getTime());
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        // const predictionText = await response.text(); // OLD WAY
-
-        const predictionData = await response.json(); // NEW: Parse as JSON
-        const predictedSign = predictionData.sign;    // NEW: Extract the sign
-       
-
+    function updateDetectedSign(prediction) {
         if (detectedSignDisplay) {
-            // detectedSignDisplay.textContent = predictionText || "..."; // OLD WAY
-            detectedSignDisplay.textContent = `Sign: ${predictedSign}`; // NEW: Display sign and confidence
-        }
-        // updateFeedback(predictionText || "..."); // OLD WAY
-        updateFeedback(predictedSign || "...");   // NEW: Pass only the sign string to updateFeedback
-    } catch (error) {
-        console.error("Error fetching prediction:", error);
-        if (feedbackElement) {
-            feedbackElement.textContent = "Error getting prediction. Check console.";
-            feedbackElement.className = 'status-incorrect';
+            detectedSignDisplay.textContent = `Sign: ${prediction}`;
         }
     }
-}
 
     function updateFeedback(prediction) {
         if (!currentPracticeSign || !feedbackElement) return;
@@ -225,17 +236,18 @@ document.addEventListener('DOMContentLoaded', function() {
                     feedbackElement.textContent = `Great! You signed "${currentPracticeSign}"!`;
                     feedbackElement.className = 'status-success';
                 } else {
-                     const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
-                     feedbackElement.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
-                     feedbackElement.className = 'status-holding';
+                    const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
+                    feedbackElement.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
+                    feedbackElement.className = 'status-holding';
                 }
             }
         } else {
             successStartTime = null;
-            if (prediction === "Ready..." || prediction === "..." || prediction === "No hand detected") {
+            if (prediction === "Ready..." || prediction === "..." || prediction === "No hand detected" || 
+                prediction === "Initializing...") {
                 feedbackElement.textContent = "Place your hand clearly in the frame.";
                 feedbackElement.className = 'status-waiting';
-            } else if (prediction === "Processing Error" || prediction === "System Error" || prediction === "Unknown" || prediction.startsWith("System Error")) {
+            } else if (prediction.includes("Error") || prediction === "Unknown") {
                 feedbackElement.textContent = `Status: ${prediction}. Try adjusting hand position.`;
                 feedbackElement.className = 'status-incorrect';
             } else {

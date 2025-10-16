@@ -8,7 +8,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"> 
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- TensorFlow.js and MediaPipe for client-side processing -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-tflite@0.0.1-alpha.10/dist/tf-tflite.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
@@ -131,7 +137,8 @@
                  <h3>Your Camera Feed</h3>
                  <button id="start-camera-btn">Start Camera</button>
                  <div class="video-container">
-                    <img id="video-feed">
+                    <video id="camera-video" style="display: none;"></video>
+                    <canvas id="camera-canvas"></canvas>
                     <p id="video-placeholder-text">Click "Start Camera" above to begin.</p>
                  </div>
                  <p class="camera-note">Ensure good lighting and clear view of your hand.</p>
@@ -139,10 +146,9 @@
         </section>
     </main>
     <script>
-        const predictionUrl = "{{ url_for('student.get_prediction') }}";
-        const videoFeedUrl = "{{ url_for('student.video_feed') }}";
         const staticBaseUrl = "{{ url_for('static', filename='') }}"; 
     </script>
+<script src="{{ url_for('static', filename='js/sign_recognition_client.js') }}"></script>
 <script src="{{ url_for('static', filename='js/StudentDashboard.js') }}" defer></script>
 <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>

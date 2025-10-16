@@ -8,3 +8,4 @@ from . import assignment_routes
 from . import learning_routes
 from . import profile_routes
 from . import sign_recognition_routes
+from . import api_routes
