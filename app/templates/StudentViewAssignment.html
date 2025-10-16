@@ -10,6 +10,10 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentViewAssignment.css') }}"> 
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- MediaPipe Hands for client-side hand tracking -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands@0.4.1646424915/hands.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils@0.3.1620248257/drawing_utils.js" crossorigin="anonymous"></script>
 </head>
 <body>
     <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
@@ -95,7 +99,8 @@
                 <h3>Your Camera Feed</h3>
                  <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
                 <div class="video-feed-container">
-                    <img id="video_feed_assignment_img" data-video-feed-url="{{ url_for('student.video_feed') }}" alt="Video Feed" style="display: none;">
+                    <video id="camera-video-assignment" style="display: none;"></video>
+                    <canvas id="camera-canvas-assignment"></canvas>
                     <p id="video_feed_placeholder_text">Click "Start Camera & Practice" to begin.</p>
                 </div>
                 <p class="camera-note-text">Ensure good lighting and clear view of your hand.</p>
@@ -106,7 +111,7 @@
         <p>Assignment details could not be loaded.</p>
         {% endif %}
     </main>
-    <script src="{{ url_for('static', filename='js/student_view_assignment.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/sign_recognition_assignment.js') }}"></script>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
 </body>
 </html>
