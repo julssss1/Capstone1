@@ -111,6 +111,9 @@ class SignRecognitionClient {
 
             this.canvasCtx = this.canvasElement.getContext('2d');
 
+            // Show canvas when starting camera
+            this.canvasElement.style.display = 'block';
+
             // Request camera access
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -425,6 +428,14 @@ class SignRecognitionClient {
             const tracks = this.videoElement.srcObject.getTracks();
             tracks.forEach(track => track.stop());
             this.videoElement.srcObject = null;
+        }
+
+        // Clear canvas to black
+        if (this.canvasCtx && this.canvasElement) {
+            this.canvasCtx.clearRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+            this.canvasCtx.fillStyle = 'black';
+            this.canvasCtx.fillRect(0, 0, this.canvasElement.width, this.canvasElement.height);
+            this.canvasElement.style.display = 'none';
         }
 
         this.stableDisplay = "Offline";

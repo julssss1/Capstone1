@@ -25,7 +25,7 @@ class SignRecognitionAssignment {
         
         // Request throttling
         this.lastPredictionTime = 0;
-        this.predictionThrottleMs = 200;
+        this.predictionThrottleMs = 600;
         this.pendingPrediction = false;
         
         // UI elements
