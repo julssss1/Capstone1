@@ -596,6 +596,17 @@ body {
     margin-bottom: 15px;
 }
 
+#camera-canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 8px;
+}
+
+#camera-video {
+    display: none;
+}
+
 #video-feed {
     display: block;
     width: 100%;

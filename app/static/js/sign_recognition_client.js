@@ -373,7 +373,7 @@ class SignRecognitionClient {
      * Draw prediction text on canvas
      */
     drawPredictionText(instantPrediction, confidence) {
-        // Draw "Detect:" text with stroke for better visibility on mobile
+        // Draw "Detect:" text
         const detectText = `Detect: ${instantPrediction} ${confidence > 0 ? `(${(confidence * 100).toFixed(1)}%)` : ''}`;
         this.canvasCtx.font = 'bold 26px Arial';
         this.canvasCtx.strokeStyle = 'black';
@@ -392,7 +392,7 @@ class SignRecognitionClient {
             stableColor = '#FF0000';
         }
 
-        // Draw "Stable:" text with stroke for better visibility on mobile
+        // Draw "Stable:" text
         const stableText = `Stable: ${this.stableDisplay}`;
         this.canvasCtx.font = 'bold 32px Arial';
         this.canvasCtx.strokeStyle = 'black';
