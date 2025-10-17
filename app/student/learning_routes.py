@@ -296,10 +296,25 @@ def _calculate_lesson_progress(student_id, lesson_id, supabase):
                     if not video_viewed:
                         completed_items += 1
                         video_viewed = True
+        
+        # Count unique assignments completed (check submissions instead of progress records)
+        if assignment_count > 0:
+            # Get assignment IDs for this lesson
+            lesson_assignments_res = supabase.table('assignments').select('id').eq('lesson_id', lesson_id).execute()
+            if lesson_assignments_res and lesson_assignments_res.data:
+                assignment_ids = [a['id'] for a in lesson_assignments_res.data]
                 
-                # Count assignment completions
-                elif item['progress_type'] == 'assignment_complete':
-                    completed_items += 1
+                # Check which assignments have submissions
+                submissions_res = supabase.table('submissions') \
+                    .select('assignment_id') \
+                    .eq('student_id', student_id) \
+                    .in_('assignment_id', assignment_ids) \
+                    .execute()
+                
+                if submissions_res and submissions_res.data:
+                    # Count unique assignments that have been submitted
+                    unique_assignments_completed = len(submissions_res.data)
+                    completed_items += unique_assignments_completed
         
         # Calculate percentage
         percentage = round((completed_items / total_items * 100)) if total_items > 0 else 0
