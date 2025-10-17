@@ -1,48 +1,100 @@
 from flask import current_app
 from flask_mail import Mail, Message
 import threading
+import os
 
 mail = Mail()
 
-def send_async_email(app, msg):
-    """Send email in a background thread"""
+def send_async_email_smtp(app, msg):
+    """Send email via SMTP in a background thread (for local development)"""
     with app.app_context():
         try:
             mail.send(msg)
-            print(f"Email sent successfully to {msg.recipients}")
+            print(f"Email sent successfully via SMTP to {msg.recipients}")
         except Exception as e:
-            print(f"Failed to send email: {e}")
+            print(f"Failed to send email via SMTP: {e}")
+
+def send_async_email_sendgrid(app, to_email, subject, text_body, html_body, from_email):
+    """Send email via SendGrid API in a background thread (for Render hosting)"""
+    with app.app_context():
+        try:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail as SendGridMail, Content, Email, To
+            
+            sg = SendGridAPIClient(app.config.get('SENDGRID_API_KEY'))
+            
+            message = SendGridMail(
+                from_email=Email(from_email),
+                to_emails=To(to_email),
+                subject=subject,
+                plain_text_content=Content("text/plain", text_body),
+                html_content=Content("text/html", html_body) if html_body else None
+            )
+            
+            response = sg.send(message)
+            print(f"Email sent successfully via SendGrid to {to_email}")
+            print(f"SendGrid Response Status Code: {response.status_code}")
+            return True
+        except Exception as e:
+            print(f"Failed to send email via SendGrid: {e}")
+            return False
 
 def send_email(subject, recipients, text_body, html_body=None):
     """
-    Send an email
+    Send an email using SendGrid API (for Render) or SMTP (for local dev)
     
     Args:
         subject: Email subject
-        recipients: List of recipient email addresses
+        recipients: List of recipient email addresses or single email
         text_body: Plain text body
         html_body: HTML body (optional)
     """
     app = current_app._get_current_object()
     
-    # Check if mail is configured
-    if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
-        print("Email not configured. Skipping email send.")
-        return False
+    # Ensure recipients is a list
+    if not isinstance(recipients, list):
+        recipients = [recipients]
     
-    msg = Message(
-        subject=subject,
-        recipients=recipients if isinstance(recipients, list) else [recipients],
-        sender=app.config['MAIL_DEFAULT_SENDER']
-    )
-    msg.body = text_body
-    if html_body:
-        msg.html = html_body
+    # Check if SendGrid API key is configured (for Render hosting)
+    sendgrid_api_key = app.config.get('SENDGRID_API_KEY')
     
-    # Send email in background thread
-    thread = threading.Thread(target=send_async_email, args=(app, msg))
-    thread.start()
-    return True
+    if sendgrid_api_key:
+        # Use SendGrid API (works on Render)
+        print("Using SendGrid API to send email...")
+        from_email = app.config.get('SENDGRID_FROM_EMAIL') or app.config.get('MAIL_DEFAULT_SENDER')
+        
+        if not from_email:
+            print("SendGrid sender email not configured. Skipping email send.")
+            return False
+        
+        # SendGrid API sends to one recipient at a time
+        for recipient in recipients:
+            thread = threading.Thread(
+                target=send_async_email_sendgrid,
+                args=(app, recipient, subject, text_body, html_body, from_email)
+            )
+            thread.start()
+        return True
+    else:
+        # Fallback to SMTP (for local development)
+        print("Using SMTP to send email...")
+        if not app.config.get('MAIL_USERNAME') or not app.config.get('MAIL_PASSWORD'):
+            print("SMTP not configured. Skipping email send.")
+            return False
+        
+        msg = Message(
+            subject=subject,
+            recipients=recipients,
+            sender=app.config['MAIL_DEFAULT_SENDER']
+        )
+        msg.body = text_body
+        if html_body:
+            msg.html = html_body
+        
+        # Send email in background thread
+        thread = threading.Thread(target=send_async_email_smtp, args=(app, msg))
+        thread.start()
+        return True
 
 def send_password_reset_notification(user_email, user_name, new_password):
     """
