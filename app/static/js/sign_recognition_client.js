@@ -370,13 +370,16 @@ class SignRecognitionClient {
      * Draw prediction text on canvas
      */
     drawPredictionText(instantPrediction, confidence) {
-        this.canvasCtx.font = 'bold 24px Arial';
+        // Draw "Detect:" text with stroke for better visibility on mobile
+        const detectText = `Detect: ${instantPrediction} ${confidence > 0 ? `(${(confidence * 100).toFixed(1)}%)` : ''}`;
+        this.canvasCtx.font = 'bold 26px Arial';
+        this.canvasCtx.strokeStyle = 'black';
+        this.canvasCtx.lineWidth = 3;
+        this.canvasCtx.strokeText(detectText, 15, 35);
         this.canvasCtx.fillStyle = '#FF7800';
-        this.canvasCtx.fillText(
-            `Detect: ${instantPrediction} ${confidence > 0 ? `(${(confidence * 100).toFixed(2)}%)` : ''}`,
-            10, 30
-        );
+        this.canvasCtx.fillText(detectText, 15, 35);
 
+        // Determine stable text color
         const invalidStates = ["Unknown", "No hand detected", "Ready...", "Initializing..."];
         let stableColor = '#00FF00';
         if (invalidStates.includes(this.stableDisplay)) {
@@ -386,9 +389,14 @@ class SignRecognitionClient {
             stableColor = '#FF0000';
         }
 
+        // Draw "Stable:" text with stroke for better visibility on mobile
+        const stableText = `Stable: ${this.stableDisplay}`;
         this.canvasCtx.font = 'bold 32px Arial';
+        this.canvasCtx.strokeStyle = 'black';
+        this.canvasCtx.lineWidth = 4;
+        this.canvasCtx.strokeText(stableText, 15, 75);
         this.canvasCtx.fillStyle = stableColor;
-        this.canvasCtx.fillText(`Stable: ${this.stableDisplay}`, 10, 70);
+        this.canvasCtx.fillText(stableText, 15, 75);
     }
 
     /**

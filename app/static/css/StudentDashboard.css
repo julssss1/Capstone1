@@ -656,7 +656,9 @@ body {
 
 @media (max-width: 768px) {
     .side-menu {
-        width: 260px; /* Retains its width, or adjust as needed e.g. 80vw */
+        width: 75vw; /* Responsive width - 75% of viewport width */
+        max-width: 280px; /* Maximum width cap */
+        min-width: 240px; /* Minimum width for readability */
         position: fixed;
         left: 0;
         top: 0;
@@ -669,6 +671,7 @@ body {
         z-index: 1000; /* Above other content */
         display: flex;
         flex-direction: column;
+        overflow-y: auto; /* Enable scrolling if content is too tall */
     }
 
     /* JavaScript would toggle this class on .side-menu */
@@ -678,17 +681,17 @@ body {
 
     /* Adjust brand logo for mobile view */
     .side-menu .brand-logo {
-        padding: 15px 20px; /* Adjusted padding for a more compact look */
+        padding: 12px 15px; /* More compact padding */
         text-align: center;
         border-bottom: 1px solid var(--border-color);
-        margin-bottom: 15px; /* Slightly reduced margin */
-        display: flex; /* Enable flexbox for better control over children */
-        flex-direction: column; /* Stack logo and text vertically */
-        align-items: center; /* Center items horizontally */
+        margin-bottom: 10px; /* Reduced margin */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
     }
     .side-menu .brand-logo img {
-        max-width: 60px; /* Smaller logo on mobile */
-        margin-bottom: 8px; /* Reduced space below logo */
+        max-width: 50px; /* Smaller logo on mobile */
+        margin-bottom: 6px;
     }
 
     /* Maintain display:initial for other elements if they were part of the original combined rule */
@@ -699,50 +702,53 @@ body {
 
      .side-menu .brand-logo h1 { /* This is "Handspoken" */
         display: none; /* Hide "Handspoken" text on mobile */
-        /* Original font-size, color, etc., are now irrelevant due to display: none */
     }
     .side-menu .brand-logo span { /* This is "CAES Teacher Portal" or similar */
-        display: block; /* Ensure it takes its own line if not already, and allows text-align to work if needed */
-        font-size: 1.1em; /* Make "CAES Teacher Portal" text larger */
-        font-weight: 600; /* Make it bolder */
-        color: var(--primary-color); /* Use primary color for emphasis */
+        display: block;
+        font-size: 0.95em; /* Slightly smaller for mobile */
+        font-weight: 600;
+        color: var(--primary-color);
     }
      .side-menu .user-info {
-        padding: 20px 25px;
+        padding: 15px 18px; /* More compact padding */
         border-top: 1px solid var(--border-color);
-        font-size: 0.9em;
+        font-size: 0.85em; /* Slightly smaller text */
         color: var(--text-color-light);
     }
 
-
     .side-menu .navigation li a {
-        font-size: 1em;
+        font-size: 0.95em; /* Slightly smaller font */
         font-weight: 500;
-        padding: 12px 25px; /* Original padding */
+        padding: 10px 18px; /* Reduced padding for more compact menu */
         color: var(--text-color-light);
         display: block;
         text-decoration: none;
-        text-align: left; /* Original alignment */
-        border-left: 4px solid transparent; /* Original border */
-        border-bottom: none; /* Remove bottom border from icon-only style */
+        text-align: left;
+        border-left: 3px solid transparent; /* Thinner border indicator */
+        border-bottom: none;
         transition: all 0.3s ease;
+        -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
     }
     .side-menu .navigation li a i {
         margin-right: 8px;
         width: 1.1em;
         text-align: center;
+        font-size: 1.1em; /* Slightly larger icons for easier tapping */
     }
-    .side-menu .navigation li a:hover {
+    
+    /* Replace hover with active state for better mobile interaction */
+    .side-menu .navigation li a:active {
         background: var(--bg-color);
         color: var(--primary-color);
         border-left-color: var(--accent-color);
     }
+    
     .side-menu .navigation li.active a {
         background: var(--bg-color);
         color: var(--primary-color);
         font-weight: 600;
-        border-left-color: var(--primary-color); /* Original active indicator */
-        border-bottom-color: transparent; /* Ensure no bottom border active style */
+        border-left-color: var(--primary-color);
+        border-bottom-color: transparent;
     }
 
     .main-content {
@@ -759,5 +765,40 @@ body {
 
     .hamburger-button {
         display: block; /* Show hamburger button on small screens */
+    }
+    
+    .logout-button {
+        padding: 10px 12px; /* More compact button */
+        font-size: 0.9em;
+    }
+}
+
+/* Extra small devices (phones in portrait mode) */
+@media (max-width: 480px) {
+    .side-menu {
+        width: 85vw; /* Wider on very small screens for easier interaction */
+        max-width: 260px;
+    }
+    
+    .side-menu .brand-logo {
+        padding: 10px 12px;
+    }
+    
+    .side-menu .brand-logo img {
+        max-width: 45px;
+    }
+    
+    .side-menu .brand-logo span {
+        font-size: 0.9em;
+    }
+    
+    .side-menu .navigation li a {
+        font-size: 0.9em;
+        padding: 12px 15px; /* Larger tap targets for smaller screens */
+    }
+    
+    .side-menu .user-info {
+        padding: 12px 15px;
+        font-size: 0.8em;
     }
 }
