@@ -56,8 +56,7 @@
         {% endwith %}
 
         {% if assignment %}
-        {% set due_date = assignment.due_date | format_utc_datetime %}
-        {% set is_past_due = now_utc > due_date %}
+        {% set is_past_due = assignment.due_date_end_of_day and now_pht > assignment.due_date_end_of_day %}
         <form action="{{ url_for('student.submit_assignment_work', assignment_id=assignment.id) }}" method="POST" enctype="multipart/form-data">
             <section class="assignment-detail-card">
                 <h3>{{ assignment.title }}</h3>

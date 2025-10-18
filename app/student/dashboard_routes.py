@@ -3,7 +3,7 @@ from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from app.sign_logic import get_available_signs # Only get_available_signs is needed here
 from supabase import Client, PostgrestAPIError
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 @bp.route('/dashboard')
 @login_required
@@ -65,6 +65,11 @@ def student_dashboard():
                             } for sub in submissions_response.data
                         }
 
+                # Get current date in PHT for comparison
+                pht_tz = timezone(timedelta(hours=8))
+                now_pht = datetime.now(pht_tz)
+                today_pht = now_pht.date()
+                
                 for assignment_item in assignments_response.data:
                     submission_info = submissions_map.get(assignment_item['id'])
                     item_status = 'Not Submitted'
@@ -92,14 +97,31 @@ def student_dashboard():
                     
                     due_date_display = None
                     is_past_due = False
+                    skip_this_assignment = False
+                    
                     if assignment_item.get('due_date'):
                         try:
-                            due_dt = datetime.fromisoformat(assignment_item['due_date'])
-                            due_date_display = due_dt.strftime("%b %d, %Y")
-                            if datetime.now(timezone.utc) > due_dt and not submission_info:
+                            due_dt_utc = datetime.fromisoformat(assignment_item['due_date'].replace('Z', '+00:00'))
+                            due_date_display = due_dt_utc.strftime("%b %d, %Y")
+                            
+                            # Convert to Philippine Time and extend to end of day
+                            due_dt_pht = due_dt_utc.astimezone(pht_tz)
+                            due_dt_end_of_day = due_dt_pht.replace(hour=23, minute=59, second=59, microsecond=999999)
+                            due_date_only = due_dt_pht.date()
+                            
+                            if now_pht > due_dt_end_of_day and not submission_info:
                                 is_past_due = True
+                            
+                            # Hide completed assignments if due date is before today
+                            if submission_info and item_status == 'Completed' and due_date_only < today_pht:
+                                skip_this_assignment = True
+                                
                         except (ValueError, TypeError):
                             due_date_display = "Date N/A"
+                    
+                    # Skip this assignment if it's completed and past due date
+                    if skip_this_assignment:
+                        continue
 
                     dashboard_assignments.append({
                         'id': assignment_item['id'],

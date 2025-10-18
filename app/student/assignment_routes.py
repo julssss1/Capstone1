@@ -100,8 +100,24 @@ def view_assignment_student(assignment_id):
         flash(f"Error loading assignment: {e}", 'danger'); print(f"Error in view_assignment_student: {e}")
         return redirect(url_for('student.student_assignment'))
     
-    now_utc = datetime.now(timezone.utc)
-    return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'), now_utc=now_utc)
+    # Use Philippine time (UTC+8) for comparison
+    pht_tz = timezone(timedelta(hours=8))
+    now_pht = datetime.now(pht_tz)
+    
+    # If there's a due date, extend it to end of day (23:59:59) in Philippine time
+    if assignment_data.get('due_date'):
+        try:
+            due_date_str = assignment_data['due_date']
+            due_date_utc = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+            # Convert to PHT and set to end of day
+            due_date_pht = due_date_utc.astimezone(pht_tz)
+            due_date_end_of_day = due_date_pht.replace(hour=23, minute=59, second=59, microsecond=999999)
+            assignment_data['due_date_end_of_day'] = due_date_end_of_day
+        except Exception as e:
+            print(f"Error processing due date: {e}")
+            assignment_data['due_date_end_of_day'] = None
+    
+    return render_template('StudentViewAssignment.html', assignment=assignment_data, user_name=session.get('user_name'), now_pht=now_pht)
 
 @bp.route('/assignment/<int:assignment_id>/submit', methods=['POST'])
 @login_required
@@ -130,8 +146,14 @@ def submit_assignment_work(assignment_id):
         
         due_date_str = assignment_res.data.get('due_date')
         if due_date_str:
-            due_date = datetime.fromisoformat(due_date_str)
-            if datetime.now(timezone.utc) > due_date:
+            # Convert to Philippine Time and extend to end of day
+            pht_tz = timezone(timedelta(hours=8))
+            due_date_utc = datetime.fromisoformat(due_date_str.replace('Z', '+00:00'))
+            due_date_pht = due_date_utc.astimezone(pht_tz)
+            due_date_end_of_day = due_date_pht.replace(hour=23, minute=59, second=59, microsecond=999999)
+            now_pht = datetime.now(pht_tz)
+            
+            if now_pht > due_date_end_of_day:
                 flash('This assignment is past the due date and can no longer be submitted.', 'danger')
                 return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
     except Exception as e:
