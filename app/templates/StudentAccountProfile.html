@@ -74,8 +74,17 @@
                 <main class="profile-main-content">
                     <section class="about-section">
                         <h2>About</h2>
-                        <div class="add-note-box">
-                            <span class="plus-icon">+</span> Add Note Here
+                        <div class="add-note-box" id="noteDisplay" style="cursor: pointer;" data-bio="{{ user.bio or '' }}">
+                            {% if user.bio %}
+                                {{ user.bio }}
+                            {% else %}
+                                <span class="plus-icon">+</span> Add Note Here
+                            {% endif %}
+                        </div>
+                        <textarea id="noteEditor" class="note-editor" style="display: none;" maxlength="500" placeholder="Write something about yourself... (Max 500 characters)"></textarea>
+                        <div class="note-actions" style="display: none;">
+                            <button id="saveNote" class="btn-save">Save</button>
+                            <button id="cancelNote" class="btn-cancel">Cancel</button>
                         </div>
                     </section>
 
@@ -111,5 +120,6 @@
         </div>
     </main>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/student_account_profile.js') }}" defer></script>
 </body>
 </html>

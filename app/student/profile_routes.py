@@ -1,4 +1,4 @@
-from flask import render_template, session, url_for, request, flash, redirect, current_app
+from flask import render_template, session, url_for, request, flash, redirect, current_app, jsonify
 from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
@@ -133,9 +133,9 @@ def student_edit_account_settings():
             avatar_url = supabase.storage.from_('avatars').get_public_url(avatar_url)
         except Exception as e: 
             print(f"Error getting public URL for avatar: {e}")
-            avatar_url = url_for('static', filename='Images/yvan.png') # Default fallback
+            avatar_url = url_for('static', filename='Images/yvan.png')
     elif not avatar_url:
-        avatar_url = url_for('static', filename='Images/yvan.png') # Default fallback
+        avatar_url = url_for('static', filename='Images/yvan.png')
 
     return render_template(
         'StudentSettings.html', 
@@ -155,17 +155,17 @@ def update_profile():
     user_id = session.get('user_id')
     bucket_name = "avatars"
 
-    # --- Start Debugging ---
     print(f"DEBUG update_profile: User ID from session: {user_id}")
     if not user_id:
         print("DEBUG update_profile: Critical error - User ID not found in session.")
         flash('Critical error: User ID not found in session. Please re-login.', 'danger')
         return redirect(url_for('student.student_edit_account_settings'))
-    # --- End Debugging ---
+    
     file = request.files.get('profile_picture')
 
     if not file or file.filename == '':
-        flash('No file selected.', 'warning'); return redirect(url_for('student.student_edit_account_settings'))
+        flash('No file selected.', 'warning')
+        return redirect(url_for('student.student_edit_account_settings'))
 
     allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
     if '.' in file.filename and file.filename.rsplit('.', 1)[1].lower() in allowed_extensions:
@@ -173,52 +173,69 @@ def update_profile():
         timestamp = datetime.utcnow().strftime('%Y%m%d%H%M%S')
         storage_path = f"{user_id}/{timestamp}_{filename}"
 
-        # --- Start Debugging ---
         print(f"DEBUG update_profile: Attempting to upload to bucket='{bucket_name}', path='{storage_path}'")
-        # --- End Debugging ---
 
         try:
             file_content = file.read()
-            # It's good practice to seek(0) if you might read a file multiple times,
-            # but here it's read once before upload.
-            # file.seek(0) 
             
             upload_api_response = supabase.storage.from_(bucket_name).upload(
                 path=storage_path, file=file_content,
                 file_options={"content-type": file.content_type, "cache-control": "3600", "upsert": "false"}
             )
-            # --- Start Debugging ---
-            # The supabase-py storage client might raise an exception on HTTP error,
-            # or return a response object. The error message suggests an exception is caught.
-            # If it returns a response object, we might log it here.
-            # print(f"DEBUG update_profile: Raw storage upload API response: {upload_api_response}")
-            # --- End Debugging ---
-
-            # If the upload fails due to RLS, it often raises an exception that is caught below.
-            # If it didn't raise an exception but still failed, the following DB update might be an issue,
-            # but the error message points to the upload ("new row" in storage.objects).
 
             update_profiles_response = supabase.table('profiles').update({'avatar_path': storage_path}).eq('id', user_id).execute()
             
             if update_profiles_response and hasattr(update_profiles_response, 'error') and update_profiles_response.error:
-                 flash(f'Database update failed: {update_profiles_response.error.message}', 'danger')
-                 print(f"DEBUG update_profile: Database update error: {update_profiles_response.error}")
+                flash(f'Database update failed: {update_profiles_response.error.message}', 'danger')
+                print(f"DEBUG update_profile: Database update error: {update_profiles_response.error}")
             elif update_profiles_response and update_profiles_response.data:
-                 flash('Profile picture updated successfully!', 'success')
+                flash('Profile picture updated successfully!', 'success')
             else:
-                 flash('Profile picture uploaded, but database update response was unexpected or returned no data.', 'warning')
-                 print(f"DEBUG update_profile: Unexpected DB update response: {update_profiles_response}")
+                flash('Profile picture uploaded, but database update response was unexpected or returned no data.', 'warning')
+                print(f"DEBUG update_profile: Unexpected DB update response: {update_profiles_response}")
 
-        except PostgrestAPIError as pg_e: # Catch database specific errors first
+        except PostgrestAPIError as pg_e:
             flash(f'Database error after upload: {pg_e.message}', 'danger')
             print(f"DEBUG update_profile: Database update PostgrestAPIError: {pg_e}")
-        except Exception as e: # Catch other errors, including potential storage errors
-            # This is where the RLS error from storage is likely caught
+        except Exception as e:
             flash(f'Error uploading file: {str(e)}', 'danger')
             print(f"DEBUG update_profile: Upload error (Exception type: {type(e)}): {e}")
     else:
         flash('Invalid file type.', 'danger')
     return redirect(url_for('student.student_edit_account_settings'))
+
+@bp.route('/update_bio', methods=['POST'])
+@login_required
+@role_required('Student')
+def update_bio():
+    """Update the user's bio/note"""
+    supabase: Client = current_app.supabase
+    user_id = session.get('user_id')
+    
+    if not user_id or not supabase:
+        return jsonify({'success': False, 'error': 'Invalid session'}), 401
+    
+    try:
+        data = request.get_json()
+        bio_text = data.get('bio', '').strip()
+        
+        # Limit bio length to 500 characters
+        if len(bio_text) > 500:
+            return jsonify({'success': False, 'error': 'Bio is too long (max 500 characters)'}), 400
+        
+        # Update the bio in the database
+        update_response = supabase.table('profiles').update({
+            'bio': bio_text
+        }).eq('id', user_id).execute()
+        
+        if update_response and hasattr(update_response, 'error') and update_response.error:
+            return jsonify({'success': False, 'error': update_response.error.message}), 500
+        
+        return jsonify({'success': True, 'bio': bio_text})
+        
+    except Exception as e:
+        print(f"Error updating bio: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 @bp.route('/change_password', methods=['POST'])
 @login_required
