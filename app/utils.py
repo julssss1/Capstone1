@@ -1,14 +1,38 @@
 from functools import wraps
-from flask import session, flash, redirect, url_for, abort
+from flask import session, flash, redirect, url_for, abort, current_app
+from supabase import Client
 
 def login_required(f):
-    """Decorator to ensure user is logged in."""
+    """Decorator to ensure user is logged in and session is valid."""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user_role' not in session:
             flash('Please log in to access this page.', 'warning')
-            # Use the correct endpoint name including blueprint
             return redirect(url_for('auth.login'))
+        
+        # Validate session token
+        user_id = session.get('user_id')
+        session_token = session.get('session_token')
+        
+        if user_id and session_token:
+            supabase: Client = current_app.supabase
+            if supabase:
+                try:
+                    # Check if session token matches the one in database
+                    profile_res = supabase.table('profiles').select('session_token').eq('id', user_id).maybe_single().execute()
+                    
+                    if profile_res.data:
+                        db_session_token = profile_res.data.get('session_token')
+                        
+                        # If tokens don't match, someone else logged in
+                        if db_session_token != session_token:
+                            session.clear()
+                            flash('Your account has been logged in on another device. Please log in again.', 'warning')
+                            return redirect(url_for('auth.login'))
+                except Exception as e:
+                    print(f"Error validating session token: {e}")
+                    # Continue anyway, don't block user for db errors
+        
         return f(*args, **kwargs)
     return decorated_function
 

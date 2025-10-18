@@ -4,6 +4,8 @@ from app.utils import login_required
 from supabase import Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
 from flask import jsonify, request
+import secrets
+from datetime import datetime, timezone
 
 @bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -56,11 +58,24 @@ def login():
                              supabase.auth.sign_out() # Sign out if profile is incomplete
                              return redirect(url_for('auth.login'))
 
+                        # Generate unique session token
+                        session_token = secrets.token_urlsafe(32)
+                        
+                        # Update profiles table with new session token
+                        try:
+                            supabase.table('profiles').update({
+                                'session_token': session_token,
+                                'session_created_at': datetime.now(timezone.utc).isoformat()
+                            }).eq('id', user_id).execute()
+                        except Exception as e:
+                            print(f"Error updating session token: {e}")
+                        
                         # Clear previous session and store new info
                         session.clear()
                         session['user_id'] = user_id
                         session['user_role'] = user_role
                         session['user_name'] = user_name
+                        session['session_token'] = session_token
                         # Store Supabase tokens in Flask session
                         session['access_token'] = auth_response.session.access_token
                         session['refresh_token'] = auth_response.session.refresh_token
@@ -169,10 +184,21 @@ def forgot_password():
 def logout():
     # Get user name for flash message before clearing session
     user_name = session.get('user_name', 'User')
+    user_id = session.get('user_id')
 
     supabase: Client = current_app.supabase
 
     if supabase:
+        # Clear session token in database
+        if user_id:
+            try:
+                supabase.table('profiles').update({
+                    'session_token': None,
+                    'session_created_at': None
+                }).eq('id', user_id).execute()
+            except Exception as e:
+                print(f"Error clearing session token: {e}")
+        
         try:
             supabase.auth.sign_out()
             # Sign out successful on Supabase side
