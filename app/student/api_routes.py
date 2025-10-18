@@ -93,6 +93,17 @@ def predict_landmarks():
         predicted_class_index = np.argmax(prediction[0])
         confidence = float(np.max(prediction[0]))
         
+        # Apply confidence threshold (90%)
+        MIN_CONFIDENCE = 0.90
+        
+        if confidence < MIN_CONFIDENCE:
+            # Low confidence - don't return a sign
+            print(f"Low confidence: {confidence:.4f} (threshold: {MIN_CONFIDENCE})")
+            return jsonify({
+                'sign': 'Low Confidence',
+                'confidence': confidence
+            })
+        
         if predicted_class_index < len(CLASS_NAMES):
             predicted_sign = CLASS_NAMES[predicted_class_index]
         else:
