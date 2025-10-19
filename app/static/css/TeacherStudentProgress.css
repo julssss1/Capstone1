@@ -7,6 +7,29 @@
     align-items: flex-start;
 }
 
+/* Fix for overall progress text overlap */
+.lesson-card .subject-progress-section {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+}
+
+.lesson-card .subject-progress-section > span:first-child {
+    flex-shrink: 0;
+    min-width: fit-content;
+}
+
+.lesson-card .subject-progress-section .progress-container {
+    flex: 1 1 auto;
+    min-width: 100px;
+}
+
+.lesson-card .subject-progress-section > span:last-child {
+    flex-shrink: 0;
+    min-width: fit-content;
+}
+
 /* Mobile responsive styles */
 @media screen and (max-width: 768px) {
     .teacher-progress-header {
@@ -47,18 +70,26 @@
         font-size: 1.1rem !important;
     }
     
-    .subject-progress-section {
-        flex-direction: column;
+    .lesson-card .subject-progress-section {
+        flex-direction: column !important;
+        align-items: flex-start !important;
         gap: 8px;
     }
     
-    .subject-progress-section span {
+    .lesson-card .subject-progress-section > span {
         font-size: 0.9rem;
+        width: 100%;
+        text-align: left;
     }
     
-    .progress-container {
+    .lesson-card .subject-progress-section .progress-container {
         width: 100% !important;
         margin: 5px 0;
+    }
+    
+    .lesson-card .subject-progress-section > span:last-child {
+        word-wrap: break-word;
+        white-space: normal;
     }
 }
 
@@ -72,7 +103,7 @@
         font-size: 1rem !important;
     }
     
-    .subject-progress-section span {
+    .lesson-card .subject-progress-section > span {
         font-size: 0.85rem;
     }
     

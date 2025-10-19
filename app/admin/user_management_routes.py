@@ -283,6 +283,7 @@ def add_user():
                     'id': new_user_id,
                     'first_name': first_name,
                     'last_name': last_name,
+                    'middle_name': middle_name if middle_name else None,
                     'role': role
                 }).execute()
                 print(f"Profile insert executed using admin context. Response status: {profile_insert_response.status_code if hasattr(profile_insert_response, 'status_code') else 'N/A'}")
