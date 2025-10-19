@@ -4,6 +4,7 @@ from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
 import json
 from datetime import datetime, timezone, timedelta
+from .learning_routes import _calculate_subject_progress, _award_subject_completion_badge
 
 @bp.route('/assignment')
 @login_required
@@ -249,9 +250,11 @@ def submit_assignment_work(assignment_id):
             
             # Record assignment completion in lesson progress
             try:
-                assignment_lesson_res = supabase.table('assignments').select('lesson_id').eq('id', current_assignment_id).maybe_single().execute()
+                assignment_lesson_res = supabase.table('assignments').select('lesson_id, subject_id').eq('id', current_assignment_id).maybe_single().execute()
                 if assignment_lesson_res and assignment_lesson_res.data and assignment_lesson_res.data.get('lesson_id'):
                     lesson_id = assignment_lesson_res.data['lesson_id']
+                    subject_id = assignment_lesson_res.data.get('subject_id')
+                    
                     # Record progress for assignment completion
                     supabase.table('lesson_progress').insert({
                         'student_id': student_id,
@@ -260,12 +263,45 @@ def submit_assignment_work(assignment_id):
                         'progress_type': 'assignment_complete'
                     }).execute()
                     print(f"Recorded assignment completion progress for lesson {lesson_id}")
+                    
+                    # Check if this assignment completion leads to 100% subject completion
+                    if subject_id:
+                        subject_progress = _calculate_subject_progress(student_id, subject_id, supabase)
+                        if subject_progress['percentage'] == 100:
+                            badge_awarded = _award_subject_completion_badge(student_id, subject_id, supabase)
+                            if badge_awarded:
+                                flash('🎉 Amazing! You completed 100% of this subject and earned the "Subject Master" badge!', 'success')
+                            
             except Exception as prog_err:
                 print(f"Error recording assignment progress: {prog_err}")
                 # Don't fail the submission if progress recording fails
             
-            if calculated_grade >= 100.0: 
-                badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score').maybe_single().execute()
+            # Award "First Assignment Complete!" badge if this is their first submission (only for new submissions, not updates)
+            if not is_update:
+                try:
+                    first_assignment_badge_res = supabase.table('badges').select('id').eq('name', 'First Assignment Complete!').maybe_single().execute()
+                    if first_assignment_badge_res and first_assignment_badge_res.data:
+                        first_badge_id = first_assignment_badge_res.data['id']
+                        
+                        # Check if student already has this badge
+                        existing_first_badge = supabase.table('user_badges').select('id').eq('user_id', student_id).eq('badge_id', first_badge_id).maybe_single().execute()
+                        
+                        if not (existing_first_badge and existing_first_badge.data):
+                            # This is their first assignment - award the badge
+                            first_badge_insert = supabase.table('user_badges').insert({
+                                'user_id': student_id,
+                                'badge_id': first_badge_id,
+                                'submission_id': submission_id,
+                                'earned_at': datetime.utcnow().isoformat()
+                            }).execute()
+                            
+                            if not (hasattr(first_badge_insert, 'error') and first_badge_insert.error):
+                                flash('🎉 Congratulations! You earned the "First Assignment Complete!" badge!', 'success')
+                except Exception as first_badge_err:
+                    print(f"Error awarding First Assignment badge: {first_badge_err}")
+            
+            if calculated_grade >= 100.0:
+                badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score!').maybe_single().execute()
                 if badge_res and badge_res.data and not (hasattr(badge_res, 'error') and badge_res.error):
                     badge_id = badge_res.data['id']
                     user_badge_res = supabase.table('user_badges').select('id').eq('user_id', student_id).eq('badge_id', badge_id).eq('submission_id', submission_id).maybe_single().execute()

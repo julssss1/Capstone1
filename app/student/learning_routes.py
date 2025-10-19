@@ -205,6 +205,19 @@ def record_lesson_progress(lesson_id):
         # Calculate updated progress
         progress_data = _calculate_lesson_progress(student_id, lesson_id, supabase)
         
+        # Check if this lesson completion leads to 100% subject completion
+        # Get subject_id for this lesson
+        lesson_res = supabase.table('lessons').select('subject_id').eq('id', lesson_id).maybe_single().execute()
+        if lesson_res and lesson_res.data:
+            subject_id = lesson_res.data['subject_id']
+            
+            # Calculate subject progress
+            subject_progress = _calculate_subject_progress(student_id, subject_id, supabase)
+            
+            # Award badge if 100% complete
+            if subject_progress['percentage'] == 100:
+                _award_subject_completion_badge(student_id, subject_id, supabase)
+        
         return jsonify({
             'success': True,
             'progress_percentage': progress_data['percentage'],
@@ -369,3 +382,44 @@ def _calculate_subject_progress(student_id, subject_id, supabase):
     except Exception as e:
         print(f"Error calculating subject progress: {e}")
         return {'percentage': 0, 'completed_lessons': 0, 'total_lessons': 0}
+
+def _award_subject_completion_badge(student_id, subject_id, supabase):
+    """Awards the Subject Master badge to a student for completing 100% of a subject
+    
+    Returns:
+        bool: True if badge was newly awarded, False otherwise
+    """
+    try:
+        # Get the Subject Master badge
+        badge_res = supabase.table('badges').select('id').eq('name', 'Subject Master').maybe_single().execute()
+        
+        if not badge_res or not badge_res.data:
+            print("Subject Master badge not found in database")
+            return False
+        
+        badge_id = badge_res.data['id']
+        
+        # Check if student already has this badge
+        existing_badge = supabase.table('user_badges') \
+            .select('id') \
+            .eq('user_id', student_id) \
+            .eq('badge_id', badge_id) \
+            .execute()
+        
+        # Award badge if not already earned
+        if not existing_badge or not existing_badge.data:
+            supabase.table('user_badges').insert({
+                'user_id': student_id,
+                'badge_id': badge_id,
+                'submission_id': None
+            }).execute()
+            
+            print(f"Awarded Subject Master badge to student {student_id} for completing subject {subject_id}")
+            return True
+        else:
+            print(f"Student {student_id} already has the Subject Master badge")
+            return False
+            
+    except Exception as e:
+        print(f"Error awarding badge: {e}")
+        return False
