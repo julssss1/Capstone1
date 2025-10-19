@@ -64,7 +64,17 @@
     border-radius: 10px;
     box-shadow: 0 4px 15px var(--shadow-color);
     overflow-x: auto; 
-    padding: 10px;
+    overflow-y: auto;
+    max-height: 600px;
+}
+
+/* Sticky table header */
+.user-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: #f8f9fa;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
 }
 
 .user-table {

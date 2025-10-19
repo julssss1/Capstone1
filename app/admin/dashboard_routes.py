@@ -5,6 +5,7 @@ from app.email_utils import send_password_reset_notification
 from supabase import Client, PostgrestAPIError
 from werkzeug.utils import secure_filename
 from datetime import datetime, timezone, timedelta
+import re
 
 @bp.route('/dashboard')
 @login_required
@@ -333,18 +334,36 @@ def admin_change_password():
     supabase: Client = current_app.supabase
     access_token = session.get('access_token')
 
-    if not new_password or len(new_password) < 6:
-        flash('New password must be at least 6 characters long.', 'danger')
+    # Validate new password
+    if not new_password:
+        flash('New password is required.', 'danger')
         return redirect(url_for('admin.admin_settings'))
     
+    password_errors = []
+    if len(new_password) < 8:
+        password_errors.append('at least 8 characters')
+    if not re.search(r'[A-Z]', new_password):
+        password_errors.append('one uppercase letter (A-Z)')
+    if not re.search(r'[a-z]', new_password):
+        password_errors.append('one lowercase letter (a-z)')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+        password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+    
+    if password_errors:
+        flash('Password must contain: ' + ', '.join(password_errors) + '.', 'danger')
+        return redirect(url_for('admin.admin_settings'))
+    
+    # Validate password confirmation
     if not confirm_password:
         flash('Please confirm your new password.', 'danger')
         return redirect(url_for('admin.admin_settings'))
     
+    # Check if passwords match
     if new_password != confirm_password:
         flash('Passwords do not match. Please try again.', 'danger')
         return redirect(url_for('admin.admin_settings'))
     
+    # Validate session
     if not access_token or not supabase:
         flash('Session or connection error. Please re-login.', 'danger')
         return redirect(url_for('auth.login'))

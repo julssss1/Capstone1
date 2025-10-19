@@ -4,6 +4,7 @@ from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
 from werkzeug.utils import secure_filename
 import os
+import re
 from datetime import datetime
 
 @bp.route('/account_profile')
@@ -247,8 +248,22 @@ def change_password():
     access_token = session.get('access_token') 
 
     # Validate new password
-    if not new_password or len(new_password) < 6:
-        flash('New password must be at least 6 characters long.', 'danger')
+    if not new_password:
+        flash('New password is required.', 'danger')
+        return redirect(url_for('student.student_edit_account_settings'))
+    
+    password_errors = []
+    if len(new_password) < 8:
+        password_errors.append('at least 8 characters')
+    if not re.search(r'[A-Z]', new_password):
+        password_errors.append('one uppercase letter (A-Z)')
+    if not re.search(r'[a-z]', new_password):
+        password_errors.append('one lowercase letter (a-z)')
+    if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+        password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+    
+    if password_errors:
+        flash('Password must contain: ' + ', '.join(password_errors) + '.', 'danger')
         return redirect(url_for('student.student_edit_account_settings'))
     
     # Validate password confirmation

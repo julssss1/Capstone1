@@ -135,7 +135,7 @@
                         <div class="form-group">
                             <label for="new_password">New Password:</label>
                             <input type="password" id="new_password" name="new_password" placeholder="Enter new password (leave blank to keep current)" minlength="8">
-                            <small class="password-hint">Password must be at least 8 characters long</small>
+                            <small class="password-hint">Password must contain: at least 8 characters, one uppercase letter (A-Z), one lowercase letter (a-z), and one special character (!@#$%^&*(),.?":{}|<>)</small>
                         </div>
                         <div class="form-group">
                             <label for="confirm_password">Confirm New Password:</label>
@@ -151,6 +151,7 @@
                     <div class="form-group">
                         <label for="password">Password:</label>
                         <input type="password" id="password" name="password" placeholder="Enter new password" required>
+                        <small class="password-hint">Password must contain: at least 8 characters, one uppercase letter (A-Z), one lowercase letter (a-z), and one special character (!@#$%^&*(),.?":{}|<>)</small>
                     </div>
                 </div>
                 {% endif %}

@@ -78,12 +78,12 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="new_password">New Password:</label>
-                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password (min. 6 characters)" required minlength="6">
-                            <small class="password-hint">Password must be at least 6 characters long</small>
+                            <input type="password" id="new_password" name="new_password" placeholder="Enter new password" required minlength="8">
+                            <small class="password-hint">Password must contain: at least 8 characters, one uppercase letter (A-Z), one lowercase letter (a-z), and one special character (!@#$%^&*(),.?":{}|<>)</small>
                         </div>
                         <div class="form-group">
                             <label for="confirm_password">Confirm New Password:</label>
-                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required minlength="6">
+                            <input type="password" id="confirm_password" name="confirm_password" placeholder="Confirm new password" required minlength="8">
                             <small class="password-hint" id="password-match-message"></small>
                         </div>
                     </div>

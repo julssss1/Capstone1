@@ -67,7 +67,21 @@
 .lesson-list {
     display: grid;
     gap: 20px;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    max-width: 100%;
+}
+
+/* Limit the maximum width of cards when there are few items */
+@media (min-width: 768px) {
+    .lesson-list {
+        grid-template-columns: repeat(auto-fill, minmax(300px, calc(50% - 10px)));
+    }
+}
+
+@media (min-width: 1200px) {
+    .lesson-list {
+        grid-template-columns: repeat(auto-fill, minmax(300px, calc(33.333% - 14px)));
+    }
 }
 
 .lesson-card {

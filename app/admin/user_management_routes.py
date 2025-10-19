@@ -183,8 +183,19 @@ def add_user():
             errors['email'] = 'Please enter a valid email address.'
         if not password:
             errors['password'] = 'Password is required.'
-        elif len(password) < 8:
-            errors['password'] = 'Password must be at least 8 characters long.'
+        else:
+            password_errors = []
+            if len(password) < 8:
+                password_errors.append('at least 8 characters')
+            if not re.search(r'[A-Z]', password):
+                password_errors.append('one uppercase letter (A-Z)')
+            if not re.search(r'[a-z]', password):
+                password_errors.append('one lowercase letter (a-z)')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', password):
+                password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+            
+            if password_errors:
+                errors['password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
         if not role:
             errors['role'] = 'Please select a role.'
         elif role not in ['Student', 'Teacher', 'Admin']:
@@ -438,8 +449,19 @@ def edit_user(user_id):
             errors['role'] = 'Invalid role selected.'
         
         # Validate new password only if it's provided
-        if new_password and len(new_password) < 8:
-            errors['new_password'] = 'Password must be at least 8 characters long.'
+        if new_password:
+            password_errors = []
+            if len(new_password) < 8:
+                password_errors.append('at least 8 characters')
+            if not re.search(r'[A-Z]', new_password):
+                password_errors.append('one uppercase letter (A-Z)')
+            if not re.search(r'[a-z]', new_password):
+                password_errors.append('one lowercase letter (a-z)')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+                password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+            
+            if password_errors:
+                errors['new_password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
 
         if errors:
             for field, msg in errors.items():
