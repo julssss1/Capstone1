@@ -52,8 +52,8 @@
                 {# Construct Full Name with Middle Initial #}
                 {% set mn_initial = " " + profile_middle_name[0] + "." if profile_middle_name else "" %}
                 <p><strong>Full Name:</strong> {{ profile_first_name }}{{ mn_initial }} {{ profile_last_name }}</p>
-                {# Keep Grade and Level static for now as requested #}
-                <p><strong>Grade:</strong> 1</p>
+                {# Display dynamic grade level from database #}
+                <p><strong>Grade:</strong> {{ profile_grade_level }}</p>
                 <p><strong>Level:</strong> Level 2 Neophyte</p>
             </div>
             <div class="student-contact">

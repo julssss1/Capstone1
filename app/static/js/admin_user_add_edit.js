@@ -5,6 +5,25 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Handle grade level visibility based on role selection
+    const roleSelect = document.getElementById('role');
+    const gradeFieldContainer = document.getElementById('gradeFieldContainer');
+    
+    if (roleSelect && gradeFieldContainer) {
+        roleSelect.addEventListener('change', function() {
+            if (this.value === 'Student') {
+                gradeFieldContainer.style.display = 'flex';
+            } else {
+                gradeFieldContainer.style.display = 'none';
+                // Clear grade selection when role changes to non-Student
+                const gradeSelect = document.getElementById('grade_level');
+                if (gradeSelect) {
+                    gradeSelect.value = '';
+                }
+            }
+        });
+    }
+
     // Function to create or get the error message element for a field
     const getErrorElement = (inputElement) => {
         const fieldContainer = inputElement.closest('.form-group');

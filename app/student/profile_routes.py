@@ -27,6 +27,9 @@ def student_account_profile():
         profile_res = supabase.table('profiles').select('*').eq('id', user_id).maybe_single().execute()
         if profile_res and profile_res.data:
             profile_data = profile_res.data
+            
+            # Get grade level for student
+            user_grade = profile_data.get('grade_level', 'N/A')
             avatar_path = profile_data.get('avatar_path')
             if avatar_path and not avatar_path.startswith('http') and not avatar_path.startswith('/static/'):
                 try:
@@ -72,6 +75,10 @@ def student_account_profile():
         profile_data['first_name'] = profile_data.get('first_name', '')
         profile_data['last_name'] = profile_data.get('last_name', '')
         profile_data['middle_name'] = profile_data.get('middle_name', '')
+        
+        # Ensure user_grade is set if not already
+        if 'grade_level' in profile_data:
+            user_grade = profile_data.get('grade_level', 'N/A')
 
     except Exception as e:
         flash(f'Error fetching account profile details: {str(e)}', 'danger')
@@ -143,6 +150,7 @@ def student_edit_account_settings():
         profile_first_name=profile_data.get('first_name'),
         profile_middle_name=profile_data.get('middle_name'),
         profile_last_name=profile_data.get('last_name'),
+        profile_grade_level=profile_data.get('grade_level', 'N/A'),
         user_name=user_name, 
         user_email=user_email, 
         avatar_url=avatar_url

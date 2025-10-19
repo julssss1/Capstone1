@@ -159,6 +159,7 @@ def add_user():
         last_name = request.form.get('last_name', '').strip()
         middle_name = request.form.get('middle_name', '').strip()
         role = request.form.get('role')
+        grade_level = request.form.get('grade_level', '').strip() if role == 'Student' else None
         
         # --- Server-side Validation ---
         errors = {}
@@ -290,13 +291,17 @@ def add_user():
                 user_supabase.auth.set_session(admin_access_token, admin_refresh_token)
                 print(f"Temporary Supabase client created for admin user.")
 
-                profile_insert_response = user_supabase.table('profiles').insert({
+                profile_insert_data = {
                     'id': new_user_id,
                     'first_name': first_name,
                     'last_name': last_name,
                     'middle_name': middle_name if middle_name else None,
                     'role': role
-                }).execute()
+                }
+                if role == 'Student' and grade_level:
+                    profile_insert_data['grade_level'] = grade_level
+                
+                profile_insert_response = user_supabase.table('profiles').insert(profile_insert_data).execute()
                 print(f"Profile insert executed using admin context. Response status: {profile_insert_response.status_code if hasattr(profile_insert_response, 'status_code') else 'N/A'}")
 
             except Exception as user_client_error:
@@ -362,9 +367,9 @@ def edit_user(user_id):
         return redirect(url_for('admin.admin_user_management'))
 
     try:
-        # Fetch profile details, now including middle_name
+        # Fetch profile details, now including middle_name and grade_level
         profile_response = supabase.table('profiles') \
-                                   .select('id, first_name, last_name, role, avatar_path, middle_name') \
+                                   .select('id, first_name, last_name, role, avatar_path, middle_name, grade_level') \
                                    .eq('id', user_id) \
                                    .maybe_single() \
                                    .execute()
@@ -422,6 +427,7 @@ def edit_user(user_id):
         # Retrieve middle_name from form
         new_middle_name = request.form.get('middle_name', '').strip()
         new_role = request.form.get('role')
+        new_grade_level = request.form.get('grade_level', '').strip() if new_role == 'Student' else None
         new_password = request.form.get('new_password', '') # For optional password change
 
         display_name = f"{new_first_name} {new_last_name}"
@@ -477,6 +483,11 @@ def edit_user(user_id):
                 'middle_name': new_middle_name if new_middle_name else None, # Add middle_name to update
                 'role': new_role
             }
+            # Add or clear grade_level based on role
+            if new_role == 'Student':
+                update_data['grade_level'] = new_grade_level if new_grade_level else None
+            else:
+                update_data['grade_level'] = None  # Clear grade_level for non-students
             # Update profile in Supabase
             update_response = supabase.table('profiles').update(update_data).eq('id', user_id).execute()
 
