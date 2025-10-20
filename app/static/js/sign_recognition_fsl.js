@@ -196,9 +196,6 @@ class SignRecognitionFSLClient {
                 drawLandmarks(this.canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 3 });
             }
             
-            // Update hand status indicators
-            this.updateHandStatusIndicators();
-            
             // Make prediction with one OR two hands (FSL supports both)
             if (results.multiHandLandmarks.length === 2) {
                 // Two hands detected - normalize landmarks for both hands
@@ -227,8 +224,6 @@ class SignRecognitionFSLClient {
                     confidence = prediction.confidence;
                 }
             }
-        } else {
-            this.updateHandStatusIndicators();
         }
 
         // Update prediction buffer
@@ -244,30 +239,6 @@ class SignRecognitionFSLClient {
         this.drawPredictionText(instantaneousPrediction, confidence);
 
         this.canvasCtx.restore();
-    }
-
-    /**
-     * Update hand status indicators in the UI
-     */
-    updateHandStatusIndicators() {
-        const leftHandStatus = document.getElementById('left-hand-status');
-        const rightHandStatus = document.getElementById('right-hand-status');
-        
-        if (leftHandStatus) {
-            if (this.leftHandDetected) {
-                leftHandStatus.innerHTML = '<i class="fas fa-hand-paper"></i> Left Hand: <strong style="color: #00FF00;">Detected</strong>';
-            } else {
-                leftHandStatus.innerHTML = '<i class="fas fa-hand-paper"></i> Left Hand: <strong>Not Detected</strong>';
-            }
-        }
-        
-        if (rightHandStatus) {
-            if (this.rightHandDetected) {
-                rightHandStatus.innerHTML = '<i class="fas fa-hand-paper"></i> Right Hand: <strong style="color: #0000FF;">Detected</strong>';
-            } else {
-                rightHandStatus.innerHTML = '<i class="fas fa-hand-paper"></i> Right Hand: <strong>Not Detected</strong>';
-            }
-        }
     }
 
     /**
