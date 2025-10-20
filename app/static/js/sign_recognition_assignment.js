@@ -553,8 +553,14 @@ class SignRecognitionAssignment {
         if (!this.submissionNotesTextarea) return;
 
         const currentText = this.submissionNotesTextarea.value;
-        // Only add space if the sign is more than one character (a word), not a single letter
-        const separator = currentText.length > 0 && sign.length > 1 ? " " : "";
+        
+        // Determine if we need a space:
+        // - Multi-letter words get space
+        // - Numbers 1-10 get space
+        // - Single letters (A-Z) get NO space
+        const isNumber = /^[0-9]+$/.test(sign);
+        const needsSpace = currentText.length > 0 && (sign.length > 1 || isNumber);
+        const separator = needsSpace ? " " : "";
         
         // Add sign to textarea
         this.submissionNotesTextarea.value += separator + sign;
@@ -690,14 +696,8 @@ document.addEventListener('DOMContentLoaded', async function () {
         const checkAnswerBtn = document.getElementById('check-answer-btn');
         const textFeedback = document.getElementById('text-feedback');
         const correctAnswersInput = document.getElementById('correct-answers');
-        const submitBtn = document.getElementById('submit-btn');
         
-        if (checkAnswerBtn && textFeedback && correctAnswersInput && submitBtn && correctAnswersInput.value) {
-            // Initially disable submit button if there are expected answers
-            submitBtn.disabled = true;
-            submitBtn.style.opacity = '0.6';
-            submitBtn.style.cursor = 'not-allowed';
-            
+        if (checkAnswerBtn && textFeedback && correctAnswersInput && correctAnswersInput.value) {
             checkAnswerBtn.addEventListener('click', function() {
                 const studentAnswer = textarea.value.trim().toLowerCase();
                 const correctAnswers = correctAnswersInput.value.toLowerCase();
@@ -708,9 +708,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                     textFeedback.style.color = '#856404';
                     textFeedback.style.border = '1px solid #ffc107';
                     textFeedback.innerHTML = '⚠️ Please sign some words first.';
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.6';
-                    submitBtn.style.cursor = 'not-allowed';
                     return;
                 }
                 
@@ -736,21 +733,13 @@ document.addEventListener('DOMContentLoaded', async function () {
                     textFeedback.style.backgroundColor = '#d4edda';
                     textFeedback.style.color = '#155724';
                     textFeedback.style.border = '1px solid #28a745';
-                    textFeedback.innerHTML = '✅ <strong>Correct!</strong> Your signed words match the expected answer. You can now submit.';
-                    // Enable submit button
-                    submitBtn.disabled = false;
-                    submitBtn.style.opacity = '1';
-                    submitBtn.style.cursor = 'pointer';
+                    textFeedback.innerHTML = '✅ <strong>Correct!</strong> Your signed words match the expected answer.';
                 } else {
                     textFeedback.style.display = 'block';
                     textFeedback.style.backgroundColor = '#f8d7da';
                     textFeedback.style.color = '#721c24';
                     textFeedback.style.border = '1px solid #dc3545';
                     textFeedback.innerHTML = '❌ <strong>Try again!</strong> Some expected words are missing or incorrect.';
-                    // Disable submit button
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.6';
-                    submitBtn.style.cursor = 'not-allowed';
                 }
             });
         }
@@ -773,13 +762,6 @@ document.addEventListener('DOMContentLoaded', async function () {
                 // Clear feedback if exists
                 if (textFeedback) {
                     textFeedback.style.display = 'none';
-                }
-                
-                // If there are expected answers, disable submit again
-                if (correctAnswersInput && correctAnswersInput.value && submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.style.opacity = '0.6';
-                    submitBtn.style.cursor = 'not-allowed';
                 }
             });
         }

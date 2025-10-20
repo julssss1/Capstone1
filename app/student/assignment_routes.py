@@ -7,6 +7,81 @@ import re
 from datetime import datetime, timezone, timedelta
 from .learning_routes import _calculate_subject_progress, _award_subject_completion_badge
 
+
+def _calculate_assignment_grade(correct_answers_list, student_answers_list):
+    """
+    Calculate grade based on three different grading scenarios:
+    1. Spelling a Word (e.g., "apple") - Letter-by-letter comparison
+    2. Single Word Sign (e.g., "MASAKIT") - All or nothing
+    3. Sequence with Extras (e.g., "MASAKIT MAHIRAP") - Points per word minus penalty for extras
+    
+    Args:
+        correct_answers_list: List of expected answers (lowercase)
+        student_answers_list: List of student's answers (lowercase)
+    
+    Returns:
+        float: Grade out of 100
+    """
+    if not correct_answers_list:
+        return 0.0
+    
+    # Determine if this is a spelling task or word sign task
+    if len(correct_answers_list) == 1:
+        correct_word = correct_answers_list[0]
+        
+        # Check if it's a word to spell (single expected answer, alphabetic, > 1 letter)
+        if len(correct_word) > 1 and correct_word.isalpha():
+            # Check if ALL student answers are single letters (spelling scenario)
+            all_single_letters = all(len(ans) == 1 and ans.isalpha() for ans in student_answers_list)
+            
+            # If student entered one continuous string (like "APPAL"), treat it as spelling too
+            is_single_string = len(student_answers_list) == 1 and len(student_answers_list[0]) > 1
+            
+            # Scenario 1: Spelling a Word
+            if all_single_letters or is_single_string:
+                # Join all student answers as one continuous string
+                student_word = ''.join(student_answers_list).lower()
+                correct_word_lower = correct_word.lower()
+                
+                # Letter-by-letter comparison
+                points_per_letter = 100.0 / len(correct_word_lower)
+                correct_letters = 0
+                
+                for i in range(min(len(correct_word_lower), len(student_word))):
+                    if correct_word_lower[i] == student_word[i]:
+                        correct_letters += 1
+                
+                grade = correct_letters * points_per_letter
+                print(f"Spelling grade: {grade}/100 - Expected: {correct_word_lower}, Got: {student_word}, Correct letters: {correct_letters}/{len(correct_word_lower)}")
+                return round(grade, 2)
+    
+    # Scenario 2 or 3: Single Word Sign or Sequence
+    # Check if student provided exactly the required words (no extras)
+    student_set = set(student_answers_list)
+    correct_set = set(correct_answers_list)
+    
+    # Count correct words
+    correct_words = len(correct_set & student_set)
+    
+    # Count extra words (words not in correct answer)
+    extra_words = len(student_set - correct_set)
+    
+    # Calculate points per word and penalty
+    points_per_word = 100.0 / len(correct_answers_list)
+    penalty_per_extra = 25.0  # Fixed penalty per extra word
+    
+    # Calculate score
+    score_from_correct = correct_words * points_per_word
+    penalty_from_extras = extra_words * penalty_per_extra
+    
+    final_grade = max(0.0, score_from_correct - penalty_from_extras)
+    
+    # Determine scenario name for logging
+    scenario_name = "Single word sign" if len(correct_answers_list) == 1 else "Sequence"
+    print(f"{scenario_name} grade: {final_grade}/100 - Correct: {correct_words}/{len(correct_answers_list)}, Extras: {extra_words}, Penalty: {penalty_from_extras}")
+    return round(final_grade, 2)
+
+
 @bp.route('/assignment')
 @login_required
 @role_required('Student')
@@ -165,40 +240,54 @@ def submit_assignment_work(assignment_id):
         flash(f"Could not verify assignment due date: {e}", 'danger')
         return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
 
-    # Handle validation if correct answers are provided
+    # Handle grading if correct answers are provided
     if correct_answers:
-        # Validate student's signed words against expected answers
         student_answer = (form_notes or '').strip().lower()
         correct_answers_list = [ans.strip().lower() for ans in correct_answers.split(',')]
-        # Parse student answers (space or comma-separated)
         student_answers_list = [ans.strip().lower() for ans in re.split(r'[\s,]+', student_answer) if ans.strip()]
         
-        # Check if all correct answers are present in student's answer
-        all_correct = all(correct in student_answers_list for correct in correct_answers_list)
+        # Determine assignment type and calculate grade
+        calculated_grade = _calculate_assignment_grade(correct_answers_list, student_answers_list)
         
-        if all_correct:
-            calculated_grade = 100.0
-            average_confidence = 1.0
+        # Calculate average confidence from actual sign attempts
+        if sign_attempts_json:
+            try:
+                recorded_sign_attempts = json.loads(sign_attempts_json)
+                if recorded_sign_attempts:
+                    valid_attempts = [attempt for attempt in recorded_sign_attempts if isinstance(attempt, dict) and attempt.get('confidence') is not None]
+                    if valid_attempts:
+                        total_confidence = sum(attempt.get('confidence', 0.0) for attempt in valid_attempts)
+                        average_confidence = total_confidence / len(valid_attempts)
+                        print(f"Calculated average confidence from {len(valid_attempts)} attempts: {average_confidence:.2%}")
+                    else:
+                        average_confidence = 0.0
+                        print("No valid attempts with confidence scores")
+                else:
+                    average_confidence = 0.0
+                    print("No recorded sign attempts")
+            except Exception as e:
+                print(f"Error parsing sign_attempts_json: {e}")
+                average_confidence = 0.0
         else:
-            calculated_grade = 0.0
             average_confidence = 0.0
+            print("No sign attempts JSON provided")
         
-        print(f"Validated assignment - Student: {student_answer}, Expected: {correct_answers}, Grade: {calculated_grade}")
-    
-    # Also process sign attempts for confidence tracking
-    if sign_attempts_json:
-        # Handle sign recognition assignments
-        try:
-            recorded_sign_attempts = json.loads(sign_attempts_json)
-            if recorded_sign_attempts:
-                valid_attempts = [attempt for attempt in recorded_sign_attempts if isinstance(attempt, dict) and attempt.get('confidence') is not None]
-                if valid_attempts:
-                    total_confidence = sum(attempt.get('confidence', 0.0) for attempt in valid_attempts)
-                    average_confidence = total_confidence / len(valid_attempts)
-                    calculated_grade = round(average_confidence * 100, 2)
-            print(f"Attempts: {recorded_sign_attempts}, Avg Conf: {average_confidence}, Grade: {calculated_grade}")
-        except Exception as e:
-            flash('Error processing sign attempts data.', 'warning'); print(f"Error parsing sign_attempts_json: {e}")
+        print(f"Graded assignment - Student: {student_answer}, Expected: {correct_answers}, Grade: {calculated_grade}, Avg Confidence: {average_confidence:.2%}")
+    else:
+        # No correct answers - use confidence-based grading
+        if sign_attempts_json:
+            try:
+                recorded_sign_attempts = json.loads(sign_attempts_json)
+                if recorded_sign_attempts:
+                    valid_attempts = [attempt for attempt in recorded_sign_attempts if isinstance(attempt, dict) and attempt.get('confidence') is not None]
+                    if valid_attempts:
+                        total_confidence = sum(attempt.get('confidence', 0.0) for attempt in valid_attempts)
+                        average_confidence = total_confidence / len(valid_attempts)
+                        calculated_grade = round(average_confidence * 100, 2)
+                print(f"Confidence-based grade: {calculated_grade}, Avg Conf: {average_confidence}")
+            except Exception as e:
+                flash('Error processing sign attempts data.', 'warning')
+                print(f"Error parsing sign_attempts_json: {e}")
 
     submission_id = None
     try:
@@ -327,16 +416,30 @@ def submit_assignment_work(assignment_id):
                     print(f"Error awarding First Assignment badge: {first_badge_err}")
             
             if calculated_grade >= 100.0:
-                badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score!').maybe_single().execute()
-                if badge_res and badge_res.data and not (hasattr(badge_res, 'error') and badge_res.error):
-                    badge_id = badge_res.data['id']
-                    user_badge_res = supabase.table('user_badges').select('id').eq('user_id', student_id).eq('badge_id', badge_id).eq('submission_id', submission_id).maybe_single().execute()
-                    if not (user_badge_res and user_badge_res.data) and not (hasattr(user_badge_res, 'error') and user_badge_res.error) :
-                        badge_insert_res = supabase.table('user_badges').insert({'user_id': student_id, 'badge_id': badge_id, 'submission_id': submission_id, 'earned_at': datetime.utcnow().isoformat()}).execute()
-                        if badge_insert_res and hasattr(badge_insert_res, 'error') and badge_insert_res.error: 
-                             flash(f"Error awarding badge: {badge_insert_res.error.message}", 'warning')
+                try:
+                    badge_res = supabase.table('badges').select('id').eq('name', 'Perfect Score!').maybe_single().execute()
+                    if badge_res and badge_res.data and not (hasattr(badge_res, 'error') and badge_res.error):
+                        badge_id = badge_res.data['id']
+                        
+                        # Check if student already has this badge (for ANY submission, not just this one)
+                        user_badge_res = supabase.table('user_badges').select('id').eq('user_id', student_id).eq('badge_id', badge_id).maybe_single().execute()
+                        
+                        if not (user_badge_res and user_badge_res.data):
+                            # Student doesn't have this badge yet - award it
+                            badge_insert_res = supabase.table('user_badges').insert({
+                                'user_id': student_id, 
+                                'badge_id': badge_id, 
+                                'submission_id': submission_id, 
+                                'earned_at': datetime.utcnow().isoformat()
+                            }).execute()
+                            
+                            if not (badge_insert_res and hasattr(badge_insert_res, 'error') and badge_insert_res.error):
+                                flash('🎉 Congratulations! You earned the "Perfect Score!" badge!', 'success')
                         else:
-                             flash('Congratulations! You earned the "Perfect Score" badge!', 'success')
+                            print(f"Student {student_id} already has the Perfect Score badge")
+                except Exception as badge_err:
+                    print(f"Error awarding Perfect Score badge: {badge_err}")
+                    # Don't show error to user, just log it
             
             flash('Assignment submitted and auto-graded successfully!', 'success')
             return redirect(url_for('student.view_submission_details', submission_id=submission_id))
