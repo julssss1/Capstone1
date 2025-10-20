@@ -2,6 +2,7 @@ from flask import render_template, session, url_for, current_app
 from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from app.sign_logic import get_available_signs # Only get_available_signs is needed here
+from app.sign_logic_fsl import get_available_signs_fsl
 from supabase import Client, PostgrestAPIError
 from datetime import datetime, timezone, timedelta
 
@@ -146,4 +147,21 @@ def student_dashboard():
         available_signs=available_signs,
         user_name=user_name,
         assignments=dashboard_assignments # Pass the new variable
+    )
+
+@bp.route('/practice-fsl')
+@login_required
+@role_required('Student')
+def practice_fsl():
+    """FSL (Filipino Sign Language) practice page with two-hand recognition."""
+    user_name = session.get('user_name', 'Student')
+    
+    # Get available FSL signs
+    model_signs_fsl = get_available_signs_fsl()
+    available_signs_fsl = model_signs_fsl if model_signs_fsl else []
+    
+    return render_template(
+        'StudentPracticeFSL.html',
+        available_signs=available_signs_fsl,
+        user_name=user_name
     )

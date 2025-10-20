@@ -619,6 +619,29 @@ body {
     color: var(--text-color-light);
     text-align: center;
 }
+
+/* FSL Practice Button */
+.fsl-practice-btn {
+    display: inline-block;
+    padding: 12px 25px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1em;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(102, 126, 234, 0.3);
+}
+
+.fsl-practice-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(102, 126, 234, 0.4);
+}
+
+.fsl-practice-btn i {
+    margin-right: 8px;
+}
 .alert {
     padding: 15px 20px;
     margin-bottom: 20px;
