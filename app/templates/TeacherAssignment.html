@@ -64,6 +64,12 @@
                 </div>
 
                 <div class="form-group">
+                    <label for="correct-answers">Expected Answer/Words (Optional - comma-separated)</label>
+                    <textarea id="correct-answers" name="correct_answers" rows="3" placeholder="Example: apple, mango, banana"></textarea>
+                    <small class="form-help">Enter expected words/answers separated by commas. Students can check if their signed words match before submitting. Leave empty if you want to grade manually.</small>
+                </div>
+
+                <div class="form-group">
                     <label for="assignment-subject">Subject</label>
                     <select id="assignment-subject" name="subject_id" required
                             data-create-assignment-url="{{ url_for('teacher.create_assignment') }}">

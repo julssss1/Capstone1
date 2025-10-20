@@ -301,3 +301,82 @@
         font-size: 1.2em;
     }
 }
+
+/* Action Button Styling */
+.action-button {
+    padding: 12px 24px;
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.action-button:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.action-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.action-button i {
+    font-size: 16px;
+}
+
+/* Check Answer Button - Green */
+.check-button {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.check-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #218838 0%, #1ba87e 100%);
+}
+
+/* Remove Last Button - Orange */
+.remove-button {
+    background: linear-gradient(135deg, #fd7e14 0%, #ff8c00 100%);
+    color: white;
+}
+
+.remove-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #e8590c 0%, #e67e00 100%);
+}
+
+/* Clear All Button - Red */
+.clear-button {
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+}
+
+.clear-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #c82333 0%, #bd2130 100%);
+}
+
+/* Submit Button Enhancement */
+.practice-submission-module .submit-button {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+}
+
+.practice-submission-module .submit-button:hover:not(:disabled) {
+    background: linear-gradient(135deg, #5568d3 0%, #6a4193 100%);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+}
+
+.practice-submission-module .submit-button i {
+    font-size: 18px;
+}

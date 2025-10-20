@@ -3,6 +3,7 @@ from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
 import json
+import re
 from datetime import datetime, timezone, timedelta
 from .learning_routes import _calculate_subject_progress, _award_subject_completion_badge
 
@@ -133,6 +134,7 @@ def submit_assignment_work(assignment_id):
     average_confidence = 0.0
     calculated_grade = 0.0
     current_assignment_id = int(assignment_id)
+    correct_answers = None
 
     if not student_id:
         flash('User session invalid.', 'danger'); return redirect(url_for('auth.login'))
@@ -140,10 +142,12 @@ def submit_assignment_work(assignment_id):
         flash('Database connection error.', 'danger'); return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
 
     try:
-        assignment_res = supabase.table('assignments').select('due_date').eq('id', current_assignment_id).single().execute()
+        assignment_res = supabase.table('assignments').select('due_date, correct_answers').eq('id', current_assignment_id).single().execute()
         if not (assignment_res and assignment_res.data):
             flash('Assignment not found.', 'danger')
             return redirect(url_for('student.student_assignment'))
+        
+        correct_answers = assignment_res.data.get('correct_answers', '')
         
         due_date_str = assignment_res.data.get('due_date')
         if due_date_str:
@@ -161,7 +165,29 @@ def submit_assignment_work(assignment_id):
         flash(f"Could not verify assignment due date: {e}", 'danger')
         return redirect(url_for('student.view_assignment_student', assignment_id=current_assignment_id))
 
+    # Handle validation if correct answers are provided
+    if correct_answers:
+        # Validate student's signed words against expected answers
+        student_answer = (form_notes or '').strip().lower()
+        correct_answers_list = [ans.strip().lower() for ans in correct_answers.split(',')]
+        # Parse student answers (space or comma-separated)
+        student_answers_list = [ans.strip().lower() for ans in re.split(r'[\s,]+', student_answer) if ans.strip()]
+        
+        # Check if all correct answers are present in student's answer
+        all_correct = all(correct in student_answers_list for correct in correct_answers_list)
+        
+        if all_correct:
+            calculated_grade = 100.0
+            average_confidence = 1.0
+        else:
+            calculated_grade = 0.0
+            average_confidence = 0.0
+        
+        print(f"Validated assignment - Student: {student_answer}, Expected: {correct_answers}, Grade: {calculated_grade}")
+    
+    # Also process sign attempts for confidence tracking
     if sign_attempts_json:
+        # Handle sign recognition assignments
         try:
             recorded_sign_attempts = json.loads(sign_attempts_json)
             if recorded_sign_attempts:

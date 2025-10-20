@@ -89,8 +89,24 @@
                 <div class="form-group">
                     <label for="submission-notes">Notes (Signs practiced will appear here):</label>
                     <textarea id="submission-notes" name="submission_notes" placeholder="Recognized signs will appear here..." {{ 'disabled' if is_past_due }}></textarea>
+                    {% if assignment.correct_answers %}
+                    <div id="text-feedback" class="text-feedback" style="display:none; margin-top: 10px; padding: 10px; border-radius: 5px;"></div>
+                    {% endif %}
+                    <div class="button-group" style="margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;">
+                        {% if assignment.correct_answers %}
+                        <button type="button" id="check-answer-btn" class="action-button check-button" {{ 'disabled' if is_past_due }}>
+                            <i class="fas fa-check-circle"></i> Check Answer
+                        </button>
+                        {% endif %}
+                        <button type="button" id="clear-all-btn" class="action-button clear-button" {{ 'disabled' if is_past_due }}>
+                            <i class="fas fa-trash-alt"></i> Clear All
+                        </button>
+                    </div>
                 </div>
-                <button type="submit" class="submit-button" {{ 'disabled' if is_past_due }}>Submit Assignment</button>
+                <button type="submit" class="submit-button" id="submit-btn" {{ 'disabled' if is_past_due }}>
+                    <i class="fas fa-paper-plane"></i> Submit Assignment
+                </button>
+                <input type="hidden" id="correct-answers" value="{{ assignment.correct_answers | default('') }}">
             </section>
 
             <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}

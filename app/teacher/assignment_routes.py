@@ -86,6 +86,7 @@ def create_assignment():
         subject_id_form = request.form.get('subject_id', type=int)
         lesson_id_form = request.form.get('lesson_id', type=int) 
         due_date = request.form.get('due_date')
+        correct_answers = request.form.get('correct_answers', '')
 
         if not title or not description or not subject_id_form or not due_date:
             flash('Title, Description, Subject, and Due Date are required.', 'danger')
@@ -98,6 +99,7 @@ def create_assignment():
             'description': description,
             'subject_id': subject_id_form,
             'due_date': due_date,
+            'correct_answers': correct_answers.strip() if correct_answers else None,
             # 'teacher_id': teacher_id # Ensure your 'assignments' table has this if you want to link directly
         }
         if lesson_id_form: # Only add lesson_id if it was selected and is valid

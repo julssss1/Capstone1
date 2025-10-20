@@ -553,7 +553,8 @@ class SignRecognitionAssignment {
         if (!this.submissionNotesTextarea) return;
 
         const currentText = this.submissionNotesTextarea.value;
-        const separator = currentText.length > 0 ? " " : "";
+        // Only add space if the sign is more than one character (a word), not a single letter
+        const separator = currentText.length > 0 && sign.length > 1 ? " " : "";
         
         // Add sign to textarea
         this.submissionNotesTextarea.value += separator + sign;
@@ -667,7 +668,7 @@ document.addEventListener('DOMContentLoaded', async function () {
             });
         }
         
-        // Prevent manual typing (allow only backspace, delete, arrows)
+        // Prevent manual typing in textarea (allow only backspace, delete, arrows)
         const textarea = document.getElementById('submission-notes');
         if (textarea) {
             textarea.addEventListener('keydown', function(event) {
@@ -681,6 +682,104 @@ document.addEventListener('DOMContentLoaded', async function () {
                 }
                 if (event.key.length === 1 && !event.ctrlKey && !event.altKey && !event.metaKey) {
                     event.preventDefault();
+                }
+            });
+        }
+        
+        // Handle optional answer checking if correct answers are provided
+        const checkAnswerBtn = document.getElementById('check-answer-btn');
+        const textFeedback = document.getElementById('text-feedback');
+        const correctAnswersInput = document.getElementById('correct-answers');
+        const submitBtn = document.getElementById('submit-btn');
+        
+        if (checkAnswerBtn && textFeedback && correctAnswersInput && submitBtn && correctAnswersInput.value) {
+            // Initially disable submit button if there are expected answers
+            submitBtn.disabled = true;
+            submitBtn.style.opacity = '0.6';
+            submitBtn.style.cursor = 'not-allowed';
+            
+            checkAnswerBtn.addEventListener('click', function() {
+                const studentAnswer = textarea.value.trim().toLowerCase();
+                const correctAnswers = correctAnswersInput.value.toLowerCase();
+                
+                if (!studentAnswer) {
+                    textFeedback.style.display = 'block';
+                    textFeedback.style.backgroundColor = '#fff3cd';
+                    textFeedback.style.color = '#856404';
+                    textFeedback.style.border = '1px solid #ffc107';
+                    textFeedback.innerHTML = '⚠️ Please sign some words first.';
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.6';
+                    submitBtn.style.cursor = 'not-allowed';
+                    return;
+                }
+                
+                // Parse correct answers (comma-separated)
+                const correctAnswersList = correctAnswers.split(',').map(a => a.trim());
+                
+                // Parse student answers (space or comma-separated)
+                const studentAnswersList = studentAnswer.toLowerCase().split(/[\s,]+/).filter(a => a.length > 0);
+                
+                // Check if all required answers are present
+                let allCorrect = true;
+                let missingAnswers = [];
+                
+                for (const correct of correctAnswersList) {
+                    if (!studentAnswersList.includes(correct)) {
+                        allCorrect = false;
+                        missingAnswers.push(correct);
+                    }
+                }
+                
+                if (allCorrect) {
+                    textFeedback.style.display = 'block';
+                    textFeedback.style.backgroundColor = '#d4edda';
+                    textFeedback.style.color = '#155724';
+                    textFeedback.style.border = '1px solid #28a745';
+                    textFeedback.innerHTML = '✅ <strong>Correct!</strong> Your signed words match the expected answer. You can now submit.';
+                    // Enable submit button
+                    submitBtn.disabled = false;
+                    submitBtn.style.opacity = '1';
+                    submitBtn.style.cursor = 'pointer';
+                } else {
+                    textFeedback.style.display = 'block';
+                    textFeedback.style.backgroundColor = '#f8d7da';
+                    textFeedback.style.color = '#721c24';
+                    textFeedback.style.border = '1px solid #dc3545';
+                    textFeedback.innerHTML = '❌ <strong>Try again!</strong> Some expected words are missing or incorrect.';
+                    // Disable submit button
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.6';
+                    submitBtn.style.cursor = 'not-allowed';
+                }
+            });
+        }
+        
+        // Clear All button handler
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        if (clearAllBtn && textarea) {
+            clearAllBtn.addEventListener('click', function() {
+                // Confirm before clearing
+                if (textarea.value && !confirm('Are you sure you want to clear all signed words?')) {
+                    return;
+                }
+                
+                // Clear textarea
+                textarea.value = '';
+                
+                // Clear recorded attempts
+                signRecognition.recordedSignAttempts = [];
+                
+                // Clear feedback if exists
+                if (textFeedback) {
+                    textFeedback.style.display = 'none';
+                }
+                
+                // If there are expected answers, disable submit again
+                if (correctAnswersInput && correctAnswersInput.value && submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.style.opacity = '0.6';
+                    submitBtn.style.cursor = 'not-allowed';
                 }
             });
         }

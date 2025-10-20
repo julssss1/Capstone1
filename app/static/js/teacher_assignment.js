@@ -3,6 +3,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const lessonGroup = document.getElementById('lesson-group');
     const lessonSelect = document.getElementById('assignment-lesson');
     const dueDateInput = document.getElementById('assignment-due-date');
+    const assignmentTypeSelect = document.getElementById('assignment-type');
+    const textAnswersGroup = document.getElementById('text-answers-group');
+    const correctAnswersTextarea = document.getElementById('correct-answers');
     const createAssignmentUrl = subjectSelect ? subjectSelect.dataset.createAssignmentUrl : null; // Get URL from data attribute
 
     // Set minimum date to today to prevent selecting past dates
