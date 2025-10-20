@@ -63,4 +63,4 @@ jobs:
         with:
           app-name: 'HandSpoken'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_AF6703B5F1C8409DABCC567323DFF6D8 }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_EDCDF32816834E508058E64A9E5A518F }}
