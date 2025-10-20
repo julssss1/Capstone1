@@ -38,36 +38,9 @@
 }
 
 .profile-container .profile-header .profile-info-header h1 {
-    margin: 0 0 5px 0;
+    margin: 0;
     font-size: 26px;
     font-weight: 600;
-}
-
-.profile-container .profile-header .profile-info-header p {
-    margin: 0 0 10px 0;
-    font-size: 16px;
-    opacity: 0.9;
-}
-
-/* Progress bar styling */
-.profile-container .profile-header .progress-bar-container {
-    background-color: rgba(255, 255, 255, 0.3);
-    border-radius: 5px;
-    height: 8px;
-    margin-bottom: 5px;
-    overflow: hidden;
-}
-
-.profile-container .profile-header .progress-bar {
-    width: 60%; /* Example progress - ideally make this dynamic via inline style or JS */
-    height: 100%;
-    background-color: #ffffff;
-    border-radius: 5px;
-}
-
-.profile-container .profile-header .profile-info-header span {
-    font-size: 13px;
-    opacity: 0.8;
 }
 
 /* Main content area within the profile container (holds the sections) */
