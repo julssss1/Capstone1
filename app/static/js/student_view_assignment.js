@@ -148,9 +148,7 @@ document.addEventListener('DOMContentLoaded', function () {
             videoFeedImg.src = ""; // Attempt to stop the stream
             console.log("Cleared video feed source on page hide (StudentViewAssignment).");
         }
-        // Optionally, could send a beacon/fetch to a server endpoint to explicitly release camera
-        // For example: navigator.sendBeacon('/release_camera_signal');
-        // But for now, relying on stream termination and server-side finally block.
+        
     });
 
     if (submissionNotesTextarea) {

@@ -316,8 +316,6 @@ class SignRecognitionFSLClient {
      * Normalize one hand for FSL by padding with zeros for missing hand
      * Returns array of 84 values (42 for detected hand + 42 zeros for missing hand)
      * 
-     * IMPORTANT: Matches production behavior - always append zeros at the end
-     * regardless of which hand is detected: [hand data, zeros]
      */
     normalizeOneHandForFSL(landmarks, handedness) {
         try {
@@ -327,8 +325,7 @@ class SignRecognitionFSLClient {
             // Create 42 zeros for the missing hand
             const zeros = new Array(42).fill(0);
             
-            // Match production: Always pad at the end [hand data, zeros]
-            // This works because the model was trained this way
+          
             return [...normalizedHand, ...zeros];
         } catch (error) {
             console.error("Error normalizing one hand for FSL:", error);
