@@ -342,3 +342,206 @@
 .form-actions-footer .btn.save-btn:hover {
     background-color: #0056b3;
 }
+
+
+
+/* Tablet and smaller screens (max-width: 768px) */
+@media screen and (max-width: 768px) {
+    /* Admin user edit header - stack vertically */
+    .admin-user-edit-header {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .admin-user-edit-header .main-profile-info {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+    }
+
+    .admin-user-edit-header .profile-picture-container {
+        margin-right: 0;
+        margin-bottom: 15px;
+    }
+
+    .admin-user-edit-header .user-secondary-details {
+        text-align: center;
+        max-width: 100%;
+    }
+
+    /* Form rows - stack fields vertically */
+    .admin-edit-form .form-row {
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    .admin-edit-form .names-row .form-group,
+    .admin-edit-form .form-row .form-group-email,
+    .admin-edit-form .form-row .form-group-role,
+    .admin-edit-form .grade-row .form-group-grade {
+        flex-basis: 100%;
+        min-width: 100%;
+        max-width: 100%;
+    }
+
+    /* Form container padding reduction */
+    .form-container {
+        padding: 20px 15px;
+    }
+
+    .settings-container {
+        padding: 20px 15px;
+    }
+
+    /* Form actions footer - wrap buttons on smaller screens */
+    .form-actions-footer {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 8px;
+    }
+
+    .form-actions-footer .btn {
+        flex-basis: calc(50% - 4px);
+        min-width: 120px;
+        justify-content: center;
+    }
+
+    /* Full width for complete reset button on small screens */
+    .form-actions-footer .btn.complete-reset-btn {
+        flex-basis: 100%;
+    }
+}
+
+/* Mobile devices (max-width: 480px) */
+@media screen and (max-width: 480px) {
+    /* Profile picture size reduction */
+    .admin-user-edit-header .profile-picture {
+        width: 60px;
+        height: 60px;
+    }
+
+    /* Header text sizes */
+    .admin-user-edit-header .user-primary-details p,
+    .admin-user-edit-header .user-secondary-details p {
+        font-size: 0.85rem;
+    }
+
+    /* Form container further padding reduction */
+    .form-container {
+        padding: 15px 10px;
+    }
+
+    .settings-container {
+        padding: 15px 10px;
+    }
+
+    /* Form input padding reduction */
+    .settings-form input[type="text"],
+    .settings-form input[type="email"],
+    .settings-form input[type="password"],
+    .settings-form select {
+        padding: 8px 10px;
+        font-size: 0.85rem;
+    }
+
+    /* Button sizes */
+    .btn,
+    .settings-form .btn,
+    .form-actions-footer .btn {
+        padding: 8px 14px;
+        font-size: 0.85rem;
+    }
+
+    /* Form actions footer - full width buttons */
+    .form-actions-footer {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .form-actions-footer .btn,
+    .form-actions-footer form#deleteUserForm {
+        width: 100%;
+        flex-basis: 100%;
+    }
+
+    .form-actions-footer form#deleteUserForm .btn {
+        width: 100%;
+    }
+
+    /* Section label sizes */
+    .password-section-label,
+    .settings-section .section-label {
+        font-size: 1rem;
+    }
+
+    /* Alert padding */
+    .alert {
+        padding: 12px;
+        font-size: 0.85rem;
+    }
+
+    /* Page header adjustments */
+    .page-header h2 {
+        font-size: 1.5rem;
+    }
+
+    .page-header p {
+        font-size: 0.9rem;
+    }
+}
+
+/* Very small mobile devices (max-width: 360px) */
+@media screen and (max-width: 360px) {
+    /* Further reduce profile picture */
+    .admin-user-edit-header .profile-picture {
+        width: 50px;
+        height: 50px;
+    }
+
+    /* Smaller text sizes */
+    .admin-user-edit-header .user-primary-details p,
+    .admin-user-edit-header .user-secondary-details p {
+        font-size: 0.8rem;
+    }
+
+    /* Form elements */
+    .settings-form label {
+        font-size: 0.85rem;
+    }
+
+    .settings-form input[type="text"],
+    .settings-form input[type="email"],
+    .settings-form input[type="password"],
+    .settings-form select {
+        font-size: 0.8rem;
+    }
+
+    /* Buttons */
+    .btn,
+    .form-actions-footer .btn {
+        font-size: 0.8rem;
+        padding: 7px 12px;
+    }
+}
+
+/* Landscape orientation for mobile devices */
+@media screen and (max-height: 600px) and (orientation: landscape) {
+    .admin-user-edit-header {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    .admin-user-edit-header .profile-picture {
+        width: 50px;
+        height: 50px;
+    }
+
+    .settings-container {
+        padding: 15px;
+    }
+
+    .settings-section {
+        margin-top: 15px;
+        padding-top: 10px;
+    }
+}
