@@ -120,10 +120,54 @@
 
 
 .camera-note-text {
-    font-size: 0.9em;
-    color: var(--text-color-light, #555); /* Use variable or fallback */
+    margin-top: 10px;
+    font-size: 0.9rem;
+    color: #666;
     text-align: center;
-    margin-top: 5px;
+}
+
+/* Model Selector Styling */
+.model-selector {
+    margin-bottom: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 1px solid #dee2e6;
+}
+
+.model-selector label {
+    display: block;
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.model-toggle-select {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 0.95rem;
+    border: 2px solid #007bff;
+    border-radius: 6px;
+    background-color: white;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.model-toggle-select:hover {
+    border-color: #0056b3;
+    background-color: #f0f8ff;
+}
+
+.model-toggle-select:focus {
+    outline: none;
+    border-color: #0056b3;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.model-toggle-select option {
+    padding: 10px;
 }
 
 

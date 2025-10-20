@@ -11,12 +11,20 @@ class SignRecognitionAssignment {
         this.canvasCtx = null;
         this.isRunning = false;
         
+        // Model selection (ASL or FSL)
+        this.currentModel = 'asl'; // Default to ASL
+        this.maxHandsForModel = { 'asl': 1, 'fsl': 2 };
+        
         // Prediction tracking
         this.currentPrediction = "Waiting...";
         this.lastPrediction = "";
         this.stableCounter = 0;
         this.STABILITY_THRESHOLD = 25;
         this.minConfidence = 0.90;
+        
+        // Hand detection status (for FSL)
+        this.leftHandDetected = false;
+        this.rightHandDetected = false;
         
         // Cooldown after adding sign to prevent immediate re-detection
         this.lastSignAddedTime = 0;
@@ -180,16 +188,49 @@ class SignRecognitionAssignment {
 
         let sign = "No hand detected";
         let confidence = 0.0;
+        
+        // Reset hand detection for FSL
+        this.leftHandDetected = false;
+        this.rightHandDetected = false;
 
         if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-            const landmarks = results.multiHandLandmarks[0];
-            
-            // Draw landmarks
-            drawConnectors(this.canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
-            drawLandmarks(this.canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 3 });
+            // Draw all detected hands with different colors
+            for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+                const landmarks = results.multiHandLandmarks[i];
+                const handedness = results.multiHandedness && results.multiHandedness[i];
+                
+                // Color based on hand (for FSL)
+                const isLeftHand = handedness && handedness.label === 'Left';
+                const isRightHand = handedness && handedness.label === 'Right';
+                
+                if (isLeftHand) this.leftHandDetected = true;
+                if (isRightHand) this.rightHandDetected = true;
+                
+                const handColor = isLeftHand ? '#00FF00' : '#0000FF';
+                drawConnectors(this.canvasCtx, landmarks, HAND_CONNECTIONS, { color: handColor, lineWidth: 2 });
+                drawLandmarks(this.canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 3 });
+            }
 
-            // Normalize landmarks
-            const normalizedLandmarks = this.normalizeLandmarks(landmarks);
+            // Normalize and predict based on model type
+            let normalizedLandmarks = null;
+            
+            if (this.currentModel === 'fsl') {
+                // FSL: Handle 1 or 2 hands
+                if (results.multiHandLandmarks.length === 2) {
+                    normalizedLandmarks = this.normalizeTwoHandLandmarks(
+                        results.multiHandLandmarks,
+                        results.multiHandedness
+                    );
+                } else if (results.multiHandLandmarks.length === 1) {
+                    normalizedLandmarks = this.normalizeOneHandForFSL(
+                        results.multiHandLandmarks[0],
+                        results.multiHandedness[0]
+                    );
+                }
+            } else {
+                // ASL: Single hand only
+                normalizedLandmarks = this.normalizeLandmarks(results.multiHandLandmarks[0]);
+            }
             
             if (normalizedLandmarks) {
                 // Make prediction
@@ -209,7 +250,7 @@ class SignRecognitionAssignment {
     }
 
     /**
-     * Normalize hand landmarks
+     * Normalize hand landmarks (ASL - single hand)
      */
     normalizeLandmarks(landmarks) {
         try {
@@ -240,6 +281,88 @@ class SignRecognitionAssignment {
     }
 
     /**
+     * Normalize TWO hands for FSL
+     */
+    normalizeTwoHandLandmarks(multiHandLandmarks, multiHandedness) {
+        try {
+            if (multiHandLandmarks.length !== 2) return null;
+
+            let leftHandLandmarks = null;
+            let rightHandLandmarks = null;
+
+            for (let i = 0; i < multiHandedness.length; i++) {
+                if (multiHandedness[i].label === 'Left') {
+                    leftHandLandmarks = multiHandLandmarks[i];
+                } else if (multiHandedness[i].label === 'Right') {
+                    rightHandLandmarks = multiHandLandmarks[i];
+                }
+            }
+
+            if (!leftHandLandmarks || !rightHandLandmarks) return null;
+
+            const normalizedLeft = this.normalizeSingleHandFSL(leftHandLandmarks);
+            const normalizedRight = this.normalizeSingleHandFSL(rightHandLandmarks);
+
+            if (!normalizedLeft || !normalizedRight) return null;
+
+            // Combine: left hand first, then right hand
+            return [...normalizedLeft, ...normalizedRight];
+        } catch (error) {
+            console.error("Error normalizing two-hand landmarks:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Normalize ONE hand for FSL (pad with zeros)
+     */
+    normalizeOneHandForFSL(landmarks, handedness) {
+        try {
+            const normalizedHand = this.normalizeSingleHandFSL(landmarks);
+            if (!normalizedHand) return null;
+
+            const zeros = new Array(42).fill(0);
+            
+            // Match production: Always pad at the end [hand data, zeros]
+            return [...normalizedHand, ...zeros];
+        } catch (error) {
+            console.error("Error normalizing one hand for FSL:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Normalize single hand for FSL
+     */
+    normalizeSingleHandFSL(landmarks) {
+        try {
+            const wrist = landmarks[0];
+            const originX = wrist.x;
+            const originY = wrist.y;
+
+            const middleMCP = landmarks[9];
+            const scale = Math.sqrt(
+                Math.pow(middleMCP.x - originX, 2) + 
+                Math.pow(middleMCP.y - originY, 2)
+            );
+
+            if (scale < 1e-6) return null;
+
+            const normalized = [];
+            for (const landmark of landmarks) {
+                const normX = (landmark.x - originX) / scale;
+                const normY = (landmark.y - originY) / scale;
+                normalized.push(normX, normY);
+            }
+
+            return normalized; // Returns 42 values per hand
+        } catch (error) {
+            console.error("Error normalizing single hand for FSL:", error);
+            return null;
+        }
+    }
+
+    /**
      * Make prediction using server API with throttling
      */
     async predict(landmarkData) {
@@ -264,7 +387,12 @@ class SignRecognitionAssignment {
         this.lastPredictionTime = currentTime;
         
         try {
-            const response = await fetch('/student/api/predict_landmarks', {
+            // Use different API endpoints based on model
+            const apiEndpoint = this.currentModel === 'fsl' 
+                ? '/student/api/predict_landmarks_fsl' 
+                : '/student/api/predict_landmarks';
+            
+            const response = await fetch(apiEndpoint, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -302,6 +430,37 @@ class SignRecognitionAssignment {
         } finally {
             this.pendingPrediction = false;
         }
+    }
+
+    /**
+     * Switch model (ASL or FSL)
+     */
+    async switchModel(newModel) {
+        if (this.currentModel === newModel) return;
+        
+        console.log(`Switching model from ${this.currentModel} to ${newModel}`);
+        this.currentModel = newModel;
+        
+        // Update MediaPipe Hands maxNumHands setting
+        const maxHands = this.maxHandsForModel[newModel];
+        this.hands.setOptions({
+            maxNumHands: maxHands,
+            modelComplexity: 1,
+            minDetectionConfidence: 0.6,
+            minTrackingConfidence: 0.6
+        });
+        
+        // Reset predictions
+        this.currentPrediction = "Waiting...";
+        this.lastPrediction = "";
+        this.stableCounter = 0;
+        this.isInCooldown = false;
+        
+        if (this.predictionTextElement) {
+            this.predictionTextElement.textContent = `Switched to ${newModel.toUpperCase()}`;
+        }
+        
+        console.log(`Model switched to ${newModel}, maxHands: ${maxHands}`);
     }
 
     /**
@@ -472,6 +631,15 @@ document.addEventListener('DOMContentLoaded', async function () {
     
     try {
         await signRecognition.initialize();
+        
+        // Model toggle handler
+        const modelToggle = document.getElementById('model-toggle');
+        if (modelToggle) {
+            modelToggle.addEventListener('change', async (e) => {
+                const newModel = e.target.value;
+                await signRecognition.switchModel(newModel);
+            });
+        }
         
         // Start button handler
         const startButton = document.getElementById('start_camera_assignment_btn');

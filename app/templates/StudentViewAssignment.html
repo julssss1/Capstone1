@@ -95,6 +95,13 @@
 
             <section class="assignment-detail-card camera-module"> {# Module 2: Camera Feed #}
                 <h3>Your Camera Feed</h3>
+                <div class="model-selector">
+                    <label for="model-toggle">Recognition Model:</label>
+                    <select id="model-toggle" class="model-toggle-select">
+                        <option value="asl">ASL (1 Hand - Letters)</option>
+                        <option value="fsl">FSL (1-2 Hands - Filipino Signs)</option>
+                    </select>
+                </div>
                  <button type="button" id="start_camera_assignment_btn" class="start-camera-button">Start Camera & Practice</button>
                 <div class="video-feed-container">
                     <video id="camera-video-assignment" style="display: none;"></video>
