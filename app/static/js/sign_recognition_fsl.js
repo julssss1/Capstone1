@@ -532,6 +532,9 @@ class SignRecognitionFSLClient {
 let recognitionClient = null;
 let currentTargetSign = null;
 let cameraStarted = false;
+let successStartTime = null;
+const SUCCESS_HOLD_TIME = 1500; // ms - require user to hold sign for 1.5 seconds
+let predictionCheckInterval = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("FSL Practice page loaded");
@@ -546,9 +549,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Failed to initialize FSL recognition:", error);
     }
     
-    // Set up prediction update callback
+    // Set up prediction update callback (not used directly anymore, we poll instead)
     recognitionClient.onPredictionUpdate = (stablePrediction) => {
-        updateFeedback(stablePrediction);
+        // This can be left for compatibility but we'll use polling
     };
     
     // Set up sign button handlers
@@ -569,6 +572,9 @@ function setupSignButtons() {
 }
 
 function selectSign(sign) {
+    currentTargetSign = sign;
+    successStartTime = null;
+    
     document.getElementById('instruction-text').textContent = `Practice the sign: ${sign}`;
     document.getElementById('tip-sign-letter').textContent = sign;
     document.getElementById('tip-text').textContent = `Show the "${sign}" sign clearly to the camera. Some signs use one hand, others use both.`;
@@ -591,6 +597,11 @@ function selectSign(sign) {
     
     document.getElementById('feedback').className = 'status-waiting';
     document.getElementById('feedback').textContent = 'Show your hand(s) to start...';
+    
+    // Start checking predictions if camera is running
+    if (cameraStarted && !predictionCheckInterval) {
+        startPredictionChecking();
+    }
 }
 
 function setupCameraButton() {
@@ -608,6 +619,11 @@ function setupCameraButton() {
                 startBtn.disabled = false;
                 
                 document.getElementById('video-placeholder-text').style.display = 'none';
+                
+                // Start checking predictions if a sign is selected
+                if (currentTargetSign) {
+                    startPredictionChecking();
+                }
             } catch (error) {
                 console.error("Error starting camera:", error);
                 alert("Failed to start camera. Please check permissions.");
@@ -616,11 +632,33 @@ function setupCameraButton() {
             }
         } else {
             recognitionClient.stop();
+            stopPredictionChecking();
             cameraStarted = false;
             startBtn.textContent = 'Start Camera';
             document.getElementById('video-placeholder-text').style.display = 'block';
         }
     });
+}
+
+function startPredictionChecking() {
+    if (predictionCheckInterval) clearInterval(predictionCheckInterval);
+    predictionCheckInterval = setInterval(checkPrediction, 100); // Check every 100ms
+    console.log("FSL Prediction checking started.");
+}
+
+function stopPredictionChecking() {
+    if (predictionCheckInterval) {
+        clearInterval(predictionCheckInterval);
+        predictionCheckInterval = null;
+        console.log("FSL Prediction checking stopped.");
+    }
+}
+
+function checkPrediction() {
+    if (!currentTargetSign || !recognitionClient) return;
+    
+    const prediction = recognitionClient.getStablePrediction();
+    updateFeedback(prediction);
 }
 
 function updateFeedback(stablePrediction) {
@@ -637,15 +675,42 @@ function updateFeedback(stablePrediction) {
         return;
     }
     
-    if (stablePrediction === currentTargetSign) {
-        feedbackEl.className = 'status-correct';
-        feedbackEl.textContent = `✓ Correct! You signed "${currentTargetSign}"`;
-    } else if (stablePrediction === "Ready..." || stablePrediction === "Initializing..." || 
-               stablePrediction.includes("Need") || stablePrediction.includes("No hands")) {
-        feedbackEl.className = 'status-waiting';
-        feedbackEl.textContent = 'Show your hand(s) clearly...';
+    const isCorrect = stablePrediction === currentTargetSign;
+    
+    if (isCorrect) {
+        if (!successStartTime) {
+            // Start the hold timer
+            successStartTime = Date.now();
+            feedbackEl.textContent = `Correct! Hold for ${(SUCCESS_HOLD_TIME / 1000).toFixed(1)}s...`;
+            feedbackEl.className = 'status-holding';
+        } else {
+            // Check how long the sign has been held
+            const timeHeld = Date.now() - successStartTime;
+            if (timeHeld >= SUCCESS_HOLD_TIME) {
+                // Success! User held the sign for 1.5 seconds
+                feedbackEl.textContent = `✓ Great! You signed "${currentTargetSign}"!`;
+                feedbackEl.className = 'status-success';
+            } else {
+                // Still holding, show countdown
+                const timeLeft = Math.max(0, SUCCESS_HOLD_TIME - timeHeld);
+                feedbackEl.textContent = `Correct! Hold for ${(timeLeft / 1000).toFixed(1)}s...`;
+                feedbackEl.className = 'status-holding';
+            }
+        }
     } else {
-        feedbackEl.className = 'status-incorrect';
-        feedbackEl.textContent = `Try again. Detected: ${stablePrediction}`;
+        // Reset hold timer if prediction is incorrect
+        successStartTime = null;
+        
+        if (stablePrediction === "Ready..." || stablePrediction === "Initializing..." || 
+            stablePrediction.includes("Need") || stablePrediction.includes("No hands")) {
+            feedbackEl.className = 'status-waiting';
+            feedbackEl.textContent = 'Show your hand(s) clearly...';
+        } else if (stablePrediction.includes("Error") || stablePrediction === "Unknown") {
+            feedbackEl.className = 'status-incorrect';
+            feedbackEl.textContent = `Status: ${stablePrediction}. Try adjusting hand position.`;
+        } else {
+            feedbackEl.className = 'status-incorrect';
+            feedbackEl.textContent = `Not quite "${currentTargetSign}". You signed "${stablePrediction}". Keep trying!`;
+        }
     }
 }
