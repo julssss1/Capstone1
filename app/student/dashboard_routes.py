@@ -3,6 +3,7 @@ from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
 from app.sign_logic import get_available_signs # Only get_available_signs is needed here
 from app.sign_logic_fsl import get_available_signs_fsl
+from app.sign_logic_basic_phrase import get_available_signs_basic_phrase
 from supabase import Client, PostgrestAPIError
 from datetime import datetime, timezone, timedelta
 
@@ -163,5 +164,22 @@ def practice_fsl():
     return render_template(
         'StudentPracticeFSL.html',
         available_signs=available_signs_fsl,
+        user_name=user_name
+    )
+
+@bp.route('/practice-basic-phrase')
+@login_required
+@role_required('Student')
+def practice_basic_phrase():
+    """Basic Phrase practice page with sign recognition."""
+    user_name = session.get('user_name', 'Student')
+    
+    # Get available basic phrase signs
+    model_signs_basic_phrase = get_available_signs_basic_phrase()
+    available_signs_basic_phrase = model_signs_basic_phrase if model_signs_basic_phrase else []
+    
+    return render_template(
+        'StudentPracticeBasicPhrase.html',
+        available_signs=available_signs_basic_phrase,
         user_name=user_name
     )
