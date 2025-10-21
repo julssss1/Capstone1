@@ -11,9 +11,9 @@ class SignRecognitionAssignment {
         this.canvasCtx = null;
         this.isRunning = false;
         
-        // Model selection (ASL or FSL)
-        this.currentModel = 'asl'; // Default to ASL
-        this.maxHandsForModel = { 'asl': 1, 'fsl': 2 };
+        // Model selection (FSL Alphabet or FSL Signs)
+        this.currentModel = 'fsl_alphabet'; // Default to FSL Alphabet
+        this.maxHandsForModel = { 'fsl_alphabet': 1, 'fsl': 2 };
         
         // Prediction tracking
         this.currentPrediction = "Waiting...";
@@ -457,7 +457,8 @@ class SignRecognitionAssignment {
         this.isInCooldown = false;
         
         if (this.predictionTextElement) {
-            this.predictionTextElement.textContent = `Switched to ${newModel.toUpperCase()}`;
+            const modelName = newModel === 'fsl_alphabet' ? 'FSL Alphabet' : 'FSL';
+            this.predictionTextElement.textContent = `Switched to ${modelName}`;
         }
         
         console.log(`Model switched to ${newModel}, maxHands: ${maxHands}`);
