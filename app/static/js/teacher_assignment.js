@@ -72,8 +72,21 @@ document.addEventListener('DOMContentLoaded', function() {
     if (subjectSelect) {
         subjectSelect.addEventListener('change', function() {
             const selectedSubjectId = this.value;
-            if (selectedSubjectId && createAssignmentUrl) {
-                window.location.href = createAssignmentUrl + "?subject_id=" + selectedSubjectId;
+            if (selectedSubjectId) {
+                // Fetch lessons for the selected subject without page refresh
+                fetch(`/teacher/api/get-lessons-by-subject/${selectedSubjectId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.lessons) {
+                            populateLessonDropdown(data.lessons, null);
+                        } else {
+                            populateLessonDropdown([], null);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error fetching lessons:', error);
+                        populateLessonDropdown([], null);
+                    });
             } else if (lessonGroup) {
                 lessonSelect.innerHTML = '';
                 const option = document.createElement('option');
@@ -81,6 +94,42 @@ document.addEventListener('DOMContentLoaded', function() {
                 option.textContent = 'Select Lesson (Optional)';
                 lessonSelect.appendChild(option);
                 lessonGroup.style.display = 'none';
+            }
+        });
+    }
+
+    // Add form validation before submission
+    const assignmentForm = document.querySelector('.assignment-form');
+    if (assignmentForm) {
+        assignmentForm.addEventListener('submit', function(e) {
+            const title = document.getElementById('assignment-title').value.trim();
+            const description = document.getElementById('assignment-description').value.trim();
+            const subjectId = document.getElementById('assignment-subject').value;
+            const dueDate = document.getElementById('assignment-due-date').value;
+            const correctAnswers = document.getElementById('correct-answers').value.trim();
+
+            if (!title || !description || !subjectId || !dueDate || !correctAnswers) {
+                e.preventDefault();
+                alert('Please fill in all required fields:\n- Assignment Title\n- Description\n- Subject\n- Due Date\n- Expected Answer/Words');
+                return false;
+            }
+
+            if (title.length < 3) {
+                e.preventDefault();
+                alert('Assignment title must be at least 3 characters long.');
+                return false;
+            }
+
+            if (description.length < 10) {
+                e.preventDefault();
+                alert('Assignment description must be at least 10 characters long.');
+                return false;
+            }
+
+            if (correctAnswers.length < 2) {
+                e.preventDefault();
+                alert('Expected Answer/Words must be at least 2 characters long.');
+                return false;
             }
         });
     }

@@ -1,197 +1,343 @@
-/* TeacherAssignmentList.css - Mobile Responsive Styles */
+/* Teacher Assignment List Styling */
 
-/* Action buttons group styling */
-.action-buttons-group {
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h2 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 28px;
     display: flex;
-    gap: 10px;
+    align-items: center;
+    gap: 12px;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+.table-header-icon {
+    color: #667eea;
+}
+
+/* Filter Section */
+.filter-form {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 25px;
+}
+
+.filter-controls {
+    display: flex;
+    align-items: flex-end;
+    gap: 15px;
     flex-wrap: wrap;
 }
 
-.action-btn.delete-btn {
-    background-color: #dc3545;
-    color: white;
-    border: none;
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 200px;
+    flex: 1;
+}
+
+.filter-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #333;
+}
+
+.filter-select {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
     cursor: pointer;
-    transition: background-color 0.3s, transform 0.2s;
+    transition: border-color 0.3s ease;
 }
 
-.action-btn.delete-btn:hover {
-    background-color: #c82333;
-    transform: translateY(-2px);
+.filter-select:hover,
+.filter-select:focus {
+    border-color: #667eea;
+    outline: none;
 }
 
-.action-btn.delete-btn:disabled {
-    background-color: #6c757d;
+.filter-select:disabled {
+    background: #f5f5f5;
     cursor: not-allowed;
     opacity: 0.6;
 }
 
-/* Mobile responsive styles for assignment list table */
-@media screen and (max-width: 768px) {
-    .action-buttons-group {
-        flex-direction: column;
-        gap: 8px;
-        width: 100%;
-    }
-    /* Hide table and show card-based layout on mobile */
-    .table-container {
-        overflow-x: visible;
-    }
-    
-    .assignments-table {
-        display: block;
-        width: 100%;
-    }
-    
-    .assignments-table thead {
-        display: none;
-    }
-    
-    .assignments-table tbody {
-        display: block;
-    }
-    
-    .assignments-table tr {
-        display: block;
-        margin-bottom: 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        padding: 15px;
-        background: white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    
-    .assignments-table td {
-        display: block;
-        text-align: left;
-        padding: 10px 0;
-        border: none;
-        position: relative;
-        padding-left: 50%;
-    }
-    
-    .assignments-table td:before {
-        content: attr(data-label);
-        position: absolute;
-        left: 0;
-        width: 45%;
-        padding-right: 10px;
-        font-weight: 600;
-        color: #333;
-    }
-    
-    /* Add data labels for mobile */
-    .assignments-table td:nth-child(1):before {
-        content: "Name:";
-    }
-    
-    .assignments-table td:nth-child(2):before {
-        content: "Subject:";
-    }
-    
-    .assignments-table td:nth-child(3):before {
-        content: "Lesson:";
-    }
-    
-    .assignments-table td:nth-child(4):before {
-        content: "Submissions:";
-    }
-    
-    .assignments-table td:nth-child(5):before {
-        content: "Due Date:";
-    }
-    
-    .assignments-table td:nth-child(6):before {
-        content: "Actions:";
-    }
-    
-    /* Adjust action buttons for mobile */
-    .assignments-table td:last-child {
-        padding-left: 0;
-        padding-top: 15px;
-        border-top: 1px solid #eee;
-        margin-top: 10px;
-    }
-    
-    .assignments-table td:last-child:before {
-        display: none;
-    }
-    
-    .action-btn {
-        width: 100%;
-        text-align: center;
-        display: block;
-        padding: 12px;
-    }
-    
-    /* Due date cell adjustments */
-    .due-date-cell {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 5px;
-        align-items: center;
-    }
-    
-    .due-date-display,
-    .due-date-input {
-        flex: 1;
-        min-width: 120px;
-    }
-    
-    .edit-due-date-btn,
-    .save-due-date-btn,
-    .cancel-due-date-btn {
-        padding: 6px 10px;
-        font-size: 0.9rem;
-    }
-    
-    /* Page header adjustments */
-    .page-header h2 {
-        font-size: 1.5rem;
-    }
-    
-    .page-header p {
-        font-size: 0.9rem;
-    }
-    
-    /* No assignments message */
-    .no-assignments {
-        padding: 20px;
-        text-align: center;
-    }
-    
-    .no-assignments p {
-        font-size: 0.95rem;
-    }
+.filter-btn,
+.clear-filter-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+    height: fit-content;
 }
 
-/* Extra small mobile devices */
-@media screen and (max-width: 480px) {
-    .assignments-table tr {
-        padding: 12px;
+.filter-btn {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.filter-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.clear-filter-btn {
+    background: #f44336;
+    color: white;
+}
+
+.clear-filter-btn:hover {
+    background: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+/* Table Container */
+.table-container {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    overflow-x: auto;
+}
+
+/* Table Styling */
+.assignments-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.assignments-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.assignments-table thead th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.assignments-table tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
+}
+
+.assignments-table tbody tr:hover {
+    background-color: #f5f5f5;
+}
+
+.assignments-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.assignments-table tbody td {
+    padding: 12px;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.table-icon-gray {
+    color: #999;
+    margin-right: 8px;
+}
+
+/* Due Date Cell */
+.due-date-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.due-date-display {
+    flex: 1;
+}
+
+.due-date-input {
+    flex: 1;
+    padding: 6px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 13px;
+}
+
+.edit-due-date-btn,
+.save-due-date-btn,
+.cancel-due-date-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #667eea;
+    font-size: 14px;
+    padding: 4px 8px;
+    transition: color 0.2s ease;
+}
+
+.edit-due-date-btn:hover {
+    color: #764ba2;
+}
+
+.save-due-date-btn {
+    color: #4caf50;
+}
+
+.save-due-date-btn:hover {
+    color: #388e3c;
+}
+
+.cancel-due-date-btn {
+    color: #f44336;
+}
+
+.cancel-due-date-btn:hover {
+    color: #d32f2f;
+}
+
+/* Action Buttons */
+.action-buttons-group {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.action-btn {
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+}
+
+.action-btn:first-child {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.action-btn:first-child:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.delete-btn {
+    background: #f44336;
+    color: white;
+}
+
+.delete-btn:hover {
+    background: #d32f2f;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(244, 67, 54, 0.4);
+}
+
+/* No Assignments Message */
+.no-assignments {
+    text-align: center;
+    padding: 60px 20px;
+    color: #666;
+}
+
+.no-assignments p {
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+.no-assignments a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.no-assignments a:hover {
+    text-decoration: underline;
+}
+
+/* Alert Messages */
+.alert {
+    padding: 12px 20px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .filter-controls {
+        flex-direction: column;
+        align-items: stretch;
     }
     
-    .assignments-table td {
-        font-size: 0.9rem;
-        padding: 8px 0;
-        padding-left: 45%;
+    .filter-group {
+        min-width: 100%;
     }
     
-    .assignments-table td:before {
-        font-size: 0.85rem;
-        width: 40%;
+    .filter-btn,
+    .clear-filter-btn {
+        width: 100%;
+        justify-content: center;
     }
     
-    .page-header h2 {
-        font-size: 1.3rem;
+    .table-container {
+        overflow-x: auto;
     }
     
-    .table-header-icon {
-        font-size: 1rem;
+    .action-buttons-group {
+        flex-direction: column;
     }
     
     .action-btn {
-        font-size: 0.9rem;
-        padding: 10px;
+        width: 100%;
+        justify-content: center;
     }
 }

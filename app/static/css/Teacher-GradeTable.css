@@ -1,186 +1,287 @@
-.admin-content {    
-    padding: 20px;
-    background-color: var(--bg-light);
-    border-radius: 10px;
-    box-shadow: 0 4px 15px var(--shadow-color);
-    transition: box-shadow 0.3s ease, transform 0.2s ease;
-}
-
-.controls-header {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-section {
-     display: flex;
-     flex-wrap: wrap;
-     gap: 15px;
-     align-items: center;
-}
-
-.filter-dropdown {
-    padding: 8px 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font-size: 0.95em;
-    min-width: 180px; 
-}
-
-.filter-dropdown:focus {
-     outline: none;
-     border-color: var(--primary-color);
-     box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
-}
-
-.action-btn { 
-    padding: 8px 15px;
-    background-color: var(--primary-color);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.95em;
-    font-weight: 500;
-    transition: background-color 0.3s ease;
-    text-decoration: none;
-}
-.action-btn:hover {
-     background-color: #3a7bc8;
-}
-
+/* Teacher Gradebook Styling */
 
 .grade-table-container {
-    background-color: var(--bg-light);
-    border-radius: 10px;
-    box-shadow: 0 4px 15px var(--shadow-color);
-    overflow-x: auto; 
-    padding: 10px;
+    margin-top: 20px;
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .grade-table {
     width: 100%;
     border-collapse: collapse;
-    min-width: 700px; 
+    min-width: 600px;
 }
 
-.grade-table th,
-.grade-table td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid var(--border-color);
-    vertical-align: middle;
+.grade-table thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
 }
 
 .grade-table thead th {
-    background-color: #f8f9fa;
+    padding: 15px 12px;
+    text-align: left;
     font-weight: 600;
-    color: var(--text-color);
-    font-size: 0.9em;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    white-space: nowrap; 
+    font-size: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.grade-table thead th.student-name-column {
+    min-width: 200px;
+    position: sticky;
+    left: 0;
+    z-index: 11;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.grade-table thead th.assignment-column {
+    min-width: 120px;
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+.grade-table tbody tr {
+    border-bottom: 1px solid #e0e0e0;
+    transition: background-color 0.2s ease;
 }
 
 .grade-table tbody tr:hover {
-    background-color: #f1f3f5;
-}
-.grade-table td.numeric,
-.grade-table th.numeric {
-    text-align: right;
+    background-color: #f5f5f5;
 }
 
-.grade-table td.final-grade {
+.grade-table tbody tr:last-child {
+    border-bottom: none;
+}
+
+.grade-table tbody td {
+    padding: 12px;
+    font-size: 14px;
+}
+
+.grade-table tbody td.student-name-cell {
+    font-weight: 500;
+    color: #333;
+    position: sticky;
+    left: 0;
+    background: white;
+    z-index: 5;
+    min-width: 200px;
+}
+
+.grade-table tbody tr:hover td.student-name-cell {
+    background-color: #f5f5f5;
+}
+
+.grade-table tbody td.grade-cell {
+    text-align: center;
     font-weight: 600;
-    color: var(--primary-color);
+    min-width: 120px;
 }
 
-/* Responsive adjustments */
+/* Grade color coding */
+.grade-cell.no-submission {
+    color: #999;
+    font-style: italic;
+}
+
+.grade-cell.grade-excellent {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.grade-cell.grade-good {
+    background-color: #d1ecf1;
+    color: #0c5460;
+}
+
+.grade-cell.grade-needs-improvement {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+
+/* Clickable grade links */
+.grade-cell {
+    padding: 0 !important;
+}
+
+.grade-link {
+    color: inherit;
+    text-decoration: none;
+    display: inline-block;
+    width: 100%;
+    padding: 12px;
+    transition: all 0.2s ease;
+    font-weight: 600;
+}
+
+.grade-link:hover {
+    opacity: 0.85;
+    text-decoration: underline;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.grade-link:active {
+    transform: scale(0.98);
+}
+
+.grade-cell.no-submission {
+    padding: 12px !important;
+}
+
+/* Controls header */
+.controls-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.filter-section {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.filter-dropdown {
+    padding: 10px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 250px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s ease;
+}
+
+.filter-dropdown:hover,
+.filter-dropdown:focus {
+    border-color: #667eea;
+    outline: none;
+}
+
+.action-btn {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.action-btn i {
+    font-size: 14px;
+}
+
+/* Page header */
+.page-header {
+    margin-bottom: 30px;
+}
+
+.page-header h2 {
+    color: #333;
+    margin-bottom: 8px;
+    font-size: 28px;
+}
+
+.page-header p {
+    color: #666;
+    font-size: 14px;
+}
+
+/* Alert messages */
+.alert {
+    padding: 12px 20px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.alert-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeeba;
+}
+
+.alert-info {
+    background-color: #d1ecf1;
+    color: #0c5460;
+    border: 1px solid #bee5eb;
+}
+
+/* Responsive design */
 @media (max-width: 768px) {
     .controls-header {
         flex-direction: column;
         align-items: stretch;
     }
-
+    
     .filter-section {
         flex-direction: column;
-        align-items: stretch;
     }
-
+    
     .filter-dropdown {
-        width: 100%; /* Full width on smaller screens */
-        min-width: 0; /* Override min-width */
+        width: 100%;
     }
-
+    
     .action-btn {
-        width: 100%; /* Full width buttons */
-        text-align: center;
+        width: 100%;
+        justify-content: center;
     }
-
-    .grade-table {
-        min-width: 0; /* Allow table to shrink */
-        font-size: 0.9em; /* Slightly smaller font for small screens */
+    
+    .grade-table thead th.student-name-column {
+        min-width: 150px;
     }
-
-    .grade-table th,
-    .grade-table td {
-        padding: 8px 10px; /* Reduce padding */
-        white-space: normal; /* Allow text wrapping */
+    
+    .grade-table thead th.assignment-column {
+        min-width: 100px;
     }
-
-    .grade-table thead th {
-        white-space: normal; /* Allow header text to wrap */
+    
+    .grade-table tbody td.student-name-cell {
+        min-width: 150px;
+    }
+    
+    .grade-table tbody td.grade-cell {
+        min-width: 100px;
     }
 }
 
-@media (max-width: 480px) {
-    .admin-content {
-        padding: 10px; /* Further reduce padding for the main content area */
-    }
-
-    .grade-table-container {
-        padding: 5px; /* Reduce padding around the table container itself */
-    }
-
-    .grade-table {
-        font-size: 0.75em; /* Make font even smaller for very small screens */
-        min-width: 0 !important; /* Ensure table can shrink fully, overriding any base min-width */
-        table-layout: fixed; /* Distribute column widths more predictably */
-        width: 100%; /* Ensure table uses full available width */
-    }
-
-    .grade-table th,
-    .grade-table td {
-        padding: 4px 5px; /* Significantly reduce cell padding */
-        white-space: normal; /* Allow text to wrap (already set in 768px query) */
-        overflow-wrap: break-word; /* Force long words/strings to break and wrap */
-        word-break: break-word; /* Additional property for word breaking */
-    }
-
-    .grade-table thead th {
-        font-size: 0.9em; /* Adjust header font size relative to the smaller table font */
-    }
-
-    /* Make action buttons within the table smaller */
-    .grade-table .action-btn { 
-        padding: 5px 8px;
-        font-size: 0.9em; /* Relative to the table's font size */
-        line-height: 1.2; /* Adjust line height for smaller button */
-    }
-    
-    /* Adjust filter controls for very small screens */
-    .controls-header {
-        gap: 10px; /* Reduce gap in header controls */
-        margin-bottom: 15px; /* Reduce bottom margin */
-    }
-    .filter-dropdown,
-    .controls-header .action-btn { /* Target action buttons in the header specifically */
-        font-size: 0.9em; /* Slightly smaller font for header controls */
-        padding: 6px 10px; /* Adjust padding for header controls */
-    }
+/* Empty state */
+.grade-table tbody td[colspan] {
+    text-align: center;
+    padding: 40px 20px;
+    color: #666;
+    font-size: 16px;
 }

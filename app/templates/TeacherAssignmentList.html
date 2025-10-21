@@ -53,6 +53,40 @@
             {% endwith %}
         </header>
 
+        <!-- Filter Section -->
+        <form method="GET" action="{{ url_for('teacher.teacher_assignment_list') }}" class="filter-form">
+            <div class="filter-controls">
+                <div class="filter-group">
+                    <label for="subject-filter">Filter by Subject:</label>
+                    <select name="subject_filter" id="subject-filter" class="filter-select">
+                        <option value="">All Subjects</option>
+                        {% for subject in subjects %}
+                            <option value="{{ subject.id }}" {% if filter_subject_id == subject.id %}selected{% endif %}>
+                                {{ subject.name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label for="lesson-filter">Filter by Lesson:</label>
+                    <select name="lesson_filter" id="lesson-filter" class="filter-select" {% if not filter_subject_id %}disabled{% endif %}>
+                        <option value="">All Lessons</option>
+                        {% for lesson in lessons %}
+                            <option value="{{ lesson.id }}" {% if filter_lesson_id == lesson.id %}selected{% endif %}>
+                                {{ lesson.title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <button type="submit" class="filter-btn"><i class="fas fa-filter"></i> Apply Filters</button>
+                {% if filter_subject_id or filter_lesson_id %}
+                    <a href="{{ url_for('teacher.teacher_assignment_list') }}" class="clear-filter-btn"><i class="fas fa-times"></i> Clear</a>
+                {% endif %}
+            </div>
+        </form>
+
         <section class="table-container">
             {% if assignments_with_counts and assignments_with_counts|length > 0 %}
             <table class="assignments-table">

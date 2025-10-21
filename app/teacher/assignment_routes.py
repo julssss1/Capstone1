@@ -1,9 +1,51 @@
 # app/teacher/assignment_routes.py
-from flask import render_template, request, session, redirect, url_for, flash, current_app
+from flask import render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from . import bp  # Import blueprint from current package (__init__.py)
 from app.utils import login_required, role_required
 from supabase import Client, PostgrestAPIError
 from datetime import datetime, timezone, timedelta
+
+@bp.route('/api/get-lessons-by-subject/<int:subject_id>')
+@login_required
+@role_required('Teacher')
+def get_lessons_by_subject(subject_id):
+    """API endpoint to fetch lessons for a subject without page refresh"""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    if not teacher_id:
+        return jsonify({'success': False, 'message': 'User session invalid.'}), 401
+    
+    if not supabase:
+        return jsonify({'success': False, 'message': 'Database connection error.'}), 500
+    
+    try:
+        # First verify the teacher owns this subject
+        subject_response = supabase.table('subjects') \
+                                   .select('id') \
+                                   .eq('id', subject_id) \
+                                   .eq('teacher_id', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not subject_response.data:
+            return jsonify({'success': False, 'message': 'Subject not found or unauthorized.', 'lessons': []}), 403
+        
+        # Fetch lessons for this subject
+        lessons_response = supabase.table('lessons') \
+                                   .select('id, title') \
+                                   .eq('subject_id', subject_id) \
+                                   .order('title') \
+                                   .execute()
+        
+        lessons = lessons_response.data or []
+        return jsonify({'success': True, 'lessons': lessons}), 200
+        
+    except PostgrestAPIError as e:
+        return jsonify({'success': False, 'message': f'Database error: {e.message}', 'lessons': []}), 500
+    except Exception as e:
+        print(f"Error fetching lessons for subject {subject_id}: {e}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.', 'lessons': []}), 500
 
 @bp.route('/assignment/create/<int:subject_id>') # Changed from lesson_id to subject_id for clarity
 @login_required
@@ -81,15 +123,40 @@ def create_assignment():
         print(f"Error fetching data for teacher {teacher_id} in create_assignment: {e}")
 
     if request.method == 'POST':
-        title = request.form.get('title')
-        description = request.form.get('description')
+        title = request.form.get('title', '').strip()
+        description = request.form.get('description', '').strip()
         subject_id_form = request.form.get('subject_id', type=int)
         lesson_id_form = request.form.get('lesson_id', type=int) 
         due_date = request.form.get('due_date')
         correct_answers = request.form.get('correct_answers', '')
 
-        if not title or not description or not subject_id_form or not due_date:
-            flash('Title, Description, Subject, and Due Date are required.', 'danger')
+        # Enhanced validation
+        validation_errors = []
+        
+        if not title:
+            validation_errors.append('Assignment title is required.')
+        elif len(title) < 3:
+            validation_errors.append('Assignment title must be at least 3 characters long.')
+        
+        if not description:
+            validation_errors.append('Assignment description is required.')
+        elif len(description) < 10:
+            validation_errors.append('Assignment description must be at least 10 characters long.')
+        
+        if not subject_id_form:
+            validation_errors.append('Subject selection is required.')
+        
+        if not due_date:
+            validation_errors.append('Due date is required.')
+        
+        if not correct_answers or not correct_answers.strip():
+            validation_errors.append('Expected Answer/Words is required.')
+        elif len(correct_answers.strip()) < 2:
+            validation_errors.append('Expected Answer/Words must be at least 2 characters long.')
+        
+        if validation_errors:
+            for error in validation_errors:
+                flash(error, 'danger')
             return redirect(url_for('teacher.create_assignment', 
                                     subject_id=pre_selected_subject_id, 
                                     lesson_id=pre_selected_lesson_id))
@@ -144,6 +211,10 @@ def teacher_assignment_list():
     teacher_id = session.get('user_id')
     user_name = session.get('user_name', 'Teacher')
     assignments_with_counts = []
+    
+    # Get filter parameters
+    filter_subject_id = request.args.get('subject_filter', type=int)
+    filter_lesson_id = request.args.get('lesson_filter', type=int)
 
     if not teacher_id:
         flash('User session invalid. Please log in again.', 'danger')
@@ -151,23 +222,55 @@ def teacher_assignment_list():
 
     if not supabase:
         flash('Supabase client not initialized.', 'danger')
-        return render_template('TeacherAssignmentList.html', assignments_with_counts=assignments_with_counts, user_name=user_name)
+        return render_template('TeacherAssignmentList.html', 
+                             assignments_with_counts=assignments_with_counts, 
+                             subjects=[], 
+                             lessons=[], 
+                             filter_subject_id=filter_subject_id,
+                             filter_lesson_id=filter_lesson_id,
+                             user_name=user_name)
 
     try:
-        subjects_response = supabase.table('subjects').select('id, name').eq('teacher_id', teacher_id).execute()
-        if not subjects_response.data:
+        # Get all subjects for this teacher
+        subjects_response = supabase.table('subjects').select('id, name').eq('teacher_id', teacher_id).order('name').execute()
+        subjects = subjects_response.data or []
+        
+        if not subjects:
             flash('You are not teaching any subjects.', 'info')
-            return render_template('TeacherAssignmentList.html', assignments_with_counts=[], user_name=user_name)
+            return render_template('TeacherAssignmentList.html', 
+                                 assignments_with_counts=[], 
+                                 subjects=[], 
+                                 lessons=[],
+                                 filter_subject_id=filter_subject_id,
+                                 filter_lesson_id=filter_lesson_id,
+                                 user_name=user_name)
         
-        teacher_subject_ids = [s['id'] for s in subjects_response.data]
-        subjects_map = {s['id']: s['name'] for s in subjects_response.data}
+        teacher_subject_ids = [s['id'] for s in subjects]
+        subjects_map = {s['id']: s['name'] for s in subjects}
+        
+        # Get lessons for the selected subject (for the lesson filter dropdown)
+        lessons = []
+        if filter_subject_id:
+            lessons_response = supabase.table('lessons') \
+                                      .select('id, title') \
+                                      .eq('subject_id', filter_subject_id) \
+                                      .order('title') \
+                                      .execute()
+            lessons = lessons_response.data or []
 
-        assignments_response = supabase.table('assignments') \
-                                     .select('*, lessons(title)') \
-                                     .in_('subject_id', teacher_subject_ids) \
-                                     .order('created_at', desc=True) \
-                                     .execute()
+        # Build the query for assignments
+        query = supabase.table('assignments').select('*, lessons(id, title)')
         
+        # Apply filters
+        if filter_subject_id:
+            query = query.eq('subject_id', filter_subject_id)
+        else:
+            query = query.in_('subject_id', teacher_subject_ids)
+        
+        if filter_lesson_id:
+            query = query.eq('lesson_id', filter_lesson_id)
+        
+        assignments_response = query.order('created_at', desc=True).execute()
         all_teacher_assignments = assignments_response.data or []
 
         for assignment in all_teacher_assignments:
@@ -178,14 +281,14 @@ def teacher_assignment_list():
             submission_count = submissions_count_response.count or 0
             
             subject_name = subjects_map.get(assignment['subject_id'], 'Unknown Subject')
-            lesson_title = assignment.get('lessons', {}).get('title') if assignment.get('lessons') else 'N/A (General Assignment)'
-
+            lesson_data = assignment.get('lessons')
+            lesson_title = lesson_data.get('title') if lesson_data else 'N/A (General Assignment)'
 
             assignments_with_counts.append({
                 'assignment': assignment,
                 'submission_count': submission_count,
                 'subject_name': subject_name,
-                'lesson_name': lesson_title # Changed from lesson_name to lesson_title for consistency
+                'lesson_name': lesson_title
             })
 
     except PostgrestAPIError as e:
@@ -198,6 +301,10 @@ def teacher_assignment_list():
     return render_template(
         'TeacherAssignmentList.html',
         assignments_with_counts=assignments_with_counts,
+        subjects=subjects,
+        lessons=lessons,
+        filter_subject_id=filter_subject_id,
+        filter_lesson_id=filter_lesson_id,
         user_name=user_name
     )
 
@@ -209,15 +316,15 @@ def update_assignment_due_date(assignment_id):
     teacher_id = session.get('user_id')
     
     if not teacher_id:
-        return {'success': False, 'message': 'User session invalid.'}, 401
+        return jsonify({'success': False, 'message': 'User session invalid.'}), 401
     
     if not supabase:
-        return {'success': False, 'message': 'Database connection error.'}, 500
+        return jsonify({'success': False, 'message': 'Database connection error.'}), 500
     
     new_due_date = request.json.get('due_date')
     
     if not new_due_date:
-        return {'success': False, 'message': 'Due date is required.'}, 400
+        return jsonify({'success': False, 'message': 'Due date is required.'}), 400
     
     try:
         # First, verify the teacher owns this assignment through their subjects
@@ -228,7 +335,7 @@ def update_assignment_due_date(assignment_id):
                                      .execute()
         
         if not assignment_response.data:
-            return {'success': False, 'message': 'Assignment not found.'}, 404
+            return jsonify({'success': False, 'message': 'Assignment not found.'}), 404
         
         # Verify teacher owns the subject
         subject_response = supabase.table('subjects') \
@@ -239,7 +346,7 @@ def update_assignment_due_date(assignment_id):
                                    .execute()
         
         if not subject_response.data:
-            return {'success': False, 'message': 'Unauthorized to update this assignment.'}, 403
+            return jsonify({'success': False, 'message': 'Unauthorized to update this assignment.'}), 403
         
         # Update the due date
         update_response = supabase.table('assignments') \
@@ -248,15 +355,15 @@ def update_assignment_due_date(assignment_id):
                                  .execute()
         
         if update_response.data:
-            return {'success': True, 'message': 'Due date updated successfully.', 'new_due_date': new_due_date}, 200
+            return jsonify({'success': True, 'message': 'Due date updated successfully.', 'new_due_date': new_due_date}), 200
         else:
-            return {'success': False, 'message': 'Failed to update due date.'}, 500
+            return jsonify({'success': False, 'message': 'Failed to update due date.'}), 500
             
     except PostgrestAPIError as e:
-        return {'success': False, 'message': f'Database error: {e.message}'}, 500
+        return jsonify({'success': False, 'message': f'Database error: {e.message}'}), 500
     except Exception as e:
         print(f"Error updating due date for assignment {assignment_id}: {e}")
-        return {'success': False, 'message': 'An unexpected error occurred.'}, 500
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
 
 @bp.route('/assignment/delete/<int:assignment_id>', methods=['POST'])
 @login_required
@@ -266,10 +373,10 @@ def delete_assignment(assignment_id):
     teacher_id = session.get('user_id')
     
     if not teacher_id:
-        return {'success': False, 'message': 'User session invalid.'}, 401
+        return jsonify({'success': False, 'message': 'User session invalid.'}), 401
     
     if not supabase:
-        return {'success': False, 'message': 'Database connection error.'}, 500
+        return jsonify({'success': False, 'message': 'Database connection error.'}), 500
     
     try:
         # First, verify the teacher owns this assignment through their subjects
@@ -280,7 +387,7 @@ def delete_assignment(assignment_id):
                                      .execute()
         
         if not assignment_response.data:
-            return {'success': False, 'message': 'Assignment not found.'}, 404
+            return jsonify({'success': False, 'message': 'Assignment not found.'}), 404
         
         # Verify teacher owns the subject
         subject_response = supabase.table('subjects') \
@@ -291,7 +398,7 @@ def delete_assignment(assignment_id):
                                    .execute()
         
         if not subject_response.data:
-            return {'success': False, 'message': 'Unauthorized to delete this assignment.'}, 403
+            return jsonify({'success': False, 'message': 'Unauthorized to delete this assignment.'}), 403
         
         # Delete the assignment (submissions will be cascade deleted if FK is set with ON DELETE CASCADE)
         delete_response = supabase.table('assignments') \
@@ -301,12 +408,12 @@ def delete_assignment(assignment_id):
         
         if delete_response.data or delete_response.count == 0:  # Success if data returned or count is 0
             flash(f'Assignment "{assignment_response.data["title"]}" deleted successfully!', 'success')
-            return {'success': True, 'message': 'Assignment deleted successfully.'}, 200
+            return jsonify({'success': True, 'message': 'Assignment deleted successfully.'}), 200
         else:
-            return {'success': False, 'message': 'Failed to delete assignment.'}, 500
+            return jsonify({'success': False, 'message': 'Failed to delete assignment.'}), 500
             
     except PostgrestAPIError as e:
-        return {'success': False, 'message': f'Database error: {e.message}'}, 500
+        return jsonify({'success': False, 'message': f'Database error: {e.message}'}), 500
     except Exception as e:
         print(f"Error deleting assignment {assignment_id}: {e}")
-        return {'success': False, 'message': 'An unexpected error occurred.'}, 500
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500

@@ -54,9 +54,10 @@ def teacher_gradebook():
     teacher_id = session.get('user_id')
     user_name = session.get('user_name', 'Teacher')
     selected_subject_id_str = request.args.get('subject_filter') 
-    grades_to_display = []
     subjects = []
-    selected_subject_name = "All Subjects" 
+    selected_subject_name = "Select Subject"
+    students_data = []
+    assignments = []
 
     if not teacher_id:
         flash('User session invalid. Please log in again.', 'danger')
@@ -64,8 +65,9 @@ def teacher_gradebook():
 
     if not supabase:
         flash('Supabase client not initialized.', 'danger')
-        return render_template('Teacher-GradeTable.html', subjects=subjects, grades=grades_to_display, 
-                               selected_subject_id=selected_subject_id_str, selected_subject_name=selected_subject_name, user_name=user_name)
+        return render_template('Teacher-GradeTable.html', subjects=subjects, students_data=students_data,
+                               assignments=assignments, selected_subject_id=selected_subject_id_str, 
+                               selected_subject_name=selected_subject_name, user_name=user_name)
 
     try:
         subjects_response = supabase.table('subjects') \
@@ -81,27 +83,80 @@ def teacher_gradebook():
                 subject = next((s for s in subjects if s['id'] == selected_subject_id), None)
                 if subject:
                     selected_subject_name = subject['name']
-                else: # Subject not found or not taught by this teacher
+                else:
                     flash(f"Invalid subject selected or you don't teach subject ID {selected_subject_id_str}.", "warning")
                     selected_subject_id = None 
-                    selected_subject_name = "All Subjects"
+                    selected_subject_name = "Select Subject"
                 
-                if selected_subject_id: # Proceed only if a valid subject is selected
-                    grades_response = supabase.table('submissions') \
-                                              .select('*, profiles(first_name, last_name), assignments!inner(title, subject_id)') \
-                                              .eq('assignments.subject_id', selected_subject_id) \
-                                              .execute()
-                    raw_submissions = grades_response.data or []
-                    for sub in raw_submissions:
-                        profile = sub.get('profiles')
-                        sub['student_display_name'] = f"{profile['first_name']} {profile['last_name']}".strip() if profile else "Unknown Student"
-                        sub['formatted_submitted_at'] = _format_timestamp_for_display(sub.get('submitted_at'))
-                        grades_to_display.append(sub)
+                if selected_subject_id:
+                    # Get all assignments for this subject
+                    assignments_response = supabase.table('assignments') \
+                                                  .select('id, title') \
+                                                  .eq('subject_id', selected_subject_id) \
+                                                  .order('created_at') \
+                                                  .execute()
+                    assignments = assignments_response.data or []
+                    
+                    # Get all students enrolled in this subject
+                    enrollments_response = supabase.table('enrollments') \
+                                                  .select('student_id, profiles!enrollments_student_id_fkey(id, first_name, last_name)') \
+                                                  .eq('subject_id', selected_subject_id) \
+                                                  .eq('status', 'active') \
+                                                  .execute()
+                    
+                    if enrollments_response.data:
+                        # Get all submissions for this subject
+                        submissions_response = supabase.table('submissions') \
+                                                      .select('id, student_id, assignment_id, grade, status') \
+                                                      .in_('assignment_id', [a['id'] for a in assignments]) \
+                                                      .execute()
+                        
+                        # Create a lookup dictionary for submissions
+                        submissions_lookup = {}
+                        for sub in (submissions_response.data or []):
+                            key = (sub['student_id'], sub['assignment_id'])
+                            submissions_lookup[key] = {
+                                'grade': sub.get('grade'),
+                                'status': sub.get('status'),
+                                'submission_id': sub.get('id')
+                            }
+                        
+                        # Build student data with grades for each assignment
+                        for enrollment in enrollments_response.data:
+                            profile = enrollment.get('profiles')
+                            if profile:
+                                student_id = profile['id']
+                                student_name = f"{profile.get('first_name', '')} {profile.get('last_name', '')}".strip()
+                                
+                                # Create grades list for all assignments
+                                grades_list = []
+                                for assignment in assignments:
+                                    key = (student_id, assignment['id'])
+                                    submission = submissions_lookup.get(key, {})
+                                    grade = submission.get('grade')
+                                    status = submission.get('status', '')
+                                    
+                                    grades_list.append({
+                                        'assignment_id': assignment['id'],
+                                        'grade': grade if grade is not None else '-',
+                                        'status': status,
+                                        'submission_id': submission.get('submission_id')
+                                    })
+                                
+                                students_data.append({
+                                    'student_id': student_id,
+                                    'student_name': student_name or 'Unknown',
+                                    'grades': grades_list
+                                })
+                        
+                        # Sort students by name
+                        students_data.sort(key=lambda x: x['student_name'])
+                        
             except ValueError:
                 flash("Invalid subject filter value.", "warning")
             except PostgrestAPIError as e:
                 flash(f'Database error loading grades: {e.message}', 'danger')
-            except Exception as e: # Catch other potential errors during processing
+            except Exception as e:
                 flash(f'An error occurred while processing grades: {str(e)}', 'danger')
     except PostgrestAPIError as e:
         flash(f'Database error loading subjects: {e.message}', 'danger')
@@ -110,8 +165,9 @@ def teacher_gradebook():
 
     return render_template(
         'Teacher-GradeTable.html',
-        subjects=subjects, 
-        grades=grades_to_display, 
+        subjects=subjects,
+        students_data=students_data,
+        assignments=assignments,
         selected_subject_id=selected_subject_id_str, 
         selected_subject_name=selected_subject_name,
         user_name=user_name

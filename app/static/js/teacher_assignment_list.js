@@ -1,6 +1,45 @@
 // Teacher Assignment List - Due Date Editing & Delete Functionality
 
 document.addEventListener('DOMContentLoaded', function() {
+    // Subject filter change handler - load lessons dynamically
+    const subjectFilter = document.getElementById('subject-filter');
+    const lessonFilter = document.getElementById('lesson-filter');
+    
+    if (subjectFilter && lessonFilter) {
+        subjectFilter.addEventListener('change', async function() {
+            const subjectId = this.value;
+            
+            // Clear and disable lesson filter
+            lessonFilter.innerHTML = '<option value="">All Lessons</option>';
+            
+            if (!subjectId) {
+                lessonFilter.disabled = true;
+                return;
+            }
+            
+            // Fetch lessons for selected subject
+            try {
+                const response = await fetch(`/teacher/api/get-lessons-by-subject/${subjectId}`);
+                const data = await response.json();
+                
+                if (data.success && data.lessons) {
+                    lessonFilter.disabled = false;
+                    data.lessons.forEach(lesson => {
+                        const option = document.createElement('option');
+                        option.value = lesson.id;
+                        option.textContent = lesson.title;
+                        lessonFilter.appendChild(option);
+                    });
+                } else {
+                    lessonFilter.disabled = true;
+                }
+            } catch (error) {
+                console.error('Error fetching lessons:', error);
+                lessonFilter.disabled = true;
+            }
+        });
+    }
+    
     // Set minimum date to today for all date inputs
     const today = new Date().toISOString().split('T')[0];
     

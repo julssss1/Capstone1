@@ -23,7 +23,6 @@
         </div>
         <nav class="navigation">
             <ul>
-        
                 <li><a href="{{ url_for('teacher.teacher_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('teacher.teacher_lessons') }}"><i class="fas fa-book"></i> My Subjects/Lessons</a></li>
                 <li class="active"><a href="{{ url_for('teacher.teacher_gradebook') }}"><i class="fas fa-clipboard-list"></i> Gradebook</a></li>
@@ -34,7 +33,6 @@
         <div class="user-info">
              <p>Level: <strong>Teacher</strong></p>
              <p>Welcome, {{ user_name | default('Teacher') }}</p>
-          
              <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
         </div>
     </aside>
@@ -73,48 +71,47 @@
             </div>
         </form>
 
-
         <div class="grade-table-container">
-            {# Updated table structure to show individual submissions #}
             <table class="grade-table">
                 <thead>
                     <tr>
-                        <th>Student Name</th>
-                        <th>Assignment</th>
-                        <th>Submitted At</th>
-                        <th class="numeric">Grade</th>
-                        <th>Feedback</th> {# Added Feedback column #}
-                        <th>Actions</th> {# Added Actions column #}
+                        <th class="student-name-column">Student Name</th>
+                        {% for assignment in assignments %}
+                            <th class="assignment-column" title="{{ assignment.title }}">
+                                {{ assignment.title }}
+                            </th>
+                        {% endfor %}
                     </tr>
                 </thead>
                 <tbody>
-                    {# Loop through individual submissions (passed as 'grades' from route) #}
-                    {% for submission in grades %}
-                    <tr>
-                        {# Use student_display_name added in the route #}
-                        <td>{{ submission.student_display_name | default('N/A') }}</td>
-                        {# Access assignment title via nested structure #}
-                        <td>{{ submission.assignments.title | default('N/A') }}</td>
-                        <td>{{ submission.formatted_submitted_at | default(submission.submitted_at | default('N/A')) }}</td> {# Use formatted, fallback to raw #}
-                        <td class="numeric">{{ submission.grade if submission.grade is not none else 'Not Graded' }}</td>
-                        {# Display feedback #}
-                        <td>{{ submission.feedback | default('') }}</td>
-                        <td>
-                            <a href="{{ url_for('teacher.review_submission', submission_id=submission.id) }}" class="action-btn view">Grade/View</a>
-                        </td>
-                    </tr>
+                    {% if students_data %}
+                        {% for student in students_data %}
+                        <tr>
+                            <td class="student-name-cell">{{ student.student_name }}</td>
+                            {% for grade_data in student.grades %}
+                                <td class="grade-cell {% if grade_data.grade == '-' %}no-submission{% elif grade_data.grade >= 90 %}grade-excellent{% elif grade_data.grade >= 75 %}grade-good{% else %}grade-needs-improvement{% endif %}">
+                                    {% if grade_data.submission_id %}
+                                        <a href="{{ url_for('teacher.review_submission', submission_id=grade_data.submission_id) }}" class="grade-link" title="Click to view submission">
+                                            {{ grade_data.grade }}
+                                        </a>
+                                    {% else %}
+                                        {{ grade_data.grade }}
+                                    {% endif %}
+                                </td>
+                            {% endfor %}
+                        </tr>
+                        {% endfor %}
                     {% else %}
-                    <tr>
-                        {# Updated colspan to match new number of columns #}
-                        <td colspan="6" style="text-align: center; padding: 20px;">
-                            {% if selected_subject_id %}
-                                No grades found for this subject.
-                            {% else %}
-                                Please select a subject above to view grades.
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% endfor %}
+                        <tr>
+                            <td colspan="{{ assignments|length + 1 }}" style="text-align: center; padding: 20px;">
+                                {% if selected_subject_id %}
+                                    No students enrolled in this subject or no assignments created yet.
+                                {% else %}
+                                    Please select a subject above to view the gradebook.
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
