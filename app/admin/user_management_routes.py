@@ -463,20 +463,29 @@ def edit_user(user_id):
         if new_role == 'Student' and not new_grade_level:
             errors['grade_level'] = 'Grade level is required for students.'
         
+        # Check if this is a password reset request
+        pending_reset_request_id = session.get('pending_reset_request_id')
+        
         # Validate new password only if it's provided
         if new_password:
-            password_errors = []
-            if len(new_password) < 8:
-                password_errors.append('at least 8 characters')
-            if not re.search(r'[A-Z]', new_password):
-                password_errors.append('one uppercase letter (A-Z)')
-            if not re.search(r'[a-z]', new_password):
-                password_errors.append('one lowercase letter (a-z)')
-            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
-                password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
-            
-            if password_errors:
-                errors['new_password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
+            # If there's a pending reset request, password must be exactly "StudentCaes123@"
+            if pending_reset_request_id:
+                if new_password != 'StudentCaes123@':
+                    errors['new_password'] = 'For password reset requests, the password must be exactly: StudentCaes123@'
+            else:
+                # Normal password validation for regular edits
+                password_errors = []
+                if len(new_password) < 8:
+                    password_errors.append('at least 8 characters')
+                if not re.search(r'[A-Z]', new_password):
+                    password_errors.append('one uppercase letter (A-Z)')
+                if not re.search(r'[a-z]', new_password):
+                    password_errors.append('one lowercase letter (a-z)')
+                if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+                    password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+                
+                if password_errors:
+                    errors['new_password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
 
         if errors:
             for field, msg in errors.items():
