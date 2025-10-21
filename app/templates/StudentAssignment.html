@@ -53,6 +53,29 @@
 
         <section class="assignments-list-container">
             {% if assignments and assignments|length > 0 %}
+            <!-- Filter Section -->
+            <div class="filter-container">
+                <div class="filter-group">
+                    <label for="subject-filter">
+                        <i class="fas fa-book"></i> Filter by Subject:
+                    </label>
+                    <select id="subject-filter" class="filter-select">
+                        <option value="">All Subjects</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="lesson-filter">
+                        <i class="fas fa-graduation-cap"></i> Filter by Lesson:
+                    </label>
+                    <select id="lesson-filter" class="filter-select">
+                        <option value="">All Lessons</option>
+                    </select>
+                </div>
+                <button id="reset-filters" class="reset-btn">
+                    <i class="fas fa-redo"></i> Reset Filters
+                </button>
+            </div>
+
             <table class="assignments-table"> {# You can reuse styles from TeacherAssignmentList or define new ones #}
                 <thead>
                     <tr>
@@ -93,5 +116,6 @@
         </section>
     </main>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/student_assignment.js') }}" defer></script>
 </body>
 </html>

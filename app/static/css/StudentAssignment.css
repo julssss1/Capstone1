@@ -254,6 +254,110 @@ body {
     }
 }
 
+/* Filter Container Styles */
+.filter-container {
+    background-color: var(--bg-light);
+    padding: 20px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 10px var(--shadow-color);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    align-items: flex-end;
+}
+
+.filter-group {
+    flex: 1;
+    min-width: 200px;
+}
+
+.filter-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 0.95em;
+}
+
+.filter-group label i {
+    margin-right: 5px;
+    color: var(--primary-color);
+}
+
+.filter-select {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background-color: var(--bg-light);
+    color: var(--text-color);
+    font-family: var(--font-family);
+    font-size: 0.95em;
+    cursor: pointer;
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.filter-select:hover {
+    border-color: var(--primary-color);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.1);
+}
+
+.reset-btn {
+    padding: 10px 20px;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-family: var(--font-family);
+    font-size: 0.95em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.reset-btn:hover {
+    background-color: #e4940f;
+}
+
+.reset-btn:active {
+    transform: scale(0.98);
+}
+
+.reset-btn i {
+    font-size: 0.9em;
+}
+
+/* No Results Message */
+.no-results-message {
+    text-align: center;
+    padding: 30px;
+    background-color: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 8px;
+    margin-top: 20px;
+    color: #856404;
+}
+
+.no-results-message p {
+    margin: 0;
+    font-size: 1em;
+}
+
+.no-results-message i {
+    margin-right: 8px;
+    font-size: 1.2em;
+}
+
 .assignments-table {
     width: 100%;
     border-collapse: collapse;
@@ -285,8 +389,38 @@ body {
     text-decoration: underline;
 }
 
+/* Status Badge Styles */
+.status-not-submitted {
+    color: #dc3545;
+    font-weight: 500;
+}
+
+.status-submitted {
+    color: #28a745;
+    font-weight: 500;
+}
+
+.status-graded {
+    color: #007bff;
+    font-weight: 500;
+}
+
 /* Responsive Table Styles for StudentAssignment.html */
 @media screen and (max-width: 768px) {
+    .filter-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group {
+        width: 100%;
+    }
+
+    .reset-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
     .assignments-table {
         border: 0;
     }
