@@ -221,17 +221,10 @@ def predict_landmarks_basic_phrase():
         # Prepare input for TFLite model (raw landmarks, no preprocessing)
         landmark_input = np.array([landmarks], dtype=input_details_basic_phrase[0]['dtype'])
         
-        # Debug: Log input shape and first few values
-        print(f"Basic Phrase Input shape: {landmark_input.shape}, dtype: {landmark_input.dtype}")
-        print(f"Basic Phrase First 9 values: {landmark_input[0][:9]}")
-        
         # Run inference
         interpreter_basic_phrase.set_tensor(input_details_basic_phrase[0]['index'], landmark_input)
         interpreter_basic_phrase.invoke()
         prediction = interpreter_basic_phrase.get_tensor(output_details_basic_phrase[0]['index'])
-        
-        # Debug: Log all prediction scores
-        print(f"Basic Phrase Raw predictions: {prediction[0]}")
         
         # Get predicted class
         predicted_class_index = np.argmax(prediction[0])

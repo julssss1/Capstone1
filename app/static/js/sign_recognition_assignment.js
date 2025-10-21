@@ -11,9 +11,9 @@ class SignRecognitionAssignment {
         this.canvasCtx = null;
         this.isRunning = false;
         
-        // Model selection (FSL Alphabet or FSL Signs)
+        // Model selection (FSL Alphabet, FSL Signs, or Basic Phrase)
         this.currentModel = 'fsl_alphabet'; // Default to FSL Alphabet
-        this.maxHandsForModel = { 'fsl_alphabet': 1, 'fsl': 2 };
+        this.maxHandsForModel = { 'fsl_alphabet': 1, 'fsl': 2, 'basic_phrase': 1 };
         
         // Prediction tracking
         this.currentPrediction = "Waiting...";
@@ -227,8 +227,11 @@ class SignRecognitionAssignment {
                         results.multiHandedness[0]
                     );
                 }
+            } else if (this.currentModel === 'basic_phrase') {
+                // Basic Phrase: Single hand with raw x, y, z coordinates
+                normalizedLandmarks = this.extractRawLandmarks(results.multiHandLandmarks[0]);
             } else {
-                // ASL: Single hand only
+                // FSL Alphabet: Single hand only
                 normalizedLandmarks = this.normalizeLandmarks(results.multiHandLandmarks[0]);
             }
             
@@ -250,7 +253,24 @@ class SignRecognitionAssignment {
     }
 
     /**
-     * Normalize hand landmarks (ASL - single hand)
+     * Extract raw landmarks for Basic Phrase (x, y, z coordinates)
+     */
+    extractRawLandmarks(landmarks) {
+        try {
+            // Extract raw x, y, z coordinates (no normalization)
+            const raw_landmarks = [];
+            for (const landmark of landmarks) {
+                raw_landmarks.push(landmark.x, landmark.y, landmark.z);
+            }
+            return raw_landmarks; // Returns 63 values (21 landmarks * 3 coordinates)
+        } catch (error) {
+            console.error("Error extracting raw landmarks:", error);
+            return null;
+        }
+    }
+
+    /**
+     * Normalize hand landmarks (FSL Alphabet - single hand)
      */
     normalizeLandmarks(landmarks) {
         try {
@@ -388,9 +408,14 @@ class SignRecognitionAssignment {
         
         try {
             // Use different API endpoints based on model
-            const apiEndpoint = this.currentModel === 'fsl' 
-                ? '/student/api/predict_landmarks_fsl' 
-                : '/student/api/predict_landmarks';
+            let apiEndpoint;
+            if (this.currentModel === 'fsl') {
+                apiEndpoint = '/student/api/predict_landmarks_fsl';
+            } else if (this.currentModel === 'basic_phrase') {
+                apiEndpoint = '/student/api/predict_landmarks_basic_phrase';
+            } else {
+                apiEndpoint = '/student/api/predict_landmarks';
+            }
             
             const response = await fetch(apiEndpoint, {
                 method: 'POST',
@@ -457,7 +482,14 @@ class SignRecognitionAssignment {
         this.isInCooldown = false;
         
         if (this.predictionTextElement) {
-            const modelName = newModel === 'fsl_alphabet' ? 'FSL Alphabet' : 'FSL';
+            let modelName;
+            if (newModel === 'fsl_alphabet') {
+                modelName = 'FSL Alphabet';
+            } else if (newModel === 'basic_phrase') {
+                modelName = 'FSL Basic Phrase';
+            } else {
+                modelName = 'FSL';
+            }
             this.predictionTextElement.textContent = `Switched to ${modelName}`;
         }
         
