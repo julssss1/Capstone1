@@ -14,6 +14,7 @@ def admin_user_management():
     # Clear pending reset request if coming from cancel button
     if request.args.get('clear_reset') == '1':
         session.pop('pending_reset_request_id', None)
+        session.pop('password_changed_for_reset', None)
     
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
@@ -201,6 +202,10 @@ def add_user():
             errors['role'] = 'Please select a role.'
         elif role not in ['Student', 'Teacher', 'Admin']:
             errors['role'] = 'Invalid role selected.'
+        
+        # Validate grade level for Students
+        if role == 'Student' and not grade_level:
+            errors['grade_level'] = 'Grade level is required for students.'
 
         if errors:
             for field, msg in errors.items():
@@ -454,6 +459,10 @@ def edit_user(user_id):
         elif new_role not in ['Student', 'Teacher', 'Admin']:
             errors['role'] = 'Invalid role selected.'
         
+        # Validate grade level for Students
+        if new_role == 'Student' and not new_grade_level:
+            errors['grade_level'] = 'Grade level is required for students.'
+        
         # Validate new password only if it's provided
         if new_password:
             password_errors = []
@@ -511,6 +520,11 @@ def edit_user(user_id):
                     )
                     password_updated_msg = " Password updated."
                     print(f"Admin updated password for user {user_id}")
+                    
+                    # Set flag if there's a pending reset request
+                    if session.get('pending_reset_request_id'):
+                        session['password_changed_for_reset'] = True
+                        print(f"Password changed flag set for pending reset request")
                 except Exception as e_pwd:
                     flash(f"Profile details updated, but failed to update password: {e_pwd}", "warning")
                     print(f"Error updating password for user {user_id} by admin: {e_pwd}")

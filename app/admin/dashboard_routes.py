@@ -194,7 +194,7 @@ def complete_password_reset(request_id):
                 user_name = 'User'
             
             # The default password set by admin
-            new_password = 'studentcaes123'
+            new_password = 'StudentCaes123@'
             
             # Send email notification
             try:
@@ -213,8 +213,9 @@ def complete_password_reset(request_id):
                 .eq('id', request_id) \
                 .execute()
         
-        # Clear the pending reset request from session
+        # Clear the pending reset request and password change flag from session
         session.pop('pending_reset_request_id', None)
+        session.pop('password_changed_for_reset', None)
         
         flash('Password reset request marked as completed. Email notification sent to user.', 'success')
     except Exception as e:

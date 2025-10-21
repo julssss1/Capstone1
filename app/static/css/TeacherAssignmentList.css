@@ -313,31 +313,164 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
+    .page-header h2 {
+        font-size: 22px;
+    }
+    
+    .page-header p {
+        font-size: 13px;
+    }
+    
+    .filter-form {
+        padding: 15px;
+    }
+    
     .filter-controls {
         flex-direction: column;
         align-items: stretch;
+        gap: 12px;
     }
     
     .filter-group {
         min-width: 100%;
     }
     
+    .filter-group label {
+        font-size: 13px;
+    }
+    
+    .filter-select {
+        font-size: 13px;
+        padding: 8px 12px;
+    }
+    
     .filter-btn,
     .clear-filter-btn {
         width: 100%;
         justify-content: center;
+        font-size: 13px;
+        padding: 8px 16px;
     }
     
     .table-container {
         overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    .assignments-table {
+        min-width: 700px;
+        font-size: 13px;
+    }
+    
+    .assignments-table thead th {
+        padding: 12px 8px;
+        font-size: 12px;
+    }
+    
+    .assignments-table tbody td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+    
+    .due-date-cell {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+    
+    .due-date-input {
+        width: 100%;
+        font-size: 12px;
+    }
+    
+    .edit-due-date-btn,
+    .save-due-date-btn,
+    .cancel-due-date-btn {
+        font-size: 12px;
     }
     
     .action-buttons-group {
         flex-direction: column;
+        gap: 6px;
     }
     
     .action-btn {
         width: 100%;
         justify-content: center;
+        font-size: 12px;
+        padding: 6px 12px;
+    }
+}
+
+@media (max-width: 480px) {
+    .page-header h2 {
+        font-size: 20px;
+    }
+    
+    .page-header p {
+        font-size: 12px;
+    }
+    
+    .filter-form {
+        padding: 12px;
+    }
+    
+    .filter-group label {
+        font-size: 12px;
+    }
+    
+    .filter-select {
+        font-size: 12px;
+        padding: 7px 10px;
+    }
+    
+    .filter-btn,
+    .clear-filter-btn {
+        font-size: 12px;
+        padding: 7px 14px;
+    }
+    
+    .assignments-table {
+        min-width: 600px;
+        font-size: 12px;
+    }
+    
+    .assignments-table thead th {
+        padding: 10px 6px;
+        font-size: 11px;
+    }
+    
+    .assignments-table tbody td {
+        padding: 8px 6px;
+        font-size: 12px;
+    }
+    
+    .table-icon-gray {
+        font-size: 12px;
+    }
+    
+    .due-date-display {
+        font-size: 11px;
+    }
+    
+    .due-date-input {
+        font-size: 11px;
+        padding: 5px;
+    }
+    
+    .edit-due-date-btn,
+    .save-due-date-btn,
+    .cancel-due-date-btn {
+        font-size: 11px;
+        padding: 3px 6px;
+    }
+    
+    .action-btn {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+    
+    .no-assignments p {
+        font-size: 14px;
     }
 }

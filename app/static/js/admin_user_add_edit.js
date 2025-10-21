@@ -140,7 +140,16 @@ document.addEventListener('DOMContentLoaded', function () {
             isValid = false;
         }
 
-        // 5. Password Validation ('Add' mode)
+        // 5. Grade Level Validation (for Students)
+        const gradeLevel = document.getElementById('grade_level');
+        if (role.value === 'Student' && gradeLevel) {
+            if (!gradeLevel.value) {
+                showError(gradeLevel, 'Grade level is required for students.');
+                isValid = false;
+            }
+        }
+
+        // 6. Password Validation ('Add' mode)
         if (password && !password.value) { // Check if the element exists and is empty
             showError(password, 'Password is required.');
             isValid = false;
@@ -149,14 +158,14 @@ document.addEventListener('DOMContentLoaded', function () {
             isValid = false;
         }
 
-        // 6. New Password Validation ('Edit' mode)
+        // 7. New Password Validation ('Edit' mode)
         // Only validate if the field is present and has a value
         if (newPassword && newPassword.value && newPassword.value.length < 8) {
             showError(newPassword, 'Password must be at least 8 characters long.');
             isValid = false;
         }
 
-        // 7. Confirm Password Validation ('Edit' mode)
+        // 8. Confirm Password Validation ('Edit' mode)
         // Only validate if new password has a value
         if (newPassword && confirmPassword && newPassword.value) {
             if (!confirmPassword.value) {
