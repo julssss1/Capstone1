@@ -137,6 +137,7 @@
     font-weight: 600;
     font-size: 14px;
     white-space: nowrap;
+    color: rgb(0, 0, 0);
 }
 
 .assignments-table tbody tr {

@@ -7,6 +7,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const table = document.querySelector('.assignments-table tbody');
     const subjectFilter = document.getElementById('subject-filter');
     const lessonFilter = document.getElementById('lesson-filter');
+    const statusFilter = document.getElementById('status-filter');
     const resetBtn = document.getElementById('reset-filters');
 
     // Only initialize if table exists (there are assignments)
@@ -56,24 +57,28 @@ document.addEventListener('DOMContentLoaded', function() {
     function filterTable() {
         const selectedSubject = subjectFilter.value.toLowerCase();
         const selectedLesson = lessonFilter.value.toLowerCase();
+        const selectedStatus = statusFilter.value.toLowerCase();
         const rows = table.querySelectorAll('tr');
         let visibleCount = 0;
 
         rows.forEach(row => {
             const subjectCell = row.cells[0];
             const lessonCell = row.cells[1];
+            const statusCell = row.cells[4]; // Status is in the 5th column (index 4)
 
-            if (!subjectCell || !lessonCell) return;
+            if (!subjectCell || !lessonCell || !statusCell) return;
 
             const subjectText = subjectCell.textContent.trim().toLowerCase();
             const lessonText = lessonCell.textContent.trim().toLowerCase();
+            const statusText = statusCell.textContent.trim().toLowerCase();
 
             // Check if row matches filters
             const subjectMatch = !selectedSubject || subjectText.includes(selectedSubject);
             const lessonMatch = !selectedLesson || lessonText.includes(selectedLesson);
+            const statusMatch = !selectedStatus || statusText.includes(selectedStatus);
 
             // Show/hide row based on filter match
-            if (subjectMatch && lessonMatch) {
+            if (subjectMatch && lessonMatch && statusMatch) {
                 row.style.display = '';
                 visibleCount++;
             } else {
@@ -108,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function resetFilters() {
         subjectFilter.value = '';
         lessonFilter.value = '';
+        statusFilter.value = '';
         filterTable();
     }
 
@@ -118,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     if (lessonFilter) {
         lessonFilter.addEventListener('change', filterTable);
+    }
+    
+    if (statusFilter) {
+        statusFilter.addEventListener('change', filterTable);
     }
     
     if (resetBtn) {

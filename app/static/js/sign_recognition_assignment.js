@@ -622,24 +622,30 @@ class SignRecognitionAssignment {
      * Draw prediction text on canvas
      */
     drawPredictionText(sign, confidence) {
+        // Save context and flip horizontally to counteract CSS flip
+        this.canvasCtx.save();
+        this.canvasCtx.scale(-1, 1);
         
-        // Draw "Detect:" text
+        // Draw "Detect:" text (adjust X position for flip)
         const detectText = `Detect: ${sign} ${confidence > 0 ? `(${(confidence * 100).toFixed(1)}%)` : ''}`;
         this.canvasCtx.font = 'bold 26px Arial';
         this.canvasCtx.strokeStyle = 'black';
         this.canvasCtx.lineWidth = 3;
-        this.canvasCtx.strokeText(detectText, 15, 35);
+        this.canvasCtx.strokeText(detectText, -this.canvasElement.width + 15, 35);
         this.canvasCtx.fillStyle = '#FF7800';
-        this.canvasCtx.fillText(detectText, 15, 35);
+        this.canvasCtx.fillText(detectText, -this.canvasElement.width + 15, 35);
 
-        // Draw stability counter
+        // Draw stability counter (adjust X position for flip)
         const stableText = `Stable: ${this.stableCounter}/${this.STABILITY_THRESHOLD}`;
         this.canvasCtx.font = 'bold 32px Arial';
         this.canvasCtx.strokeStyle = 'black';
         this.canvasCtx.lineWidth = 4;
-        this.canvasCtx.strokeText(stableText, 15, 75);
+        this.canvasCtx.strokeText(stableText, -this.canvasElement.width + 15, 75);
         this.canvasCtx.fillStyle = '#00FF00';
-        this.canvasCtx.fillText(stableText, 15, 75);
+        this.canvasCtx.fillText(stableText, -this.canvasElement.width + 15, 75);
+        
+        // Restore context
+        this.canvasCtx.restore();
     }
 
     /**

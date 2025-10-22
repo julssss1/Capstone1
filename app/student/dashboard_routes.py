@@ -134,6 +134,13 @@ def student_dashboard():
                         'url': url,
                         'is_past_due': is_past_due
                     })
+                
+                # Sort assignments: "Not Submitted" first, then by status, then by due date
+                dashboard_assignments.sort(key=lambda x: (
+                    0 if x['status'] == 'Not Submitted' else 1,  # Not Submitted first
+                    x['status'],  # Then by status alphabetically
+                    x['due_date'] if x['due_date'] else 'ZZZ'  # Then by due date
+                ))
             
             elif hasattr(assignments_response, 'error') and assignments_response.error:
                 print(f"Dashboard assignments fetch error: {assignments_response.error.message}")

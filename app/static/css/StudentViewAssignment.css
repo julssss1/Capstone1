@@ -101,6 +101,7 @@
     width: 100%;
     height: auto;
     border-radius: 8px;
+    transform: scaleX(-1); /* Flip camera horizontally for mirror effect */
 }
 
 #camera-video-assignment {
