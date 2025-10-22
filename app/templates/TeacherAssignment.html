@@ -54,22 +54,6 @@
         <section class="assignment-form-container">
             <form method="POST" action="{{ url_for('teacher.create_assignment') }}" class="assignment-form">
                 <div class="form-group">
-                    <label for="assignment-title">Assignment Title</label>
-                    <input type="text" id="assignment-title" name="title" required>
-                </div>
-
-                <div class="form-group">
-                    <label for="assignment-description">Description</label>
-                    <textarea id="assignment-description" name="description" rows="4" required></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="correct-answers">Expected Answer/Words</label>
-                    <textarea id="correct-answers" name="correct_answers" rows="3" placeholder="Example: apple, mango, banana" required></textarea>
-                    <small class="form-help">Enter expected words/answers separated by commas. Students can check if their signed words match before submitting.</small>
-                </div>
-
-                <div class="form-group">
                     <label for="assignment-subject">Subject</label>
                     <select id="assignment-subject" name="subject_id" required
                             data-create-assignment-url="{{ url_for('teacher.create_assignment') }}">
@@ -94,6 +78,22 @@
                             {% endfor %}
                         {% endif %}
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="assignment-title">Assignment Title</label>
+                    <input type="text" id="assignment-title" name="title" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="assignment-description">Description</label>
+                    <textarea id="assignment-description" name="description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="correct-answers">Expected Answer/Words</label>
+                    <textarea id="correct-answers" name="correct_answers" rows="3" placeholder="Example: apple, mango, banana" required></textarea>
+                    <small class="form-help">Enter expected words/answers separated by commas. Students can check if their signed words match before submitting.</small>
                 </div>
 
                  <div class="form-group">

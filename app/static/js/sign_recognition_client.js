@@ -373,14 +373,18 @@ class SignRecognitionClient {
      * Draw prediction text on canvas
      */
     drawPredictionText(instantPrediction, confidence) {
-        // Draw "Detect:" text
+        // Save context and flip horizontally to counteract CSS flip
+        this.canvasCtx.save();
+        this.canvasCtx.scale(-1, 1);
+        
+        // Draw "Detect:" text (adjust X position for flip)
         const detectText = `Detect: ${instantPrediction} ${confidence > 0 ? `(${(confidence * 100).toFixed(1)}%)` : ''}`;
         this.canvasCtx.font = 'bold 26px Arial';
         this.canvasCtx.strokeStyle = 'black';
         this.canvasCtx.lineWidth = 3;
-        this.canvasCtx.strokeText(detectText, 15, 35);
+        this.canvasCtx.strokeText(detectText, -this.canvasElement.width + 15, 35);
         this.canvasCtx.fillStyle = '#FF7800';
-        this.canvasCtx.fillText(detectText, 15, 35);
+        this.canvasCtx.fillText(detectText, -this.canvasElement.width + 15, 35);
 
         // Determine stable text color
         const invalidStates = ["Unknown", "No hand detected", "Ready...", "Initializing..."];
@@ -392,14 +396,17 @@ class SignRecognitionClient {
             stableColor = '#FF0000';
         }
 
-        // Draw "Stable:" text
+        // Draw "Stable:" text (adjust X position for flip)
         const stableText = `Stable: ${this.stableDisplay}`;
         this.canvasCtx.font = 'bold 32px Arial';
         this.canvasCtx.strokeStyle = 'black';
         this.canvasCtx.lineWidth = 4;
-        this.canvasCtx.strokeText(stableText, 15, 75);
+        this.canvasCtx.strokeText(stableText, -this.canvasElement.width + 15, 75);
         this.canvasCtx.fillStyle = stableColor;
-        this.canvasCtx.fillText(stableText, 15, 75);
+        this.canvasCtx.fillText(stableText, -this.canvasElement.width + 15, 75);
+        
+        // Restore context
+        this.canvasCtx.restore();
     }
 
     /**
