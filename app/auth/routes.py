@@ -156,10 +156,22 @@ def forgot_password():
         if not user_check.data or len(user_check.data) == 0:
             return jsonify({'error': 'No account found with this email address. Please check your email and try again.'}), 404
         
+        user_id = user_check.data[0]['id']
+        
+        # Check if there's already a pending password reset request for this user
+        existing_request = supabase.table('password_reset_requests') \
+            .select('*') \
+            .eq('user_id', user_id) \
+            .eq('status', 'pending') \
+            .execute()
+        
+        if existing_request.data and len(existing_request.data) > 0:
+            return jsonify({'error': 'You already have a pending password reset request. Please wait for an admin to process it.'}), 400
+        
         # Create password reset request
         request_data = {
             'email': email,
-            'user_id': user_check.data[0]['id'],
+            'user_id': user_id,
             'status': 'pending'
         }
         
@@ -173,6 +185,9 @@ def forgot_password():
             return jsonify({'error': 'Failed to create reset request'}), 500
             
     except PostgrestAPIError as e:
+        # Check if it's a unique constraint violation (duplicate pending request)
+        if 'unique_pending_password_reset_per_user' in str(e).lower() or 'duplicate key' in str(e).lower():
+            return jsonify({'error': 'You already have a pending password reset request. Please wait for an admin to process it.'}), 400
         print(f"Database error creating reset request: {e}")
         return jsonify({'error': 'Database error occurred'}), 500
     except Exception as e:
