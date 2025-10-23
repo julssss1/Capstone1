@@ -71,7 +71,7 @@
                         {# Display all linked assignments for this lesson #}
                         {% if lesson.assignments and lesson.assignments|length > 0 %}
                             {% for assignment in lesson.assignments %}
-                            <a href="{{ url_for('teacher.create_assignment', subject_id=subject_id, lesson_id=lesson.id, assignment_id=assignment.id) }}" class="lesson-link"> {# Link to edit/view this specific assignment - placeholder URL for now #}
+                            <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=assignment.id) }}" class="lesson-link">
                                 <i class="fas fa-pencil-alt"></i> {{ assignment.title | default('View Assignment') }}
                             </a>
                             {% endfor %}
