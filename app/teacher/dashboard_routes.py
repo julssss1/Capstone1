@@ -28,13 +28,19 @@ def teacher_dashboard():
         flash('Supabase client not initialized. Cannot load dashboard data.', 'danger')
     else:
         try:
-            # Get only enrolled students for this teacher
+            # Get unique students enrolled with this teacher
             enrolled_students_response = supabase.table('enrollments') \
-                                       .select('student_id', count='exact') \
+                                       .select('student_id') \
                                        .eq('teacher_id', teacher_id) \
                                        .eq('status', 'active') \
                                        .execute()
-            total_students_count = enrolled_students_response.count or 0
+            
+            # Count unique student IDs (in case a student is enrolled in multiple subjects)
+            if enrolled_students_response.data:
+                unique_student_ids = set(enrollment['student_id'] for enrollment in enrolled_students_response.data)
+                total_students_count = len(unique_student_ids)
+            else:
+                total_students_count = 0
 
             # Get subjects taught by this teacher
             subjects_response = supabase.table('subjects') \

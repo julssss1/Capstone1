@@ -708,7 +708,17 @@ document.addEventListener('DOMContentLoaded', async function () {
             hiddenInput.name = 'sign_attempts_json';
             form.appendChild(hiddenInput);
 
-            form.addEventListener('submit', function() {
+            form.addEventListener('submit', function(e) {
+                // Validate for profanity before submission
+                const textarea = document.getElementById('submission-notes');
+                if (textarea && textarea.value.trim()) {
+                    const isValid = validateTextForProfanity(textarea.value);
+                    if (!isValid) {
+                        e.preventDefault();
+                        return false;
+                    }
+                }
+                
                 hiddenInput.value = JSON.stringify(signRecognition.getRecordedAttempts());
             });
         }
@@ -814,3 +824,102 @@ document.addEventListener('DOMContentLoaded', async function () {
         console.error("Initialization failed:", error);
     }
 });
+
+/**
+ * Client-side profanity filter
+ * Comprehensive list of inappropriate words to block
+ */
+function validateTextForProfanity(text) {
+    if (!text || !text.trim()) {
+        return true;
+    }
+    
+    // Convert to lowercase for checking
+    const textLower = text.toLowerCase();
+    
+    // Remove special characters but keep spaces
+    const cleanedText = textLower.replace(/[^a-z0-9\s]/g, '');
+    
+    // Comprehensive profanity list
+    const profanityList = [
+        // English profanity
+        'fuck', 'fucking', 'fucker', 'fucked', 'fucks', 'fuk', 'fck', 'fvck', 'phuck',
+        'shit', 'shitty', 'shitter', 'shits', 'sh1t', 'sht', '5hit',
+        'bitch', 'bitches', 'bitching', 'b1tch',
+        'bastard', 'bastards', 'bstrd',
+        'ass', 'asshole', 'arse', 'arsehole', 'a55',
+        'damn', 'damned', 'dammit',
+        'hell', 'hells',
+        'cunt',
+        'dick', 'dicks',
+        'cock', 'cocks',
+        'pussy', 'pussies',
+        'whore',
+        'slut', 'sluts',
+        'piss', 'pissed',
+        'nigger', 'nigga',
+        'fag', 'faggot',
+        'retard', 'retarded',
+        'motherfucker', 'mofo', 'mf',
+        'sex', 'sexy', 'sexual',
+        'rape', 'raping', 'raped',
+        'nazi', 'hitler',
+        'porn', 'porno', 'pornography',
+        
+        // Filipino/Tagalog profanity
+        'putang', 'putangina', 'puta', 'tangina', 'tanginamo',
+        'gago', 'gaga', 'bobo', 'tanga', 'tarantado',
+        'ulol', 'yawa', 'pakyu', 'pakyo',
+        'letse', 'kupal',
+        'gunggong',
+        'kantot', 'kantutan', 'tamod', 'titi', 'bilat', 'puke',
+        'burat', 'bayag', 'jakol',
+        
+        // Common variations
+        'fucc', 'phuq', 'phuc'
+    ];
+    
+    // Check for profanity with word boundaries
+    for (const profaneWord of profanityList) {
+        // Create regex pattern with word boundaries
+        const pattern = new RegExp('\\b' + profaneWord + '\\b', 'i');
+        
+        // Check in both original and cleaned text
+        if (pattern.test(textLower) || pattern.test(cleanedText)) {
+            alert('⚠️ Your submission contains inappropriate language. Please remove profane words and try again.');
+            
+            // Highlight the textarea
+            const textarea = document.getElementById('submission-notes');
+            if (textarea) {
+                textarea.style.border = '2px solid #dc3545';
+                textarea.focus();
+                
+                // Reset border after 3 seconds
+                setTimeout(() => {
+                    textarea.style.border = '';
+                }, 3000);
+            }
+            
+            return false;
+        }
+        
+        // Also check for spaced versions (e.g., "f u c k")
+        const spacedPattern = new RegExp('\\b' + profaneWord.split('').join('\\s*') + '\\b', 'i');
+        if (spacedPattern.test(textLower)) {
+            alert('⚠️ Your submission contains inappropriate language. Please remove profane words and try again.');
+            
+            const textarea = document.getElementById('submission-notes');
+            if (textarea) {
+                textarea.style.border = '2px solid #dc3545';
+                textarea.focus();
+                setTimeout(() => {
+                    textarea.style.border = '';
+                }, 3000);
+            }
+            
+            return false;
+        }
+    }
+    
+    return true;
+}

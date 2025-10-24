@@ -1,6 +1,7 @@
 from flask import render_template, session, url_for, request, flash, redirect, current_app
 from . import bp  # Use . to import bp from the current package (student)
 from app.utils import login_required, role_required
+from app.profanity_filter import validate_text
 from supabase import Client, PostgrestAPIError
 import json
 import re
@@ -204,6 +205,13 @@ def submit_assignment_work(assignment_id):
     student_id = session.get('user_id')
     form_notes = request.form.get('submission_notes')
     sign_attempts_json = request.form.get('sign_attempts_json')
+    
+    # Validate submission notes for profanity
+    if form_notes and form_notes.strip():
+        validation_result = validate_text(form_notes)
+        if not validation_result['valid']:
+            flash(validation_result['message'], 'danger')
+            return redirect(url_for('student.view_assignment_student', assignment_id=assignment_id))
     
     recorded_sign_attempts = []
     average_confidence = 0.0
