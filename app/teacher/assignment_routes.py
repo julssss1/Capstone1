@@ -146,6 +146,9 @@ def create_assignment():
         if not subject_id_form:
             validation_errors.append('Subject selection is required.')
         
+        if not lesson_id_form:
+            validation_errors.append('Lesson selection is required.')
+        
         if not due_date:
             validation_errors.append('Due date is required.')
         

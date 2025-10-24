@@ -87,10 +87,12 @@
                         <td><span class="user-role {{ user.role.lower() }}">{{ user.role }}</span></td>
                         <td class="user-actions">
                             <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="action-btn edit">Edit</a>
-                            {# Use display_name in confirmation message #}
+                            {# Only show delete button for non-Admin users #}
+                            {% if user.role != 'Admin' %}
                             <form method="POST" action="{{ url_for('admin.delete_user', user_id=user.id) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to delete user '{{ user.display_name | default('this user') }}'? This cannot be undone.">
                                 <button type="submit" class="action-btn delete">Delete</button>
                             </form>
+                            {% endif %}
                         </td>
                     </tr>
                     {% else %}

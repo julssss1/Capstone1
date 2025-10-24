@@ -202,6 +202,8 @@ def add_user():
             errors['role'] = 'Please select a role.'
         elif role not in ['Student', 'Teacher', 'Admin']:
             errors['role'] = 'Invalid role selected.'
+        elif role == 'Admin':
+            errors['role'] = 'Cannot create Admin accounts. Admin accounts must be created by system administrators.'
         
         # Validate grade level for Students
         if role == 'Student' and not grade_level:
@@ -571,6 +573,20 @@ def delete_user(user_id):
     if str(admin_user_id) == str(user_id):
          flash("You cannot delete your own admin account.", "danger")
          return redirect(url_for('admin.admin_user_management'))
+    
+    # Check if the user being deleted is an Admin
+    try:
+        user_profile = supabase.table('profiles').select('role, first_name, last_name').eq('id', user_id).maybe_single().execute()
+        if user_profile.data and user_profile.data.get('role') == 'Admin':
+            fname = user_profile.data.get('first_name', '')
+            lname = user_profile.data.get('last_name', '')
+            display_name = f"{fname} {lname}".strip() if fname or lname else f"User ID {user_id}"
+            flash(f"Cannot delete Admin account '{display_name}'. Admin accounts cannot be deleted through this interface.", "danger")
+            return redirect(url_for('admin.admin_user_management'))
+    except Exception as e:
+        print(f"Error checking user role before deletion: {e}")
+        flash("Error verifying user role. Deletion cancelled for safety.", "danger")
+        return redirect(url_for('admin.admin_user_management'))
 
     profile_deleted = False
     auth_user_deleted = False

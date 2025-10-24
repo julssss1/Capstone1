@@ -123,7 +123,6 @@
                             <option value="">-- Select Role --</option>
                             <option value="Student" {% if profile and profile.role == 'Student' %}selected{% endif %}>Student</option>
                             <option value="Teacher" {% if profile and profile.role == 'Teacher' %}selected{% endif %}>Teacher</option>
-                            <option value="Admin" {% if profile and profile.role == 'Admin' %}selected{% endif %}>Admin</option>
                         </select>
                     </div>
                 </div>
@@ -185,7 +184,7 @@
             {# Combined Form Actions Section at the bottom of the container #}
             <div class="form-actions-footer">
                 <button type="submit" form="userDetailsForm" class="btn save-btn">Save Changes</button>
-                {% if action == 'Edit' and profile and current_user_id != profile.id %}
+                {% if action == 'Edit' and profile and current_user_id != profile.id and profile.role != 'Admin' %}
                 <form id="deleteUserForm" action="{{ url_for('admin.delete_user', user_id=profile.id) }}" method="post" onsubmit="return confirm('Are you sure you want to delete this user? This action cannot be undone.');" style="display: inline-block;"> {# Changed to inline-block #}
                     <button type="submit" class="btn delete-btn">Delete User</button>
                 </form>
