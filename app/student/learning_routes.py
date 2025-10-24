@@ -143,6 +143,7 @@ def lesson_video_materials(lesson_id):
     video_materials = []
     lesson_title = "Lesson Videos"
     subject_name = ""
+    subject_id = None
     
     if not supabase:
         flash('Database connection not available.', 'danger')
