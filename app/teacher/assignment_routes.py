@@ -532,6 +532,65 @@ def restore_assignment(archive_id):
         print(f"Error restoring assignment {archive_id}: {e}")
         return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
 
+@bp.route('/assignment/delete-archived/<int:archive_id>', methods=['DELETE'])
+@login_required
+@role_required('Teacher')
+def delete_archived_assignment(archive_id):
+    """Permanently delete an archived assignment."""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    if not teacher_id:
+        return jsonify({'success': False, 'message': 'User session invalid.'}), 401
+    
+    if not supabase:
+        return jsonify({'success': False, 'message': 'Database connection error.'}), 500
+    
+    try:
+        # Get the archived assignment
+        archive_response = supabase.table('archived_assignments') \
+                                   .select('*') \
+                                   .eq('id', archive_id) \
+                                   .eq('archived_by', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not archive_response.data:
+            return jsonify({'success': False, 'message': 'Archived assignment not found or unauthorized.'}), 404
+        
+        archive = archive_response.data
+        
+        # Verify teacher owns the subject
+        subject_response = supabase.table('subjects') \
+                                   .select('id') \
+                                   .eq('id', archive['subject_id']) \
+                                   .eq('teacher_id', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not subject_response.data:
+            return jsonify({'success': False, 'message': 'Unauthorized to delete this archived assignment.'}), 403
+        
+        # Delete all related archived submissions
+        supabase.table('archived_submissions').delete().eq('assignment_id', archive['original_id']).execute()
+        
+        # Delete all related archived sign attempts
+        supabase.table('archived_sign_attempts').delete().eq('related_assignment_id', archive['original_id']).execute()
+        
+        # Delete the archived assignment
+        delete_response = supabase.table('archived_assignments').delete().eq('id', archive_id).execute()
+        
+        if delete_response:
+            return jsonify({'success': True, 'message': 'Archived assignment permanently deleted.'}), 200
+        else:
+            return jsonify({'success': False, 'message': 'Failed to delete archived assignment.'}), 500
+            
+    except PostgrestAPIError as e:
+        return jsonify({'success': False, 'message': f'Database error: {e.message}'}), 500
+    except Exception as e:
+        print(f"Error deleting archived assignment {archive_id}: {e}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
+
 @bp.route('/assignment/delete/<int:assignment_id>', methods=['POST'])
 @login_required
 @role_required('Teacher')

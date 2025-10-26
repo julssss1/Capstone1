@@ -97,6 +97,31 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Student Comment Section -->
+            <div class="submitted-content-section student-comment-section">
+                <h4>Your Comment/Reply:</h4>
+                {% if submission.student_comments %}
+                <div class="submitted-notes">
+                    <p>{{ submission.student_comments }}</p>
+                </div>
+                <button class="action-btn secondary-btn" onclick="toggleCommentEdit()"><i class="fas fa-edit"></i> Edit Comment</button>
+                {% else %}
+                <p style="color: #666; font-style: italic; margin-bottom: 10px;">No comment yet. Add a comment to communicate with your teacher.</p>
+                {% endif %}
+                
+                <form id="comment-form" method="POST" action="{{ url_for('student.add_submission_comment', submission_id=submission.id) }}" style="{% if submission.student_comments %}display: none;{% endif %} margin-top: 15px;">
+                    <textarea name="student_comments" id="student-comment" rows="4" 
+                              placeholder="Write your comment or question for the teacher here..." 
+                              style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-family: 'Poppins', sans-serif; resize: vertical;">{{ submission.student_comments if submission.student_comments else '' }}</textarea>
+                    <div style="margin-top: 10px; display: flex; gap: 10px;">
+                        <button type="submit" class="action-btn primary-btn"><i class="fas fa-paper-plane"></i> Submit Comment</button>
+                        {% if submission.student_comments %}
+                        <button type="button" class="action-btn secondary-btn" onclick="toggleCommentEdit()"><i class="fas fa-times"></i> Cancel</button>
+                        {% endif %}
+                    </div>
+                </form>
+            </div>
             
             <div class="submission-actions">
                 <a href="{{ url_for('student.student_assignment') }}" class="action-btn secondary-btn"><i class="fas fa-arrow-left"></i> Back to Assignments</a>
@@ -117,5 +142,15 @@
         {% endif %}
     </main>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+    <script>
+        function toggleCommentEdit() {
+            const form = document.getElementById('comment-form');
+            if (form.style.display === 'none') {
+                form.style.display = 'block';
+            } else {
+                form.style.display = 'none';
+            }
+        }
+    </script>
 </body>
 </html>

@@ -2,7 +2,9 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     const restoreButtons = document.querySelectorAll('.restore-btn');
+    const deleteButtons = document.querySelectorAll('.delete-btn');
     
+    // Handle restore button clicks
     restoreButtons.forEach(button => {
         button.addEventListener('click', function() {
             const archiveId = this.dataset.archiveId;
@@ -52,6 +54,61 @@ document.addEventListener('DOMContentLoaded', function() {
                     alert('An error occurred while restoring the assignment. Please try again.');
                     button.disabled = false;
                     button.innerHTML = '<i class="fas fa-undo"></i> Restore';
+                });
+            }
+        });
+    });
+    
+    // Handle delete button clicks
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const archiveId = this.dataset.archiveId;
+            const assignmentTitle = this.dataset.assignmentTitle;
+            
+            // Show simple confirmation dialog
+            if (confirm(`Are you sure you want to permanently delete the archived assignment "${assignmentTitle}"?\n\nThis action cannot be undone.`)) {
+                // Disable button during deletion
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                
+                // Send delete request to server
+                fetch(`/teacher/assignment/delete-archived/${archiveId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Remove the row from the table
+                        const row = button.closest('tr');
+                        row.style.transition = 'opacity 0.3s';
+                        row.style.opacity = '0';
+                        
+                        setTimeout(() => {
+                            row.remove();
+                            
+                            // Check if table is now empty
+                            const tbody = document.querySelector('.assignments-table tbody');
+                            if (tbody && tbody.querySelectorAll('tr').length === 0) {
+                                // Reload page to show "no archives" message
+                                location.reload();
+                            }
+                        }, 300);
+                        
+                        showMessage('Archived assignment permanently deleted.', 'success');
+                    } else {
+                        alert('Error: ' + (data.message || 'Failed to delete archived assignment.'));
+                        button.disabled = false;
+                        button.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting archived assignment:', error);
+                    alert('An error occurred while deleting the archived assignment. Please try again.');
+                    button.disabled = false;
+                    button.innerHTML = '<i class="fas fa-trash"></i> Delete';
                 });
             }
         });

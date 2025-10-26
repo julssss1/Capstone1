@@ -22,6 +22,28 @@ def archive_user(user_id: str, archived_by: str, reason: str = "Manual archive")
     try:
         supabase: Client = current_app.supabase
         
+        # IMPORTANT: Fetch email FIRST before any deletion, as deleting from profiles
+        # triggers deletion from auth.users too
+        email = None
+        try:
+            # Query auth.users directly for the email while user still exists
+            from supabase import create_client
+            # Create a client with service role key to access auth.users
+            service_supabase = create_client(
+                current_app.config.get('SUPABASE_URL'),
+                current_app.config.get('SUPABASE_SERVICE_KEY') or current_app.config.get('SUPABASE_ANON_KEY')
+            )
+            
+            # Try to get email from auth admin API
+            try:
+                user = service_supabase.auth.admin.get_user_by_id(user_id)
+                if user and user.user:
+                    email = user.user.email
+            except:
+                pass
+        except Exception as e:
+            print(f"Could not fetch email for user {user_id}: {e}")
+        
         # Fetch the user profile
         profile_response = supabase.table('profiles').select('*').eq('id', user_id).execute()
         
@@ -30,9 +52,14 @@ def archive_user(user_id: str, archived_by: str, reason: str = "Manual archive")
         
         profile = profile_response.data[0]
         
+        # Fallback: try to get email from profile if it exists there
+        if not email:
+            email = profile.get('email', None)
+        
         # Insert into archived_profiles
         archive_data = {
             'id': profile['id'],
+            'email': email,
             'role': profile.get('role'),
             'created_at': profile.get('created_at'),
             'first_name': profile.get('first_name'),

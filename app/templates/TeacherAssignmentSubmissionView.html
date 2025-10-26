@@ -80,6 +80,15 @@
             </div>
             {% endif %}
 
+            {% if submission.student_comments %}
+            <div class="submitted-content-section student-comment-section">
+                <h4><i class="fas fa-comment"></i> Student's Comment/Reply:</h4>
+                <div class="submitted-notes" style="background-color: #f0f8ff; border-left: 4px solid #4a90e2;">
+                    <p>{{ submission.student_comments }}</p>
+                </div>
+            </div>
+            {% endif %}
+
             <hr class="feedback-separator">
 
             <form method="POST" action="{{ url_for('teacher.update_submission_feedback', submission_id=submission.id) }}" class="feedback-form">

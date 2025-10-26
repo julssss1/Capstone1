@@ -546,3 +546,60 @@ def view_submission_details(submission_id):
         return redirect(url_for('student.student_assignment'))
 
     return render_template('StudentAssignmentSubmissionView.html', submission=submission, user_name=user_name)
+
+@bp.route('/submission/<int:submission_id>/add-comment', methods=['POST'])
+@login_required
+@role_required('Student')
+def add_submission_comment(submission_id):
+    """Allow students to add comments/replies to their submissions."""
+    supabase: Client = current_app.supabase
+    student_id = session.get('user_id')
+    student_comments = request.form.get('student_comments', '').strip()
+    
+    if not student_id:
+        flash('User session invalid.', 'danger')
+        return redirect(url_for('auth.login'))
+    
+    if not supabase:
+        flash('Database connection error.', 'danger')
+        return redirect(url_for('student.view_submission_details', submission_id=submission_id))
+    
+    # Validate comment for profanity
+    if student_comments:
+        validation_result = validate_text(student_comments)
+        if not validation_result['valid']:
+            flash(validation_result['message'], 'danger')
+            return redirect(url_for('student.view_submission_details', submission_id=submission_id))
+    
+    try:
+        # Verify the submission belongs to this student
+        submission_check = supabase.table('submissions') \
+                                   .select('id') \
+                                   .eq('id', submission_id) \
+                                   .eq('student_id', student_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not (submission_check and submission_check.data):
+            flash('Submission not found or permission denied.', 'danger')
+            return redirect(url_for('student.student_assignment'))
+        
+        # Update the submission with the student's comment
+        update_response = supabase.table('submissions') \
+                                 .update({'student_comments': student_comments}) \
+                                 .eq('id', submission_id) \
+                                 .execute()
+        
+        if update_response.data:
+            flash('Comment added successfully!', 'success')
+        else:
+            flash('Failed to add comment. Please try again.', 'danger')
+            
+    except PostgrestAPIError as e:
+        flash(f'Database error: {e.message}', 'danger')
+        print(f"Error adding student comment: {e}")
+    except Exception as e:
+        flash(f'An unexpected error occurred: {e}', 'danger')
+        print(f"Unexpected error in add_submission_comment: {e}")
+    
+    return redirect(url_for('student.view_submission_details', submission_id=submission_id))
