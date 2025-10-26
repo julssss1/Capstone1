@@ -130,7 +130,7 @@
                 <div id="target-sign-display">
                     <p id="instruction-text">Select a sign above to begin.</p>
                     <div class="image-placeholder">
-                       <img id="target-image" src="" alt="Sign to practice" style="display: none;">
+                       <img id="target-image" src="" alt="Sign to practice" style="display: none;" title="Click to zoom">
                        <span id="image-placeholder-text">Sign image appears here</span>
                     </div>
                     <div id="feedback" class="status-waiting">Waiting for practice...</div>
@@ -151,6 +151,13 @@
                  <p class="camera-note">Ensure good lighting and clear view of your hand.</p>
             </div>
         </section>
+        
+        <!-- Image Zoom Modal -->
+        <div id="image-zoom-modal" class="zoom-modal">
+            <span class="zoom-close">&times;</span>
+            <img class="zoom-modal-content" id="zoomed-image">
+            <div class="zoom-caption"></div>
+        </div>
     </main>
     <script>
         const staticBaseUrl = "{{ url_for('static', filename='') }}"; 

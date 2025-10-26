@@ -66,6 +66,9 @@ document.addEventListener('DOMContentLoaded', function() {
         stopCamera();
     });
 
+    // Set up image zoom functionality
+    setupImageZoom();
+
     async function startCameraOnClick() {
         console.log("Start Camera button clicked on Dashboard (Client-Side).");
         
@@ -255,5 +258,43 @@ document.addEventListener('DOMContentLoaded', function() {
                 feedbackElement.className = 'status-incorrect';
             }
         }
+    }
+
+    // Image zoom functionality
+    function setupImageZoom() {
+        const modal = document.getElementById('image-zoom-modal');
+        const modalImg = document.getElementById('zoomed-image');
+        const captionText = document.querySelector('.zoom-caption');
+        const closeBtn = document.querySelector('.zoom-close');
+        
+        if (!targetImage || !modal || !modalImg || !closeBtn) return;
+        
+        // Open modal when image is clicked
+        targetImage.addEventListener('click', function() {
+            if (this.style.display !== 'none' && this.src) {
+                modal.style.display = 'block';
+                modalImg.src = this.src;
+                if (captionText) captionText.textContent = this.alt;
+            }
+        });
+        
+        // Close modal when X is clicked
+        closeBtn.addEventListener('click', function() {
+            modal.style.display = 'none';
+        });
+        
+        // Close modal when clicking outside the image
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+        
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'Escape' && modal.style.display === 'block') {
+                modal.style.display = 'none';
+            }
+        });
     }
 });

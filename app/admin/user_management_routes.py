@@ -16,6 +16,7 @@ def admin_user_management():
     if request.args.get('clear_reset') == '1':
         session.pop('pending_reset_request_id', None)
         session.pop('password_changed_for_reset', None)
+        session.pop('reset_password_value', None)
     
     supabase: Client = current_app.supabase
     user_name = session.get('user_name', 'Admin')
@@ -471,24 +472,19 @@ def edit_user(user_id):
         
         # Validate new password only if it's provided
         if new_password:
-            # If there's a pending reset request, password must be exactly "StudentCaes123@"
-            if pending_reset_request_id:
-                if new_password != 'StudentCaes123@':
-                    errors['new_password'] = 'For password reset requests, the password must be exactly: StudentCaes123@'
-            else:
-                # Normal password validation for regular edits
-                password_errors = []
-                if len(new_password) < 8:
-                    password_errors.append('at least 8 characters')
-                if not re.search(r'[A-Z]', new_password):
-                    password_errors.append('one uppercase letter (A-Z)')
-                if not re.search(r'[a-z]', new_password):
-                    password_errors.append('one lowercase letter (a-z)')
-                if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
-                    password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
-                
-                if password_errors:
-                    errors['new_password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
+            # Password validation applies to both regular edits and password reset requests
+            password_errors = []
+            if len(new_password) < 8:
+                password_errors.append('at least 8 characters')
+            if not re.search(r'[A-Z]', new_password):
+                password_errors.append('one uppercase letter (A-Z)')
+            if not re.search(r'[a-z]', new_password):
+                password_errors.append('one lowercase letter (a-z)')
+            if not re.search(r'[!@#$%^&*(),.?":{}|<>]', new_password):
+                password_errors.append('one special character (!@#$%^&*(),.?":{}|<>)')
+            
+            if password_errors:
+                errors['new_password'] = 'Password must contain: ' + ', '.join(password_errors) + '.'
 
         if errors:
             for field, msg in errors.items():
@@ -533,10 +529,11 @@ def edit_user(user_id):
                     password_updated_msg = " Password updated."
                     print(f"Admin updated password for user {user_id}")
                     
-                    # Set flag if there's a pending reset request
+                    # Store the new password and set flag if there's a pending reset request
                     if session.get('pending_reset_request_id'):
                         session['password_changed_for_reset'] = True
-                        print(f"Password changed flag set for pending reset request")
+                        session['reset_password_value'] = new_password
+                        print(f"Password changed flag set for pending reset request, password stored in session")
                 except Exception as e_pwd:
                     flash(f"Profile details updated, but failed to update password: {e_pwd}", "warning")
                     print(f"Error updating password for user {user_id} by admin: {e_pwd}")

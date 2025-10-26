@@ -150,10 +150,10 @@
                     <div class="settings-section password-section">
                         <label class="password-section-label">Change Password (Optional):</label>
                         {% if session.get('pending_reset_request_id') %}
-                        <div class="password-reset-notice" style="background-color: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin-bottom: 15px; border-radius: 4px;">
-                            <strong>⚠️ Password Reset Request Active</strong>
-                            <p style="margin: 8px 0 0 0; font-size: 14px;">To complete the password reset, you must set the new password to: <code style="background-color: #f8f9fa; padding: 2px 6px; border-radius: 3px; font-weight: bold;">StudentCaes123@</code></p>
-                            <p style="margin: 4px 0 0 0; font-size: 13px; color: #856404;">After clicking "Save Changes", the "Complete Password Reset" button will appear to send the notification email.</p>
+                        <div class="password-reset-notice" style="background-color: #e7f3ff; border-left: 4px solid #2196F3; padding: 12px; margin-bottom: 15px; border-radius: 4px;">
+                            <strong>ℹ️ Password Reset Request Active</strong>
+                            <p style="margin: 8px 0 0 0; font-size: 14px;">You are currently handling a password reset request. Set a new password for this user.</p>
+                            <p style="margin: 4px 0 0 0; font-size: 13px; color: #0d47a1;">After clicking "Save Changes", the "Complete Password Reset" button will appear to send the notification email with the password you set.</p>
                         </div>
                         {% endif %}
                         <div class="form-group">

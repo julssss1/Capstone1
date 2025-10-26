@@ -452,6 +452,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     // Set up camera button
     setupCameraButton();
+    
+    // Set up image zoom functionality
+    setupImageZoom();
 });
 
 function setupSignButtons() {
@@ -606,4 +609,46 @@ function updateFeedback(stablePrediction) {
             feedbackEl.textContent = `Not quite "${currentTargetSign}". You signed "${stablePrediction}". Keep trying!`;
         }
     }
+}
+
+// Image zoom functionality
+function setupImageZoom() {
+    const targetImage = document.getElementById('target-image');
+    const modal = document.getElementById('image-zoom-modal');
+    const modalImg = document.getElementById('zoomed-image');
+    const captionText = document.querySelector('.zoom-caption');
+    const closeBtn = document.querySelector('.zoom-close');
+    
+    if (!targetImage || !modal || !modalImg || !closeBtn) return;
+    
+    // Open modal when image is clicked
+    targetImage.addEventListener('click', function() {
+        if (this.style.display !== 'none' && this.src) {
+            modal.style.display = 'block';
+            modalImg.src = this.src;
+            // Show the current sign being practiced instead of generic alt text
+            if (captionText && currentTargetSign) {
+                captionText.textContent = `Sign language gesture for ${currentTargetSign}`;
+            }
+        }
+    });
+    
+    // Close modal when X is clicked
+    closeBtn.addEventListener('click', function() {
+        modal.style.display = 'none';
+    });
+    
+    // Close modal when clicking outside the image
+    modal.addEventListener('click', function(event) {
+        if (event.target === modal) {
+            modal.style.display = 'none';
+        }
+    });
+    
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape' && modal.style.display === 'block') {
+            modal.style.display = 'none';
+        }
+    });
 }

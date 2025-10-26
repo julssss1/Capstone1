@@ -311,3 +311,135 @@
     font-weight: 600;
     color: #667eea;
 }
+
+/* Image Zoom Modal Styles */
+.zoom-modal {
+    display: none;
+    position: fixed;
+    z-index: 9999;
+    padding-top: 50px;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0, 0, 0, 0.95);
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.zoom-modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 85vh;
+    object-fit: contain;
+    animation: zoomIn 0.3s ease-in-out;
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes zoomIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.zoom-close {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 50px;
+    font-weight: bold;
+    transition: color 0.3s ease;
+    cursor: pointer;
+    z-index: 10000;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
+}
+
+.zoom-close:hover,
+.zoom-close:focus {
+    color: #ff4444;
+}
+
+.zoom-caption {
+    margin: auto;
+    display: block;
+    width: 80%;
+    max-width: 700px;
+    text-align: center;
+    color: #f1f1f1;
+    padding: 15px 0;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* Make the target image clickable */
+#target-image {
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+#target-image:hover {
+    transform: scale(1.02);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+/* Add a zoom icon indicator */
+.image-placeholder {
+    position: relative;
+}
+
+.image-placeholder::after {
+    content: '\f00e';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: rgba(102, 126, 234, 0.9);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 50%;
+    font-size: 16px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.image-placeholder:hover::after {
+    opacity: 1;
+}
+
+/* Responsive adjustments for zoom modal */
+@media (max-width: 768px) {
+    .zoom-modal {
+        padding-top: 30px;
+    }
+    
+    .zoom-modal-content {
+        max-width: 95%;
+        max-height: 80vh;
+    }
+    
+    .zoom-close {
+        top: 10px;
+        right: 15px;
+        font-size: 40px;
+    }
+    
+    .zoom-caption {
+        font-size: 16px;
+        width: 90%;
+    }
+}
