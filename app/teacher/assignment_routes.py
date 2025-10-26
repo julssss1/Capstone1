@@ -2,6 +2,7 @@
 from flask import render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from . import bp  # Import blueprint from current package (__init__.py)
 from app.utils import login_required, role_required
+from app.archive_utils import archive_assignment
 from supabase import Client, PostgrestAPIError
 from datetime import datetime, timezone, timedelta
 
@@ -368,10 +369,174 @@ def update_assignment_due_date(assignment_id):
         print(f"Error updating due date for assignment {assignment_id}: {e}")
         return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
 
+@bp.route('/assignments/archived')
+@login_required
+@role_required('Teacher')
+def teacher_archived_assignments():
+    """View archived assignments for the teacher."""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    user_name = session.get('user_name', 'Teacher')
+    archived_assignments = []
+    
+    # Get filter parameters
+    filter_subject_id = request.args.get('subject_filter', type=int)
+    
+    if not teacher_id:
+        flash('User session invalid. Please log in again.', 'danger')
+        return redirect(url_for('auth.login'))
+
+    if not supabase:
+        flash('Supabase client not initialized.', 'danger')
+        return render_template('TeacherArchivedAssignments.html', 
+                             archived_assignments=[], 
+                             subjects=[],
+                             filter_subject_id=filter_subject_id,
+                             user_name=user_name)
+
+    try:
+        # Get all subjects for this teacher
+        subjects_response = supabase.table('subjects').select('id, name').eq('teacher_id', teacher_id).order('name').execute()
+        subjects = subjects_response.data or []
+        
+        if not subjects:
+            flash('You are not teaching any subjects.', 'info')
+            return render_template('TeacherArchivedAssignments.html', 
+                                 archived_assignments=[], 
+                                 subjects=[],
+                                 filter_subject_id=filter_subject_id,
+                                 user_name=user_name)
+        
+        teacher_subject_ids = [s['id'] for s in subjects]
+        subjects_map = {s['id']: s['name'] for s in subjects}
+
+        # Build the query for archived assignments
+        query = supabase.table('archived_assignments').select('*')
+        
+        # Filter by teacher's subjects and teacher who archived it
+        if filter_subject_id:
+            query = query.eq('subject_id', filter_subject_id).eq('archived_by', teacher_id)
+        else:
+            query = query.in_('subject_id', teacher_subject_ids).eq('archived_by', teacher_id)
+        
+        archives_response = query.order('archived_at', desc=True).execute()
+        archives = archives_response.data or []
+
+        for archive in archives:
+            # Get lesson name if lesson_id exists
+            lesson_name = 'N/A (General Assignment)'
+            if archive.get('lesson_id'):
+                lesson_response = supabase.table('lessons').select('title').eq('id', archive['lesson_id']).maybe_single().execute()
+                if lesson_response.data:
+                    lesson_name = lesson_response.data['title']
+            
+            subject_name = subjects_map.get(archive['subject_id'], 'Unknown Subject')
+            
+            # Format archived_at date
+            archived_at_formatted = 'N/A'
+            if archive.get('archived_at'):
+                try:
+                    from datetime import datetime
+                    archived_dt = datetime.fromisoformat(archive['archived_at'].replace('Z', '+00:00'))
+                    archived_at_formatted = archived_dt.strftime('%Y-%m-%d %I:%M %p')
+                except:
+                    archived_at_formatted = str(archive['archived_at'])[:19]
+
+            archived_assignments.append({
+                'archive': archive,
+                'subject_name': subject_name,
+                'lesson_name': lesson_name,
+                'archived_at_formatted': archived_at_formatted
+            })
+
+    except PostgrestAPIError as e:
+        flash(f'Database error loading archived assignments: {e.message}', 'danger')
+        print(f"Supabase DB Error (Teacher Archived Assignments) for {teacher_id}: {e}")
+    except Exception as e:
+        flash('An unexpected error occurred loading archived assignments.', 'danger')
+        print(f"Unexpected Error (Teacher Archived Assignments) for {teacher_id}: {e}")
+
+    return render_template(
+        'TeacherArchivedAssignments.html',
+        archived_assignments=archived_assignments,
+        subjects=subjects,
+        filter_subject_id=filter_subject_id,
+        user_name=user_name
+    )
+
+@bp.route('/assignment/restore/<int:archive_id>', methods=['POST'])
+@login_required
+@role_required('Teacher')
+def restore_assignment(archive_id):
+    """Restore an archived assignment."""
+    supabase: Client = current_app.supabase
+    teacher_id = session.get('user_id')
+    
+    if not teacher_id:
+        return jsonify({'success': False, 'message': 'User session invalid.'}), 401
+    
+    if not supabase:
+        return jsonify({'success': False, 'message': 'Database connection error.'}), 500
+    
+    try:
+        # Get the archived assignment
+        archive_response = supabase.table('archived_assignments') \
+                                   .select('*') \
+                                   .eq('id', archive_id) \
+                                   .eq('archived_by', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not archive_response.data:
+            return jsonify({'success': False, 'message': 'Archived assignment not found or unauthorized.'}), 404
+        
+        archive = archive_response.data
+        
+        # Verify teacher owns the subject
+        subject_response = supabase.table('subjects') \
+                                   .select('id') \
+                                   .eq('id', archive['subject_id']) \
+                                   .eq('teacher_id', teacher_id) \
+                                   .maybe_single() \
+                                   .execute()
+        
+        if not subject_response.data:
+            return jsonify({'success': False, 'message': 'Unauthorized to restore this assignment.'}), 403
+        
+        # Prepare assignment data (exclude archive-specific fields)
+        assignment_data = {
+            'title': archive['title'],
+            'description': archive['description'],
+            'subject_id': archive['subject_id'],
+            'lesson_id': archive.get('lesson_id'),
+            'due_date': archive['due_date'],
+            'correct_answers': archive.get('correct_answers'),
+            'created_at': archive.get('created_at')
+        }
+        
+        # Insert back into assignments table
+        restore_response = supabase.table('assignments').insert(assignment_data).execute()
+        
+        if restore_response.data:
+            # Remove from archives
+            delete_response = supabase.table('archived_assignments').delete().eq('id', archive_id).execute()
+            
+            flash(f'Assignment "{archive["title"]}" restored successfully!', 'success')
+            return jsonify({'success': True, 'message': 'Assignment restored successfully.'}), 200
+        else:
+            return jsonify({'success': False, 'message': 'Failed to restore assignment.'}), 500
+            
+    except PostgrestAPIError as e:
+        return jsonify({'success': False, 'message': f'Database error: {e.message}'}), 500
+    except Exception as e:
+        print(f"Error restoring assignment {archive_id}: {e}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500
+
 @bp.route('/assignment/delete/<int:assignment_id>', methods=['POST'])
 @login_required
 @role_required('Teacher')
 def delete_assignment(assignment_id):
+    """Archives an assignment instead of deleting (preserves educational records)."""
     supabase: Client = current_app.supabase
     teacher_id = session.get('user_id')
     
@@ -392,6 +557,8 @@ def delete_assignment(assignment_id):
         if not assignment_response.data:
             return jsonify({'success': False, 'message': 'Assignment not found.'}), 404
         
+        assignment_title = assignment_response.data.get('title', f'Assignment ID {assignment_id}')
+        
         # Verify teacher owns the subject
         subject_response = supabase.table('subjects') \
                                    .select('id') \
@@ -401,22 +568,19 @@ def delete_assignment(assignment_id):
                                    .execute()
         
         if not subject_response.data:
-            return jsonify({'success': False, 'message': 'Unauthorized to delete this assignment.'}), 403
+            return jsonify({'success': False, 'message': 'Unauthorized to archive this assignment.'}), 403
         
-        # Delete the assignment (submissions will be cascade deleted if FK is set with ON DELETE CASCADE)
-        delete_response = supabase.table('assignments') \
-                                 .delete() \
-                                 .eq('id', assignment_id) \
-                                 .execute()
+        # Archive the assignment and all related data
+        result = archive_assignment(assignment_id, teacher_id, "Archived by teacher")
         
-        if delete_response.data or delete_response.count == 0:  # Success if data returned or count is 0
-            flash(f'Assignment "{assignment_response.data["title"]}" deleted successfully!', 'success')
-            return jsonify({'success': True, 'message': 'Assignment deleted successfully.'}), 200
+        if result['success']:
+            flash(f'Assignment "{assignment_title}" archived successfully! All records preserved.', 'success')
+            return jsonify({'success': True, 'message': 'Assignment archived successfully.'}), 200
         else:
-            return jsonify({'success': False, 'message': 'Failed to delete assignment.'}), 500
+            return jsonify({'success': False, 'message': f'Failed to archive assignment: {result["message"]}'}), 500
             
     except PostgrestAPIError as e:
         return jsonify({'success': False, 'message': f'Database error: {e.message}'}), 500
     except Exception as e:
-        print(f"Error deleting assignment {assignment_id}: {e}")
+        print(f"Error archiving assignment {assignment_id}: {e}")
         return jsonify({'success': False, 'message': 'An unexpected error occurred.'}), 500

@@ -1,6 +1,7 @@
 from flask import render_template, request, session, redirect, url_for, flash, current_app, jsonify
 from . import bp
 from app.utils import login_required, role_required
+from app.archive_utils import archive_subject, archive_lesson
 from supabase import Client, PostgrestAPIError
 from werkzeug.utils import secure_filename
 import os
@@ -303,42 +304,40 @@ def edit_lesson(lesson_id):
 @login_required
 @role_required('Admin')
 def delete_lesson(lesson_id):
-    """Handles deleting a lesson."""
+    """Archives a lesson instead of deleting (preserves educational records)."""
     supabase: Client = current_app.supabase
+    admin_id = session.get('user_id')
     
     if not supabase:
         flash('Supabase client not initialized.', 'danger')
         return redirect(request.referrer or url_for('admin.admin_subject_management'))
 
-    # We need the subject_id to redirect back correctly.
-    # It's not passed directly, so we must fetch it from the lesson being deleted.
+    # Fetch subject_id for redirect
     subject_id = None
     try:
-        lesson_response = supabase.table('lessons').select('subject_id').eq('id', lesson_id).maybe_single().execute()
+        lesson_response = supabase.table('lessons').select('subject_id, title').eq('id', lesson_id).maybe_single().execute()
         if lesson_response.data:
             subject_id = lesson_response.data['subject_id']
+            lesson_title = lesson_response.data.get('title', f'Lesson ID {lesson_id}')
+        else:
+            lesson_title = f'Lesson ID {lesson_id}'
     except Exception as e:
-        print(f"Pre-delete fetch for subject_id failed for lesson {lesson_id}: {e}")
-        # Continue without subject_id, redirect will be less specific
+        print(f"Pre-archive fetch failed for lesson {lesson_id}: {e}")
+        lesson_title = f'Lesson ID {lesson_id}'
 
     try:
-        delete_response = supabase.table('lessons').delete().eq('id', lesson_id).execute()
-
-        if delete_response.data:
-            flash(f"Lesson ID {lesson_id} deleted successfully.", "success")
+        # Archive the lesson and all related data
+        result = archive_lesson(lesson_id, admin_id, "Archived by admin")
+        
+        if result['success']:
+            flash(f"Lesson '{lesson_title}' archived successfully. All records preserved.", "success")
         else:
-            flash(f"Failed to delete lesson ID {lesson_id}. It might have already been deleted.", "warning")
-            print(f"Failed Supabase lesson delete response: {delete_response}")
+            flash(f"Failed to archive lesson: {result['message']}", "danger")
+            print(f"Failed to archive lesson {lesson_id}: {result['message']}")
 
-    except PostgrestAPIError as e:
-        if 'violates foreign key constraint' in e.message:
-             flash(f'Cannot delete lesson ID {lesson_id} because it has associated data (e.g., assignments). Please remove them first.', 'danger')
-        else:
-             flash(f'Database error deleting lesson: {e.message}', 'danger')
-        print(f"Supabase DB Error (Delete Lesson {lesson_id}): {e}")
     except Exception as e:
-        flash('An unexpected error occurred while deleting the lesson.', 'danger')
-        print(f"Unexpected Error (Delete Lesson {lesson_id}): {e}")
+        flash('An unexpected error occurred while archiving the lesson.', 'danger')
+        print(f"Unexpected Error (Archive Lesson {lesson_id}): {e}")
 
     if subject_id:
         return redirect(url_for('admin.view_manage_subject', subject_id=subject_id))
@@ -629,32 +628,36 @@ def edit_subject(subject_id):
 @login_required
 @role_required('Admin')
 def delete_subject(subject_id):
-    """Handles deleting a subject."""
+    """Archives a subject instead of deleting (preserves educational records)."""
     supabase: Client = current_app.supabase
+    admin_id = session.get('user_id')
 
     if not supabase:
         flash('Supabase client not initialized.', 'danger')
         return redirect(url_for('admin.admin_subject_management'))
 
+    # Get subject name for better feedback
+    subject_name = f'Subject ID {subject_id}'
     try:
-
-        delete_response = supabase.table('subjects').delete().eq('id', subject_id).execute()
-
-        if delete_response.data:
-            flash(f"Subject ID {subject_id} deleted successfully.", "success")
-            print(f"Admin deleted subject ID: {subject_id}")
-        else:
-            flash(f"Failed to delete subject ID {subject_id}. It might have already been deleted.", "warning")
-            print(f"Failed Supabase subject delete response: {delete_response}")
-
-    except PostgrestAPIError as e:
-        if 'violates foreign key constraint' in e.message:
-             flash(f'Cannot delete subject ID {subject_id} because it still has associated data (e.g., assignments, enrollments). Please remove associated data first.', 'danger')
-        else:
-             flash(f'Database error deleting subject: {e.message}', 'danger')
-        print(f"Supabase DB Error (Delete Subject {subject_id}): {e}")
+        subject_response = supabase.table('subjects').select('name').eq('id', subject_id).maybe_single().execute()
+        if subject_response.data:
+            subject_name = subject_response.data.get('name', subject_name)
     except Exception as e:
-        flash('An unexpected error occurred deleting the subject.', 'danger')
-        print(f"Unexpected Error (Delete Subject {subject_id}): {e}")
+        print(f"Error fetching subject name for {subject_id}: {e}")
+
+    try:
+        # Archive the subject and all related data
+        result = archive_subject(subject_id, admin_id, "Archived by admin")
+        
+        if result['success']:
+            flash(f"Subject '{subject_name}' and all related data archived successfully. All records preserved.", "success")
+            print(f"Admin archived subject ID: {subject_id}")
+        else:
+            flash(f"Failed to archive subject: {result['message']}", "danger")
+            print(f"Failed to archive subject {subject_id}: {result['message']}")
+
+    except Exception as e:
+        flash('An unexpected error occurred archiving the subject.', 'danger')
+        print(f"Unexpected Error (Archive Subject {subject_id}): {e}")
 
     return redirect(url_for('admin.admin_subject_management'))

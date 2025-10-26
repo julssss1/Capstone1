@@ -2,6 +2,7 @@ from flask import render_template, request, session, redirect, url_for, flash, c
 import re
 from . import bp
 from app.utils import login_required, role_required
+from app.archive_utils import archive_user
 from supabase import create_client, Client, PostgrestAPIError
 from gotrue.errors import AuthApiError
 
@@ -562,7 +563,7 @@ def edit_user(user_id):
 @login_required
 @role_required('Admin')
 def delete_user(user_id):
-    """Handles deleting a user from profiles and auth."""
+    """Archives a user instead of deleting them (preserves educational records)."""
     supabase: Client = current_app.supabase
     admin_user_id = session.get('user_id')
 
@@ -571,93 +572,60 @@ def delete_user(user_id):
         return redirect(url_for('admin.admin_user_management'))
 
     if str(admin_user_id) == str(user_id):
-         flash("You cannot delete your own admin account.", "danger")
+         flash("You cannot archive your own admin account.", "danger")
          return redirect(url_for('admin.admin_user_management'))
     
-    # Check if the user being deleted is an Admin
+    # Check if the user being archived is an Admin
     try:
         user_profile = supabase.table('profiles').select('role, first_name, last_name').eq('id', user_id).maybe_single().execute()
         if user_profile.data and user_profile.data.get('role') == 'Admin':
             fname = user_profile.data.get('first_name', '')
             lname = user_profile.data.get('last_name', '')
             display_name = f"{fname} {lname}".strip() if fname or lname else f"User ID {user_id}"
-            flash(f"Cannot delete Admin account '{display_name}'. Admin accounts cannot be deleted through this interface.", "danger")
+            flash(f"Cannot archive Admin account '{display_name}'. Admin accounts cannot be archived through this interface.", "danger")
             return redirect(url_for('admin.admin_user_management'))
+        
+        # Get display name for success message
+        if user_profile.data:
+            fname = user_profile.data.get('first_name', '')
+            lname = user_profile.data.get('last_name', '')
+            display_name = f"{fname} {lname}".strip() if fname or lname else f"User ID {user_id}"
+        else:
+            display_name = f"User ID {user_id}"
+            
     except Exception as e:
-        print(f"Error checking user role before deletion: {e}")
-        flash("Error verifying user role. Deletion cancelled for safety.", "danger")
+        print(f"Error checking user role before archiving: {e}")
+        flash("Error verifying user role. Archive cancelled for safety.", "danger")
         return redirect(url_for('admin.admin_user_management'))
 
-    profile_deleted = False
-    auth_user_deleted = False
-    display_name = f"User ID {user_id}"
-
     try:
-
-        try:
-            profile_info = supabase.table('profiles').select('first_name, last_name').eq('id', user_id).maybe_single().execute()
-            if profile_info.data:
-                 fname = profile_info.data.get('first_name', '')
-                 lname = profile_info.data.get('last_name', '')
-                 display_name = f"{fname} {lname}".strip() if fname or lname else display_name
-        except Exception:
-             pass
-
-        print(f"Attempting to delete profile for user ID: {user_id} ({display_name})")
-        profile_delete_response = supabase.table('profiles').delete().eq('id', user_id).execute()
-
-        if profile_delete_response.data:
-            profile_deleted = True
-            print(f"Profile deleted successfully for {user_id}")
-        else:
-            print(f"Profile for {user_id} not found or not deleted. Response: {profile_delete_response.error or 'No data returned'}")
-            if profile_info and not profile_info.data:
-                 print(f"Confirmed profile {user_id} does not exist.")
-                 profile_deleted = True
-            elif not profile_info:
-                 try:
-                     profile_check = supabase.table('profiles').select('id').eq('id', user_id).maybe_single().execute()
-                     if not profile_check.data:
-                          print(f"Confirmed profile {user_id} does not exist.")
-                          profile_deleted = True
-                 except Exception:
-                      print(f"Could not confirm if profile {user_id} exists.")
-
-        if profile_deleted:
-            print(f"Attempting to delete auth user ID: {user_id}")
+        # Archive the user and related data
+        print(f"Attempting to archive user ID: {user_id} ({display_name})")
+        result = archive_user(user_id, admin_user_id, "Archived by admin")
+        
+        if result['success']:
+            # Also need to delete from auth since archive_user only handles profile table
             try:
-                supabase_admin_client = None
-                try:
-                    admin_url = current_app.config.get("SUPABASE_URL")
-                    admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
-                    if not admin_url or not admin_key:
-                        raise ValueError("Supabase URL or Service Key missing from config.")
-                    supabase_admin_client = create_client(admin_url, admin_key)
-                    print("DEBUG: Temporary admin client created successfully for user deletion.")
-                except Exception as admin_client_ex:
-                    print(f"CRITICAL ERROR: Failed to create admin client for deletion: {admin_client_ex}")
-                    flash(f"Profile for '{display_name}' deleted, but failed to create admin client to delete auth user. Manual cleanup required.", "danger")
-                    raise admin_client_ex
-
+                admin_url = current_app.config.get("SUPABASE_URL")
+                admin_key = current_app.config.get("SUPABASE_SERVICE_KEY")
+                if not admin_url or not admin_key:
+                    raise ValueError("Supabase URL or Service Key missing from config.")
+                supabase_admin_client = create_client(admin_url, admin_key)
                 supabase_admin_client.auth.admin.delete_user(user_id)
-                auth_user_deleted = True
                 print(f"Auth user deleted successfully for {user_id}")
-                flash(f"User '{display_name}' deleted successfully from auth and profiles.", "success")
-
+                flash(f"User '{display_name}' archived successfully. All records preserved.", "success")
             except AuthApiError as auth_error:
                 print(f"Supabase Auth Admin Error deleting user {user_id}: {auth_error}")
-                flash(f"Profile for '{display_name}' deleted, but failed to delete authentication user: {auth_error.message}. Manual cleanup might be required.", "danger")
+                flash(f"User '{display_name}' archived, but failed to delete authentication user: {auth_error.message}. Manual cleanup might be required.", "warning")
             except Exception as generic_auth_error:
-                 print(f"Generic error deleting auth user {user_id}: {generic_auth_error}")
-                 flash(f"Profile for '{display_name}' deleted, but an unexpected error occurred deleting authentication user.", "danger")
+                print(f"Generic error deleting auth user {user_id}: {generic_auth_error}")
+                flash(f"User '{display_name}' archived, but an unexpected error occurred deleting authentication user.", "warning")
         else:
-             flash(f"Failed to delete profile for user ID {user_id} ({display_name}). Cannot proceed with deleting authentication user.", "danger")
+            flash(f"Failed to archive user: {result['message']}", "danger")
+            print(f"Failed to archive user {user_id}: {result['message']}")
 
-    except PostgrestAPIError as db_error:
-        flash(f'Database error during user deletion process: {db_error.message}', 'danger')
-        print(f"Supabase DB Error deleting profile {user_id}: {db_error}")
     except Exception as e:
-        flash('An unexpected error occurred during the user deletion process.', 'danger')
-        print(f"Unexpected Error deleting user {user_id}: {e}")
+        flash('An unexpected error occurred during the user archive process.', 'danger')
+        print(f"Unexpected Error archiving user {user_id}: {e}")
 
     return redirect(url_for('admin.admin_user_management'))

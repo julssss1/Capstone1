@@ -26,6 +26,7 @@
                 <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
                 <li><a href="{{ url_for('admin.admin_user_management') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
                 <li class="active"><a href="{{ url_for('admin.admin_subject_management') }}"><i class="fas fa-book-open"></i> Subject Management</a></li>
+                <li><a href="{{ url_for('admin.view_archives') }}"><i class="fas fa-archive"></i> Archives</a></li>
                 <li><a href="{{ url_for('admin.admin_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
             </ul>
         </nav>
@@ -57,8 +58,8 @@
                         <p class="created-by">Created by: {{ lesson.created_by_name | default('N/A') }}</p>
                         <div class="card-actions">
                             <a href="{{ url_for('admin.edit_lesson', lesson_id=lesson.id) }}" class="btn-action edit-btn"><i class="fas fa-edit"></i> Edit</a>
-                            <form method="POST" action="{{ url_for('admin.delete_lesson', lesson_id=lesson.id) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to delete the lesson '{{ lesson.title }}'? This cannot be undone.">
-                                <button type="submit" class="btn-action delete-btn"><i class="fas fa-trash"></i> Delete</button>
+                            <form method="POST" action="{{ url_for('admin.delete_lesson', lesson_id=lesson.id) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to archive the lesson '{{ lesson.title }}'? All related assignments and records will be preserved in the archive.">
+                                <button type="submit" class="btn-action delete-btn"><i class="fas fa-archive"></i> Archive</button>
                             </form>
                         </div>
                     </div>

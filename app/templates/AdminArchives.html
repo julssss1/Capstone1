@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin - Archive Records - Handspoken CAES</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminUserManagement.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/AdminArchives.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <button class="hamburger-button" aria-label="Open menu" aria-expanded="false">
+        <i class="fas fa-bars"></i>
+    </button>
+    <aside class="side-menu">
+        <div class="brand-logo">
+           <img src="{{ url_for('static', filename='Images/caes_logo.png') }}" alt="CAES Logo">
+            <h1>Handspoken</h1>
+            <span>CAES Admin Portal</span>
+        </div>
+        <nav class="navigation">
+             <ul>              
+                <li><a href="{{ url_for('admin.admin_dashboard') }}"><i class="fa-solid fa-table-columns"></i> Dashboard</a></li>
+                <li><a href="{{ url_for('admin.admin_user_management') }}"><i class="fas fa-users-cog"></i> User Management</a></li>
+                <li><a href="{{ url_for('admin.admin_subject_management') }}"><i class="fas fa-book-open"></i> Subject Management</a></li>
+                <li class="active"><a href="{{ url_for('admin.view_archives') }}"><i class="fas fa-archive"></i> Archives</a></li>
+                <li><a href="{{ url_for('admin.admin_settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+            </ul>
+        </nav>
+        <div class="user-info">
+             <p>Level: <strong>Admin</strong></p>
+             <p>Welcome, {{ user_name | default('Admin') }}</p>
+        
+             <a href="{{ url_for('auth.logout') }}" class="logout-button">Logout</a>
+        </div>
+    </aside>
+
+    <main class="main-content admin-content">
+        <header class="page-header">
+            <h2>Archive Records</h2>
+            <p>View and manage archived educational records</p>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                    <div class="alert alert-{{ category }}">{{ message }}</div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- Archive Statistics -->
+            <div class="archive-stats">
+                <div class="stat-card">
+                    <div class="stat-number">{{ archives|length }}</div>
+                    <div class="stat-label">Records Found</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="archive-filters">
+                <form method="GET" action="{{ url_for('admin.view_archives') }}">
+                    <div class="filter-group">
+                        <div class="filter-item">
+                            <label for="type">Archive Type</label>
+                            <select name="type" id="type">
+                                <option value="users" {% if archive_type == 'users' %}selected{% endif %}>Users</option>
+                                <option value="subjects" {% if archive_type == 'subjects' %}selected{% endif %}>Subjects</option>
+                                <option value="lessons" {% if archive_type == 'lessons' %}selected{% endif %}>Lessons</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="search">Search</label>
+                            <input type="text" name="search" id="search" placeholder="Search..." value="{{ search_query }}">
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="date_from">Date From</label>
+                            <input type="date" name="date_from" id="date_from" value="{{ date_from }}">
+                        </div>
+                        
+                        <div class="filter-item">
+                            <label for="date_to">Date To</label>
+                            <input type="date" name="date_to" id="date_to" value="{{ date_to }}">
+                        </div>
+                        
+                        <div class="filter-buttons">
+                            <button type="submit" class="btn-filter">Apply Filters</button>
+                            <a href="{{ url_for('admin.view_archives', type=archive_type) }}" class="btn-clear">Clear</a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Archives Table -->
+            <div class="users-section">
+                {% if archives %}
+                    <table class="users-table">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Name/Title</th>
+                                {% if archive_type == 'users' %}
+                                    <th>Email</th>
+                                    <th>Role</th>
+                                {% elif archive_type == 'subjects' %}
+                                    <th>Teacher</th>
+                                    <th>Description</th>
+                                {% elif archive_type == 'lessons' %}
+                                    <th>Subject</th>
+                                    <th>Created By</th>
+                                {% elif archive_type == 'assignments' %}
+                                    <th>Subject</th>
+                                    <th>Due Date</th>
+                                {% elif archive_type == 'submissions' %}
+                                    <th>Grade</th>
+                                    <th>Submitted At</th>
+                                {% elif archive_type == 'enrollments' %}
+                                    <th>Teacher</th>
+                                    <th>Status</th>
+                                {% endif %}
+                                <th>Archived At</th>
+                                <th>Reason</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for archive in archives %}
+                                <tr>
+                                    <td>
+                                        <span class="archive-type-badge badge-{{ archive_type|replace('s', '') }}">
+                                            {{ archive.type_label }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <strong>{{ archive.display_name }}</strong>
+                                    </td>
+                                    {% if archive_type == 'users' %}
+                                        <td>{{ archive.email or 'N/A' }}</td>
+                                        <td>{{ archive.role or 'N/A' }}</td>
+                                    {% elif archive_type == 'subjects' %}
+                                        <td>{{ archive.teacher_name or 'N/A' }}</td>
+                                        <td>{{ archive.description[:50] if archive.description else 'N/A' }}{% if archive.description and archive.description|length > 50 %}...{% endif %}</td>
+                                    {% elif archive_type == 'lessons' %}
+                                        <td>{{ archive.subject_name or 'N/A' }}</td>
+                                        <td>{{ archive.created_by_name or 'N/A' }}</td>
+                                    {% elif archive_type == 'assignments' %}
+                                        <td>{{ archive.subject_name or 'N/A' }}</td>
+                                        <td>{{ archive.due_date or 'N/A' }}</td>
+                                    {% elif archive_type == 'submissions' %}
+                                        <td>{{ archive.grade or 'Not Graded' }}</td>
+                                        <td>{{ archive.submitted_at or 'N/A' }}</td>
+                                    {% elif archive_type == 'enrollments' %}
+                                        <td>{{ archive.teacher_name or 'N/A' }}</td>
+                                        <td>{{ archive.status or 'N/A' }}</td>
+                                    {% endif %}
+                                    <td>{{ archive.archived_at_formatted }}</td>
+                                    <td>
+                                        <span class="archive-reason">
+                                            {{ archive.archive_reason or 'No reason provided' }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if archive_type in ['subjects', 'lessons', 'assignments'] %}
+                                        <form method="POST" action="{{ url_for('admin.unarchive_record', archive_type=archive_type, archive_id=archive.get('id')) }}" style="display: inline;" class="delete-confirm-form" data-confirm-message="Are you sure you want to restore '{{ archive.display_name }}'? This will move it back to the active {{ archive_type }} list with a new ID.">
+                                            <button type="submit" class="action-btn edit">Restore</button>
+                                        </form>
+                                        {% elif archive_type == 'users' %}
+                                        <span class="text-muted" style="font-size: 12px;" title="Users cannot be restored automatically. Create a new user account manually in User Management.">Cannot Restore</span>
+                                        {% else %}
+                                        <span class="text-muted" style="font-size: 12px;">View Only</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="no-archives">
+                        <div class="no-archives-icon">📦</div>
+                        <h3>No Archives Found</h3>
+                        <p>No archived {{ archive_type }} match your search criteria.</p>
+                        {% if search_query or date_from or date_to %}
+                            <p><a href="{{ url_for('admin.view_archives', type=archive_type) }}" class="archive-detail-link">Clear filters</a> to see all archives.</p>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </header>
+    </main>
+
+    <script src="{{ url_for('static', filename='js/admin_archives.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/admin_common.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
+</body>
+</html>

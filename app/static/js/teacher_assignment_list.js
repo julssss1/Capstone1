@@ -54,10 +54,10 @@ document.addEventListener('DOMContentLoaded', function() {
             const assignmentTitle = this.dataset.assignmentTitle;
             
             // Show confirmation dialog
-            if (confirm(`Are you sure you want to delete the assignment "${assignmentTitle}"?\n\nThis will also delete all student submissions for this assignment. This action cannot be undone.`)) {
-                // Disable button during delete
+            if (confirm(`Are you sure you want to archive the assignment "${assignmentTitle}"?\n\nAll student submissions and records will be preserved in the archive. You can restore this assignment later if needed.`)) {
+                // Disable button during archive
                 button.disabled = true;
-                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+                button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Archiving...';
                 
                 // Send delete request to server
                 fetch(`/teacher/assignment/delete/${assignmentId}`, {
@@ -85,18 +85,18 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }, 300);
                         
-                        showMessage('Assignment deleted successfully!', 'success');
+                        showMessage('Assignment archived successfully!', 'success');
                     } else {
-                        alert('Error: ' + (data.message || 'Failed to delete assignment.'));
+                        alert('Error: ' + (data.message || 'Failed to archive assignment.'));
                         button.disabled = false;
-                        button.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                        button.innerHTML = '<i class="fas fa-archive"></i> Archive';
                     }
                 })
                 .catch(error => {
-                    console.error('Error deleting assignment:', error);
-                    alert('An error occurred while deleting the assignment. Please try again.');
+                    console.error('Error archiving assignment:', error);
+                    alert('An error occurred while archiving the assignment. Please try again.');
                     button.disabled = false;
-                    button.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                    button.innerHTML = '<i class="fas fa-archive"></i> Archive';
                 });
             }
         });

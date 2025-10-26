@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Assignments - Handspoken CAES</title>
+    <title>Archived Assignments - Handspoken CAES</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/StudentDashboard.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}"> {# Assuming common dashboard styles #}
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignment.css') }}"> {# Can reuse or create specific styles #}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherDashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignment.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/TeacherAssignmentList.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
@@ -42,8 +42,8 @@
 
     <main class="main-content">
         <header class="page-header">
-            <h2><i class="fas fa-tasks table-header-icon"></i>All Assignments</h2>
-            <p>View ongoing assignments and track student submissions.</p>
+            <h2><i class="fas fa-archive table-header-icon"></i>Archived Assignments</h2>
+            <p>View and restore your archived assignments.</p>
              {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, message in messages %}
@@ -54,7 +54,7 @@
         </header>
 
         <!-- Filter Section -->
-        <form method="GET" action="{{ url_for('teacher.teacher_assignment_list') }}" class="filter-form">
+        <form method="GET" action="{{ url_for('teacher.teacher_archived_assignments') }}" class="filter-form">
             <div class="filter-controls">
                 <div class="filter-group">
                     <label for="subject-filter">Filter by Subject:</label>
@@ -68,70 +68,48 @@
                     </select>
                 </div>
                 
-                <div class="filter-group">
-                    <label for="lesson-filter">Filter by Lesson:</label>
-                    <select name="lesson_filter" id="lesson-filter" class="filter-select" {% if not filter_subject_id %}disabled{% endif %}>
-                        <option value="">All Lessons</option>
-                        {% for lesson in lessons %}
-                            <option value="{{ lesson.id }}" {% if filter_lesson_id == lesson.id %}selected{% endif %}>
-                                {{ lesson.title }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
                 <button type="submit" class="filter-btn"><i class="fas fa-filter"></i> Apply Filters</button>
-                {% if filter_subject_id or filter_lesson_id %}
-                    <a href="{{ url_for('teacher.teacher_assignment_list') }}" class="clear-filter-btn"><i class="fas fa-times"></i> Clear</a>
+                {% if filter_subject_id %}
+                    <a href="{{ url_for('teacher.teacher_archived_assignments') }}" class="clear-filter-btn"><i class="fas fa-times"></i> Clear</a>
                 {% endif %}
             </div>
         </form>
 
-        <!-- View Archives Button -->
+        <!-- Back to Active Assignments Button -->
         <div style="margin-bottom: 15px; text-align: right;">
-            <a href="{{ url_for('teacher.teacher_archived_assignments') }}" class="action-btn" style="background: #757575; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-                <i class="fas fa-archive"></i> View Archived Assignments
+            <a href="{{ url_for('teacher.teacher_assignment_list') }}" class="action-btn" style="background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
+                <i class="fas fa-arrow-left"></i> Back to Active Assignments
             </a>
         </div>
 
         <section class="table-container">
-            {% if assignments_with_counts and assignments_with_counts|length > 0 %}
+            {% if archived_assignments and archived_assignments|length > 0 %}
             <table class="assignments-table">
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>Subject</th>
                         <th>Lesson</th>
-                        <th>No. of Submitted Works</th>
                         <th>Due Date</th>
+                        <th>Archived At</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for item in assignments_with_counts %}
+                    {% for item in archived_assignments %}
                     <tr>
                         <td>
                             <i class="fas fa-pencil-alt table-header-icon table-icon-gray"></i>
-                            {{ item.assignment.title | default('N/A') }}
+                            {{ item.archive.title | default('N/A') }}
                         </td>
                         <td>{{ item.subject_name | default('N/A') }}</td>
                         <td>{{ item.lesson_name | default('N/A') }}</td>
-                        <td>{{ item.submission_count }}</td>
-                        <td>
-                            <div class="due-date-cell" data-assignment-id="{{ item.assignment.id }}">
-                                <span class="due-date-display">{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else (item.assignment.due_date if item.assignment.due_date else 'N/A') }}</span>
-                                <input type="date" class="due-date-input" value="{{ item.assignment.due_date[:10] if item.assignment.due_date and item.assignment.due_date|length >= 10 else '' }}" style="display: none;">
-                                <button class="edit-due-date-btn" title="Edit Due Date"><i class="fas fa-edit"></i></button>
-                                <button class="save-due-date-btn" style="display: none;" title="Save"><i class="fas fa-save"></i></button>
-                                <button class="cancel-due-date-btn" style="display: none;" title="Cancel"><i class="fas fa-times"></i></button>
-                            </div>
-                        </td>
+                        <td>{{ item.archive.due_date[:10] if item.archive.due_date and item.archive.due_date|length >= 10 else (item.archive.due_date if item.archive.due_date else 'N/A') }}</td>
+                        <td>{{ item.archived_at_formatted }}</td>
                         <td>
                             <div class="action-buttons-group">
-                                {# Updated link to point to the new route for viewing submissions for a specific assignment #}
-                                <a href="{{ url_for('teacher.view_assignment_submissions', assignment_id=item.assignment.id) }}" class="action-btn">View Submissions</a>
-                                <button class="action-btn delete-btn" data-assignment-id="{{ item.assignment.id }}" data-assignment-title="{{ item.assignment.title }}" title="Archive Assignment">
-                                    <i class="fas fa-archive"></i> Archive
+                                <button class="action-btn restore-btn" data-archive-id="{{ item.archive.id }}" data-assignment-title="{{ item.archive.title }}" title="Restore Assignment">
+                                    <i class="fas fa-undo"></i> Restore
                                 </button>
                             </div>
                         </td>
@@ -141,12 +119,13 @@
             </table>
             {% else %}
             <div class="no-assignments">
-                <p>No assignments found. <a href="{{ url_for('teacher.create_assignment') }}">Create one now!</a></p>
+                <i class="fas fa-archive" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+                <p>No archived assignments found. <a href="{{ url_for('teacher.teacher_assignment_list') }}">View active assignments</a></p>
             </div>
             {% endif %}
         </section>
     </main>
     <script src="{{ url_for('static', filename='js/menu.js') }}" defer></script>
-    <script src="{{ url_for('static', filename='js/teacher_assignment_list.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/teacher_archived_assignments.js') }}"></script>
 </body>
 </html>
