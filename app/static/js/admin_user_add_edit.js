@@ -5,6 +5,72 @@ document.addEventListener('DOMContentLoaded', function () {
         return;
     }
 
+    // Password generation function
+    const generatePassword = () => {
+        const uppercaseChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        const lowercaseChars = 'abcdefghijklmnopqrstuvwxyz';
+        const numberChars = '0123456789';
+        const atSymbol = '@';
+        
+        // Generate 9 random characters (uppercase, lowercase, and numbers)
+        let password = '';
+        const allChars = uppercaseChars + lowercaseChars + numberChars;
+        
+        // Ensure at least one of each type
+        password += uppercaseChars[Math.floor(Math.random() * uppercaseChars.length)];
+        password += lowercaseChars[Math.floor(Math.random() * lowercaseChars.length)];
+        password += numberChars[Math.floor(Math.random() * numberChars.length)];
+        
+        // Fill remaining 6 characters randomly
+        for (let i = 0; i < 6; i++) {
+            password += allChars[Math.floor(Math.random() * allChars.length)];
+        }
+        
+        // Shuffle the password (except the last character which will be @)
+        password = password.split('').sort(() => Math.random() - 0.5).join('');
+        
+        // Add @ at the end
+        password += atSymbol;
+        
+        return password;
+    };
+
+    // Handle generate password button clicks
+    const generatePasswordBtns = document.querySelectorAll('.generate-password-btn');
+    generatePasswordBtns.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const generatedPassword = generatePassword();
+            
+            // Find the appropriate password fields based on the context
+            const passwordField = document.getElementById('password'); // Add mode
+            const newPasswordField = document.getElementById('new_password'); // Edit mode
+            const confirmPasswordField = document.getElementById('confirm_password'); // Edit mode
+            
+            if (passwordField) {
+                // Add mode - single password field
+                passwordField.value = generatedPassword;
+            } else if (newPasswordField && confirmPasswordField) {
+                // Edit mode - new password and confirm password fields
+                newPasswordField.value = generatedPassword;
+                confirmPasswordField.value = generatedPassword;
+                
+                // Trigger input event to update password match message
+                const event = new Event('input', { bubbles: true });
+                confirmPasswordField.dispatchEvent(event);
+            }
+            
+            // Visual feedback
+            btn.textContent = '✓ Generated!';
+            btn.style.backgroundColor = '#4CAF50';
+            setTimeout(() => {
+                btn.textContent = 'Generate Password';
+                btn.style.backgroundColor = '';
+            }, 2000);
+        });
+    });
+
     // Handle grade level visibility based on role selection
     const roleSelect = document.getElementById('role');
     const gradeFieldContainer = document.getElementById('gradeFieldContainer');
